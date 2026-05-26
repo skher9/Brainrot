@@ -7,6 +7,8 @@ import { useXP } from "@/lib/xpContext";
 import { Corners, fireBurst } from "@/components/Effects";
 import { fireToast } from "@/components/Extras";
 import { ArrowRight, Check } from "@/components/Glyphs";
+import { useProgress } from "@/lib/useProgress";
+import { ProgressBadge } from "@/components/ProgressBadge";
 
 interface Step {
   array: number[];
@@ -69,6 +71,7 @@ const DIFF_STYLE = {
 
 export default function Section4SpotTheBug() {
   const { addXP, markComplete, goToSection } = useXP();
+  const { progress, upsert } = useProgress("bubble-sort-s4", TOTAL_ROUNDS);
   const [roundIdx, setRoundIdx] = useState(0);
   const [round, setRound] = useState<Round>(() => generateRound(ROUND_CONFIGS[0].array));
   const [selected, setSelected] = useState<number | null>(null);
@@ -94,9 +97,11 @@ export default function Section4SpotTheBug() {
     const next = roundIdx + 1;
     if (next >= TOTAL_ROUNDS) {
       setAllDone(true); markComplete(3); addXP(60); sound.win();
+      upsert(TOTAL_ROUNDS);
       fireToast("achievement", "Stage 4 complete", "Spot the Bug — all rounds done");
       return;
     }
+    upsert(next);
     setRoundIdx(next);
     setRound(generateRound(ROUND_CONFIGS[next].array));
     setSelected(null); setCorrect(null); setRoundDone(false);
@@ -133,7 +138,8 @@ export default function Section4SpotTheBug() {
   }
 
   return (
-    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px", position: "relative" }}>
+      <ProgressBadge completed={progress.completedSteps} total={TOTAL_ROUNDS} />
       {/* Section header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>

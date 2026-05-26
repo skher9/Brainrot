@@ -8,6 +8,8 @@ import { useXP } from "@/lib/xpContext";
 import { Corners, fireBurst } from "@/components/Effects";
 import { fireToast } from "@/components/Extras";
 import { Check, ArrowRight } from "@/components/Glyphs";
+import { useProgress } from "@/lib/useProgress";
+import { ProgressBadge } from "@/components/ProgressBadge";
 
 interface TaggedQuestion extends ComparisonQuestion {
   pattern: string | null;
@@ -72,6 +74,7 @@ export default function Section2Interactive() {
   const [done, setDone] = useState(false);
   const [shaking, setShaking] = useState(false);
   const lockRef = useRef(false);
+  const { progress, upsert } = useProgress("bubble-sort-s2", TOTAL_QUESTIONS);
 
   const q = QUESTIONS[qIdx];
   const maxVal = Math.max(...q.array);
@@ -103,8 +106,10 @@ export default function Section2Interactive() {
         markComplete(1);
         addXP(50);
         sound.win();
+        upsert(TOTAL_QUESTIONS);
         fireToast("achievement", "Stage 2 complete", "You Decide — 30 questions done");
       } else {
+        upsert(qIdx + 1);
         setQIdx((i) => i + 1);
       }
     }, 1400);
@@ -155,7 +160,8 @@ export default function Section2Interactive() {
   }
 
   return (
-    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px", position: "relative" }}>
+      <ProgressBadge completed={progress.completedSteps} total={TOTAL_QUESTIONS} />
       {/* Section header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>

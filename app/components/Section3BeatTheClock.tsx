@@ -8,6 +8,8 @@ import { useXP } from "@/lib/xpContext";
 import { Corners, fireBurst } from "@/components/Effects";
 import { Check, ArrowRight } from "@/components/Glyphs";
 import Confetti from "./Confetti";
+import { useProgress } from "@/lib/useProgress";
+import { ProgressBadge } from "@/components/ProgressBadge";
 
 const EASY_ARRAY = [1, 3, 2, 4, 6, 5];
 const MEDIUM_ARRAY = [4, 1, 6, 2, 5, 3];
@@ -30,6 +32,7 @@ type GameState = "playing" | "won" | "lost";
 
 export default function Section3BeatTheClock() {
   const { addXP, markComplete, goToSection } = useXP();
+  const { progress, upsert } = useProgress("bubble-sort-s3", 1);
   const [attempt, setAttempt] = useState(0);
   const [items, setItems] = useState<number[]>([...EASY_ARRAY]);
   const [paletteMap] = useState<Record<number, { top: string; bot: string; g: string }>>(() => {
@@ -69,7 +72,7 @@ export default function Section3BeatTheClock() {
     });
     if (earned > 0) { setPoints((p) => p + earned); addXP(earned); }
     prevItems.current = newOrder;
-    if (isSorted(newOrder)) { setGameState("won"); markComplete(2); addXP(100); sound.bigWin(); fireBurst(null, 50, "WIN"); }
+    if (isSorted(newOrder)) { setGameState("won"); markComplete(2); addXP(100); sound.bigWin(); fireBurst(null, 50, "WIN"); upsert(1); }
   };
 
   const restart = (nextAttempt: number) => {
@@ -86,7 +89,8 @@ export default function Section3BeatTheClock() {
   const timerColor = timeLeft > 30 ? "#6ee7b7" : timeLeft > 10 ? "#f6c453" : "#fb7185";
 
   return (
-    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px", position: "relative" }}>
+      <ProgressBadge completed={progress.completedSteps} total={1} />
       {gameState === "won" && <Confetti />}
 
       {/* Section header */}

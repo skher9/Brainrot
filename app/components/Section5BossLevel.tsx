@@ -7,6 +7,8 @@ import { useXP } from "@/lib/xpContext";
 import { Corners, fireBurst } from "@/components/Effects";
 import { Check, ArrowRight, Trophy, Bolt, Flame } from "@/components/Glyphs";
 import Confetti from "./Confetti";
+import { useProgress } from "@/lib/useProgress";
+import { ProgressBadge } from "@/components/ProgressBadge";
 
 interface Comparison { j: number; shouldSwap: boolean; explanation: string; }
 
@@ -56,6 +58,7 @@ type Feedback = "correct" | "wrong" | null;
 
 export default function Section5BossLevel() {
   const { addXP, markComplete, goToSection, streak, totalSessionXP, setSessionAccuracy } = useXP();
+  const { progress: savedProgress, upsert } = useProgress("bubble-sort-s5", TOTAL_ROUNDS);
   const [roundNum, setRoundNum] = useState(0);
   const [roundArrays] = useState<number[][]>(() => ROUND_CONFIGS.map((c) => c.buildArray()));
   const [array, setArray] = useState<number[]>(() => [...roundArrays[0]]);
@@ -111,10 +114,11 @@ export default function Section5BossLevel() {
   const startNextRound = () => {
     const next = roundNum + 1;
     if (next >= TOTAL_ROUNDS) {
-      markComplete(4); addXP(150); setAllDone(true);
+      markComplete(4); addXP(150); setAllDone(true); upsert(TOTAL_ROUNDS);
       setTimeout(() => { sound.chord(); setTimeout(() => setShowCard(true), 400); }, 2000);
       return;
     }
+    upsert(next);
     const nextArr = roundArrays[next];
     setRoundNum(next); setArray([...nextArr]); setComparisons(buildComparisons([...nextArr]));
     setCIdx(0); setRoundScore(0); setRoundWrong(0); setRoundDone(false);
@@ -215,7 +219,8 @@ export default function Section5BossLevel() {
   const config = ROUND_CONFIGS[roundNum];
 
   return (
-    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px", position: "relative" }}>
+      <ProgressBadge completed={savedProgress.completedSteps} total={TOTAL_ROUNDS} />
       {/* Section header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>

@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { useXP } from "@/lib/xpContext";
 import { Corners } from "@/components/Effects";
 import { Bolt, Check, Trophy, Shield, ArrowRight } from "@/components/Glyphs";
+import { useProgress } from "@/lib/useProgress";
+import { ProgressBadge } from "@/components/ProgressBadge";
 
 function formatTime(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -85,14 +87,21 @@ const CARDS = [
 export default function Section6RealWorld() {
   const { goToSection, totalSessionXP, sessionStartTime, sessionAccuracy, bestAccuracy } = useXP();
   const [elapsed, setElapsed] = useState(Date.now() - sessionStartTime);
+  const { progress: savedProgress, upsert } = useProgress("bubble-sort-s6", 1);
 
   useEffect(() => {
     const t = setInterval(() => setElapsed(Date.now() - sessionStartTime), 1000);
     return () => clearInterval(t);
   }, [sessionStartTime]);
 
+  useEffect(() => {
+    upsert(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px", position: "relative" }}>
+      <ProgressBadge completed={savedProgress.completedSteps} total={1} />
       {/* Section header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>

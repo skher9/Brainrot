@@ -104,12 +104,12 @@ export default function Section1Visualizer() {
     <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
       <div className="max-w-3xl w-full">
         {/* Section header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-[10px] font-black tracking-widest text-violet-400 uppercase bg-violet-950/60 px-2 py-0.5 rounded-md">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-xs font-black tracking-widest text-violet-400 uppercase bg-violet-950/60 px-2.5 py-1 rounded-md">
               01 / 06
             </span>
-            <span className="text-[10px] text-white/25 font-medium">5 min</span>
+            <span className="text-xs text-white/30 font-medium">5 min</span>
           </div>
           <h2 className="text-3xl font-black text-white mb-2 leading-tight">
             Watch it happen.
@@ -125,10 +125,10 @@ export default function Section1Visualizer() {
           <div className="absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)", backgroundSize: "60px 40px" }}
           />
-          <div className="flex items-end justify-center gap-4 h-[240px] relative z-10">
+          <div className="flex items-end justify-center gap-4 h-[260px] relative z-10">
             {step.array.map((val, i) => {
               const state = getBarState(i, step);
-              const height = Math.max(14, (val / maxVal) * 220);
+              const height = Math.max(14, (val / maxVal) * 238);
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
                   <motion.div
@@ -157,17 +157,14 @@ export default function Section1Visualizer() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="flex items-start gap-3 bg-white/[0.03] rounded-xl px-4 py-3.5 mb-5 border border-white/[0.06] min-h-[54px]"
+            className="bg-white/[0.03] rounded-xl px-4 py-3.5 mb-5 border border-white/[0.06] min-h-[54px]"
           >
-            {/* Step counter as progress bar */}
-            <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5">
-              <span className="text-[10px] font-black text-violet-400 tabular-nums leading-none">
-                {idx + 1}
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] font-black text-violet-400/70 tabular-nums tracking-wide uppercase">
+                Step {idx + 1}
               </span>
-              <div className="w-px flex-1 bg-white/[0.08] min-h-[16px]" />
-              <span className="text-[9px] text-white/20 tabular-nums leading-none">
-                {steps.length}
-              </span>
+              <span className="text-[10px] text-white/15 tabular-nums">/ {steps.length}</span>
+              <div className="flex-1 h-px bg-white/[0.06] ml-1" />
             </div>
             <p className="text-white/70 text-sm leading-relaxed">{step.description}</p>
           </motion.div>
@@ -202,10 +199,10 @@ export default function Section1Visualizer() {
               <button
                 key={s}
                 onClick={() => setSpeed(s)}
-                className={`px-3 py-2.5 text-xs font-bold transition-all capitalize ${
+                className={`px-3.5 py-2.5 text-sm font-bold transition-all capitalize ${
                   speed === s
                     ? "bg-violet-700 text-white"
-                    : "text-white/30 hover:text-white/70"
+                    : "text-white/30 hover:text-white/60"
                 }`}
               >
                 {s}

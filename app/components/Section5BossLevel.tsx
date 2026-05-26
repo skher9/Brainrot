@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { sound } from "@/lib/sound";
 import { useXP } from "@/lib/xpContext";
@@ -56,7 +56,7 @@ const BAR_GRADIENT: Record<string, string> = {
 type Feedback = "correct" | "wrong" | null;
 
 export default function Section5BossLevel() {
-  const { addXP, markComplete, goToSection } = useXP();
+  const { addXP, markComplete, goToSection, streak, totalSessionXP, setSessionAccuracy } = useXP();
 
   const [initArray] = useState(() => shuffle([10, 25, 40, 55, 70, 85]));
   const [array, setArray] = useState<number[]>([...initArray]);
@@ -69,8 +69,11 @@ export default function Section5BossLevel() {
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [explanation, setExplanation] = useState("");
   const [done, setDone] = useState(false);
+  const [showCard, setShowCard] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [copied, setCopied] = useState(false);
   const lockRef = useRef(false);
+  const doneTimeRef = useRef<number>(0);
 
   const maxVal = Math.max(...initArray);
   const current = comparisons[cIdx];
@@ -130,7 +133,12 @@ export default function Section5BossLevel() {
         setDone(true);
         markComplete(4);
         addXP(100);
-        sound.bigWin();
+        doneTimeRef.current = Date.now();
+        // 3s silence then dramatic chord
+        setTimeout(() => {
+          sound.chord();
+          setTimeout(() => setShowCard(true), 400);
+        }, 3000);
       } else {
         setCIdx(next);
       }
@@ -140,21 +148,44 @@ export default function Section5BossLevel() {
   const totalComparisons = comparisons.length;
   const progress = cIdx / totalComparisons;
 
+  // Store accuracy when done
+  useEffect(() => {
+    if (done) {
+      const acc = Math.round((score / totalComparisons) * 100);
+      setSessionAccuracy(acc);
+    }
+  }, [done, score, totalComparisons, setSessionAccuracy]);
+
   if (done) {
     const accuracy = Math.round((score / totalComparisons) * 100);
+    const shareText = `I just beat Bubble Sort on Brainrot\n\n⚡ ${totalSessionXP} XP earned\n🎯 ${accuracy}% accuracy\n🔥 ${streak} day streak\n\nRot smarter → brainrot.dev`;
+
+    const handleShare = async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({ text: shareText });
+        } else {
+          await navigator.clipboard.writeText(shareText);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      } catch {}
+    };
+
     return (
       <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
         <Confetti />
-        <div className="max-w-lg w-full text-center">
+        <div className="max-w-lg w-full">
+          {/* Win message — shows immediately */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#12122a] rounded-3xl p-10 border border-[#1c1c3a]"
+            className="text-center mb-8"
           >
-            <div className="text-6xl mb-4">
+            <div className="text-6xl mb-3">
               {accuracy >= 90 ? "💎" : accuracy >= 75 ? "🔥" : accuracy >= 60 ? "⚡" : "💡"}
             </div>
-            <h2 className="text-3xl font-black text-white mb-2">
+            <h2 className="text-3xl font-black text-white">
               {accuracy >= 90
                 ? "Flawless. You own this."
                 : accuracy >= 75
@@ -163,31 +194,89 @@ export default function Section5BossLevel() {
                 ? "Getting there. Watch the edge cases."
                 : "Keep going. The reps build the reflex."}
             </h2>
-            <p className="text-slate-400 text-sm mt-2 mb-6">
+            <p className="text-slate-500 text-sm mt-2">
               {score}/{totalComparisons} correct — {accuracy}% accuracy
             </p>
-
-            {/* Score card */}
-            <div className="grid grid-cols-3 gap-3 mb-8">
-              {[
-                { label: "Correct", value: score, color: "text-emerald-400" },
-                { label: "Wrong", value: wrong, color: "text-red-400" },
-                { label: "Accuracy", value: `${accuracy}%`, color: "text-violet-400" },
-              ].map((item) => (
-                <div key={item.label} className="bg-[#1c1c3a] rounded-xl p-3">
-                  <p className={`text-xl font-black ${item.color}`}>{item.value}</p>
-                  <p className="text-slate-600 text-xs mt-0.5">{item.label}</p>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => goToSection(5)}
-              className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-xl transition-all active:scale-95 shadow-lg shadow-violet-900/40"
-            >
-              See where this is used →
-            </button>
           </motion.div>
+
+          {/* Shareable result card — appears after chord */}
+          <AnimatePresence>
+            {showCard && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="mb-6"
+              >
+                {/* Card */}
+                <div className="bg-gradient-to-br from-[#0d0d1a] to-[#12122a] rounded-2xl p-6 border border-violet-700/30 shadow-2xl shadow-violet-900/30">
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="font-black text-lg">
+                      <span className="text-violet-400">brain</span>
+                      <span className="text-cyan-400">rot</span>
+                    </span>
+                    <span className="text-slate-600 text-xs font-medium tracking-widest uppercase">
+                      Bubble Sort
+                    </span>
+                  </div>
+
+                  <p className="text-white font-black text-base mb-5 leading-snug">
+                    I just beat Bubble Sort on Brainrot
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-3 mb-5">
+                    {[
+                      { icon: "⚡", val: `${totalSessionXP} XP`, label: "earned" },
+                      { icon: "🎯", val: `${accuracy}%`, label: "accuracy" },
+                      { icon: "🔥", val: `${streak}`, label: "day streak" },
+                    ].map((s) => (
+                      <div
+                        key={s.label}
+                        className="bg-[#1c1c3a]/60 rounded-xl p-3 text-center"
+                      >
+                        <p className="text-sm mb-0.5">{s.icon}</p>
+                        <p className="text-white font-black text-base tabular-nums">
+                          {s.val}
+                        </p>
+                        <p className="text-slate-600 text-[10px]">{s.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-slate-600 text-xs text-center">
+                    Rot smarter.
+                  </p>
+                </div>
+
+                {/* Share + Next */}
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleShare}
+                    className="flex-1 py-3 bg-[#1c1c3a] hover:bg-[#252550] border border-[#2a2a4a] hover:border-violet-700/60 text-white font-bold rounded-xl transition-all text-sm"
+                  >
+                    {copied ? "✓ Copied" : "Share result →"}
+                  </button>
+                  <button
+                    onClick={() => goToSection(5)}
+                    className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-xl transition-all active:scale-95 shadow-lg shadow-violet-900/40 text-sm"
+                  >
+                    Finish →
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!showCard && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.6, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              className="text-center text-slate-600 text-sm"
+            >
+              ...
+            </motion.p>
+          )}
         </div>
       </section>
     );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useXP } from "@/lib/xpContext";
 
@@ -79,8 +80,21 @@ const CARDS = [
   },
 ];
 
+function formatTime(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+}
+
 export default function Section6RealWorld() {
-  const { goToSection } = useXP();
+  const { goToSection, totalSessionXP, sessionStartTime, sessionAccuracy, bestAccuracy } = useXP();
+  const [elapsed, setElapsed] = useState(Date.now() - sessionStartTime);
+
+  useEffect(() => {
+    const t = setInterval(() => setElapsed(Date.now() - sessionStartTime), 1000);
+    return () => clearInterval(t);
+  }, [sessionStartTime]);
 
   return (
     <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
@@ -127,12 +141,66 @@ export default function Section6RealWorld() {
           ))}
         </div>
 
+        {/* Performance summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 bg-[#12121a] rounded-2xl border border-[#1c1c3a] p-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-black text-base">Your session</h3>
+            <span className="text-[10px] font-black tracking-widest uppercase text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded">
+              Stats
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              {
+                icon: "⚡",
+                val: `${totalSessionXP} XP`,
+                label: "earned today",
+                color: "text-amber-400",
+              },
+              {
+                icon: "⏱️",
+                val: formatTime(elapsed),
+                label: "time spent",
+                color: "text-cyan-400",
+              },
+              {
+                icon: "🎯",
+                val: sessionAccuracy !== null ? `${sessionAccuracy}%` : "—",
+                label: "boss accuracy",
+                color: "text-violet-400",
+              },
+              {
+                icon: "🏆",
+                val: bestAccuracy > 0 ? `${bestAccuracy}%` : "—",
+                label: "personal best",
+                color: "text-emerald-400",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="bg-[#1c1c3a]/60 rounded-xl p-3 text-center"
+              >
+                <p className="text-base mb-1">{s.icon}</p>
+                <p className={`font-black text-base tabular-nums ${s.color}`}>
+                  {s.val}
+                </p>
+                <p className="text-slate-600 text-[10px] mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* Final win */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-10 p-8 bg-gradient-to-r from-violet-950/60 to-cyan-950/40 rounded-3xl border border-violet-700/30 text-center"
+          transition={{ delay: 0.7 }}
+          className="mt-6 p-8 bg-gradient-to-r from-violet-950/60 to-cyan-950/40 rounded-3xl border border-violet-700/30 text-center"
         >
           <div className="text-5xl mb-4">🏁</div>
           <h3 className="text-2xl font-black text-white mb-2">
@@ -141,6 +209,9 @@ export default function Section6RealWorld() {
           <p className="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
             You watched it, drove it, raced it, debugged it, and owned it. Bubble sort
             is yours. On to the next one.
+          </p>
+          <p className="text-slate-600 text-xs mb-6">
+            Come back tomorrow. Daily challenge drops at midnight.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             <button
@@ -152,7 +223,7 @@ export default function Section6RealWorld() {
             <button
               className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white font-black rounded-xl transition-all active:scale-95 text-sm shadow-lg"
               onClick={() => {
-                const text = `Just completed Bubble Sort on SortLab — 1 hour, 6 challenges. Concepts stick when they fight back.`;
+                const text = `Just completed Bubble Sort on Brainrot — ${totalSessionXP} XP, ${sessionAccuracy ?? "?"}% accuracy. Rot smarter.`;
                 navigator.clipboard?.writeText(text);
               }}
             >

@@ -1,7 +1,12 @@
 let ctx: AudioContext | null = null;
+let _enabled = false;
+
+export function setSoundEnabled(v: boolean) {
+  _enabled = v;
+}
 
 function getCtx(): AudioContext | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" || !_enabled) return null;
   if (!ctx) {
     try {
       ctx = new (window.AudioContext ||
@@ -11,6 +16,7 @@ function getCtx(): AudioContext | null {
       return null;
     }
   }
+  if (ctx.state === "suspended") ctx.resume();
   return ctx;
 }
 
@@ -65,5 +71,9 @@ export const sound = {
   bigWin: () => {
     const seq = [523, 659, 784, 659, 784, 1047];
     seq.forEach((f, i) => setTimeout(() => tone(f, 0.2, "sine", 0.3), i * 80));
+  },
+  chord: () => {
+    // Boss level complete — dramatic, full, held chord
+    [261, 329, 392, 523, 659].forEach((f) => tone(f, 2.0, "sine", 0.2));
   },
 };

@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useXP } from "@/lib/xpContext";
-import { Corners } from "@/components/Effects";
+import { Corners, fireBurst } from "@/components/Effects";
+import { Target, Sparkle, Live } from "@/components/Glyphs";
 
 function msToMidnight(): number {
   const now = new Date();
@@ -12,173 +11,167 @@ function msToMidnight(): number {
   return midnight.getTime() - now.getTime();
 }
 
-function timeParts(ms: number) {
-  const s = Math.floor(ms / 1000);
-  return {
-    h: String(Math.floor(s / 3600)).padStart(2, "0"),
-    m: String(Math.floor((s % 3600) / 60)).padStart(2, "0"),
-    s: String(s % 60).padStart(2, "0"),
-  };
+function TimePart({ v }: { v: string }) {
+  return (
+    <span style={{
+      fontFamily: "var(--font-mono)",
+      fontSize: 16, fontWeight: 700, color: "#ebe9e3",
+      background: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 4,
+      padding: "2px 6px",
+      minWidth: 28, textAlign: "center",
+      letterSpacing: "0.02em",
+      display: "inline-block",
+    }}>{v}</span>
+  );
 }
 
-const TELEMETRY = [
-  { label: "Attempts",  value: "2,341" },
-  { label: "Avg Time",  value: "11m" },
-  { label: "Best",      value: "4m12s" },
-  { label: "Drop Rate", value: "6%" },
-  { label: "Running",   value: "312" },
-];
+function Stat({ label, value, hi }: { label: string; value: string; hi?: boolean }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 8, letterSpacing: "0.2em", color: "rgba(235,233,227,0.35)",
+      }}>{label}</span>
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 13, fontWeight: 600,
+        color: hi ? "#f6c453" : "rgba(235,233,227,0.85)",
+      }}>{value}</span>
+    </div>
+  );
+}
 
 export default function DailyChallenge() {
-  const { streak } = useXP();
-  const [countdown, setCountdown] = useState(() => msToMidnight());
+  const [seconds, setSeconds] = useState(() => Math.floor(msToMidnight() / 1000));
 
   useEffect(() => {
-    const t = setInterval(() => setCountdown(msToMidnight()), 1000);
+    const t = setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const { h, m, s } = timeParts(countdown);
-  const goldenStreak = streak >= 7;
+  const hh = String(Math.floor(seconds / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+  const ss = String(seconds % 60).padStart(2, "0");
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.1 }}
-      className="max-w-5xl mx-auto px-4 pt-3 pb-2"
-    >
-      <div
-        className="relative overflow-hidden rounded-xl diag-stripe"
-        style={{
-          background: "rgba(13,13,20,0.9)",
-          border: `1px solid ${goldenStreak ? "rgba(246,196,83,0.3)" : "rgba(246,196,83,0.12)"}`,
-        }}
-      >
-        <Corners color="var(--gold)" size={10} thickness={1.2} opacity={0.4} />
+    <div style={{ position: "relative" }}>
+      <Corners color="rgba(246,196,83,0.4)" size={12} thickness={1.2} />
+      <div className="chrome-edge" style={{
+        position: "relative",
+        background: "linear-gradient(135deg, rgba(246,196,83,0.06) 0%, rgba(167,139,250,0.04) 100%), rgba(12,12,20,0.85)",
+        border: "1px solid rgba(246,196,83,0.18)",
+        borderRadius: 14,
+        padding: "22px 26px",
+        overflow: "hidden",
+      }}>
+        {/* Diagonal stripe bg */}
+        <div style={{
+          position: "absolute", inset: 0, opacity: 0.08,
+          backgroundImage: "repeating-linear-gradient(135deg, rgba(246,196,83,1) 0 2px, transparent 2px 16px)",
+          pointerEvents: "none",
+        }} />
 
-        <div className="px-5 py-3 flex items-center gap-4 flex-wrap sm:flex-nowrap">
-          {/* Streak */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="relative">
-              <motion.span
-                className="text-xl leading-none block"
-                animate={{ scale: [1, 1.15, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                🔥
-              </motion.span>
-              {goldenStreak && (
-                <span
-                  className="absolute inset-0 rounded-full pulse-ring"
-                  style={{ background: "rgba(251,113,28,0.4)", borderRadius: "50%" }}
-                />
-              )}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 18,
+          position: "relative",
+        }}>
+          {/* Left: title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 48, height: 48,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "linear-gradient(135deg, rgba(246,196,83,0.2), rgba(246,196,83,0.05))",
+              border: "1px solid rgba(246,196,83,0.4)",
+              borderRadius: 8,
+              position: "relative",
+              flexShrink: 0,
+            }}>
+              <Target size={22} color="#f6c453" />
+              <span style={{
+                position: "absolute", inset: -2, borderRadius: 10,
+                border: "1px solid rgba(246,196,83,0.4)",
+                animation: "pulse-ring 2s ease-out infinite",
+              }} />
             </div>
             <div>
-              <p
-                className="font-black text-sm leading-none"
-                style={{ color: goldenStreak ? "var(--gold)" : "#fb923c" }}
-              >
-                {streak} day streak
-              </p>
-              <p
-                className="text-[10px] mt-0.5"
-                style={{
-                  color: "rgba(255,255,255,0.2)",
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{
                   fontFamily: "var(--font-mono)",
-                }}
-              >
-                {streak === 0
-                  ? "Start today"
-                  : streak >= 30
-                  ? "Legend 🏆"
-                  : streak >= 7
-                  ? "On fire"
-                  : "Keep going"}
+                  fontSize: 9, letterSpacing: "0.22em", color: "#f6c453",
+                }}>DAILY CHALLENGE</span>
+                <span style={{
+                  padding: "1px 6px", borderRadius: 3,
+                  background: "rgba(246,196,83,0.15)",
+                  border: "1px solid rgba(246,196,83,0.3)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 8, letterSpacing: "0.1em",
+                  color: "#f6c453",
+                }}>2X XP</span>
+              </div>
+              <h3 style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 22, color: "#ebe9e3", letterSpacing: "-0.01em",
+                marginBottom: 2, margin: "0 0 2px",
+              }}>
+                Sort six in under ninety seconds.
+              </h3>
+              <p style={{
+                fontSize: 12, color: "rgba(235,233,227,0.4)",
+                letterSpacing: "0.02em", margin: 0,
+              }}>
+                Beat yesterday&apos;s median by 14% and the streak fires gold.
               </p>
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="hidden sm:block h-8 w-px bg-white/[0.06]" />
-
-          {/* Challenge name */}
-          <div className="hidden sm:block flex-1">
-            <p
-              className="text-[9px] uppercase tracking-[0.2em] font-bold mb-0.5"
-              style={{ color: "rgba(255,255,255,0.2)" }}
-            >
-              Today&apos;s rot
-            </p>
-            <p className="text-white font-black text-sm">Bubble Sort Speed Run</p>
-          </div>
-
-          {/* Countdown */}
-          <div className="ml-auto flex items-center gap-1.5 shrink-0">
-            {[h, m, s].map((val, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <div
-                  className="px-2 py-1 rounded-md text-center"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    minWidth: 32,
-                  }}
-                >
-                  <span
-                    className="font-black tabular-nums text-sm leading-none"
-                    style={{ color: "var(--cyan)", fontFamily: "var(--font-mono)" }}
-                  >
-                    {val}
-                  </span>
-                </div>
-                {i < 2 && (
-                  <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 12, fontWeight: 900 }}>:</span>
-                )}
+          {/* Right: timer + CTA */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+              <span style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 8, letterSpacing: "0.2em", color: "rgba(235,233,227,0.4)",
+              }}>RESETS IN</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <TimePart v={hh} />
+                <span style={{ color: "rgba(235,233,227,0.3)" }}>:</span>
+                <TimePart v={mm} />
+                <span style={{ color: "rgba(235,233,227,0.3)" }}>:</span>
+                <TimePart v={ss} />
               </div>
-            ))}
-            <p
-              className="text-[9px] ml-1 uppercase tracking-widest"
-              style={{ color: "rgba(255,255,255,0.15)", fontFamily: "var(--font-mono)" }}
+            </div>
+            <button
+              onClick={(e) => { fireBurst(e, 10, "XP"); }}
+              className="btn-primary"
+              style={{ padding: "10px 18px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              next
-            </p>
+              <Sparkle size={12} color="#fff4d6" />
+              Accept
+            </button>
           </div>
         </div>
 
-        {/* Telemetry strip */}
-        <div
-          className="px-5 py-1.5 flex items-center gap-4 border-t overflow-x-auto"
-          style={{ borderColor: "rgba(255,255,255,0.04)" }}
-        >
-          {TELEMETRY.map((t) => (
-            <div key={t.label} className="flex items-center gap-1.5 shrink-0">
-              <span
-                style={{
-                  fontSize: 9,
-                  color: "rgba(255,255,255,0.18)",
-                  fontFamily: "var(--font-mono)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.12em",
-                }}
-              >
-                {t.label}
-              </span>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  fontFamily: "var(--font-mono)",
-                  color: "rgba(255,255,255,0.45)",
-                }}
-              >
-                {t.value}
-              </span>
-            </div>
-          ))}
+        {/* Bottom telemetry strip */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 18, marginTop: 16, paddingTop: 14,
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          position: "relative",
+        }}>
+          <Stat label="ATTEMPTS" value="2,481" />
+          <Stat label="AVG TIME" value="1:42" />
+          <Stat label="BEST" value="0:47" hi />
+          <Stat label="DROP RATE" value="11%" />
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Live size={6} color="#6ee7b7" />
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9, color: "rgba(110,231,183,0.7)", letterSpacing: "0.15em",
+            }}>312 RUNNING NOW</span>
+          </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

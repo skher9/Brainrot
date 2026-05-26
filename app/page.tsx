@@ -117,8 +117,8 @@ function BubbleSortModule() {
       <Constellation />
 
       <div style={{ background: "var(--bg-0)", position: "relative", zIndex: 1 }}>
-        <Header />
-        <div className="pt-[60px]">
+        <Header onMap={() => setShowMap(true)} />
+        <div style={{ paddingTop: "var(--hud-h)" }}>
           {currentSection === 0 && <DailyChallenge />}
           <AnimatePresence mode="wait">
             <motion.div

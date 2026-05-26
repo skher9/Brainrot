@@ -1,225 +1,280 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useXP } from "@/lib/xpContext";
-import { TickNumber, Corners } from "@/components/Effects";
-import { Speaker, SpeakerOff } from "@/components/Glyphs";
+import { TickNumber } from "@/components/Effects";
+import { Bolt, Flame, Compass, Speaker, SpeakerOff, Check, Live } from "@/components/Glyphs";
 
-const SECTION_LABELS = ["Watch", "Drive", "Race", "Debug", "Boss", "Context"];
-const GLITCH_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+const SECTION_LABELS = [
+  { code: "01", name: "Watch",   sub: "Visualizer" },
+  { code: "02", name: "Drive",   sub: "Interactive" },
+  { code: "03", name: "Race",    sub: "Beat the Clock" },
+  { code: "04", name: "Debug",   sub: "Spot the Bug" },
+  { code: "05", name: "Boss",    sub: "Final Stand" },
+  { code: "06", name: "Context", sub: "Real World" },
+];
 
-function Wordmark({ golden }: { glitch?: boolean; golden: boolean }) {
-  const [g, setG] = useState(false);
-  const [gText, setGText] = useState("brainrot");
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setG(true);
-      // scramble for 3 frames then restore
-      let frame = 0;
-      const scramble = setInterval(() => {
-        if (frame >= 3) {
-          setG(false);
-          setGText("brainrot");
-          clearInterval(scramble);
-          return;
-        }
-        setGText(
-          "brainrot"
-            .split("")
-            .map((c, i) =>
-              Math.random() < 0.3
-                ? GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)].toLowerCase()
-                : c
-            )
-            .join("")
-        );
-        frame++;
-      }, 60);
-    }, 4200);
-    return () => clearInterval(t);
-  }, []);
-
-  const text = gText;
-  const brain = text.slice(0, 5);
-  const rot = text.slice(5);
-
+function Wordmark({ golden }: { golden: boolean }) {
   return (
-    <span
-      className="font-black text-sm tracking-tight shrink-0 cursor-default select-none"
-      style={{
-        fontFamily: "var(--font-display)",
-        fontSize: 15,
-        filter: g
-          ? "drop-shadow(2px 0 0 rgba(239,68,68,0.9)) drop-shadow(-2px 0 0 rgba(6,182,212,0.9))"
-          : golden
-          ? "drop-shadow(0 0 10px rgba(246,196,83,0.6))"
-          : "none",
-        transition: g ? "none" : "filter 0.2s",
-      }}
-    >
-      <span style={{ color: golden ? "var(--gold)" : "var(--violet)" }}>{brain}</span>
-      <span style={{ color: golden ? "#fde68a" : "var(--cyan)" }}>{rot}</span>
-      <span
-        style={{
-          fontSize: 8,
-          color: "rgba(255,255,255,0.2)",
-          fontFamily: "var(--font-mono)",
-          fontStyle: "normal",
-          marginLeft: 3,
-          verticalAlign: "super",
-        }}
-      >
-        v.7
-      </span>
+    <span style={{
+      fontFamily: "var(--font-display)",
+      fontSize: 22,
+      letterSpacing: "-0.02em",
+      fontWeight: 500,
+      position: "relative",
+      cursor: "default",
+      userSelect: "none",
+      flexShrink: 0,
+    }}>
+      <span style={{
+        color: golden ? "#f6c453" : "#cdb9ff",
+        textShadow: golden
+          ? "0 0 18px rgba(246,196,83,0.65)"
+          : "0 0 14px rgba(167,139,250,0.45)",
+      }}>brain</span>
+      <span style={{ color: "rgba(235,233,227,0.92)" }}>rot</span>
+      <span style={{
+        position: "absolute", right: -8, top: -2,
+        fontFamily: "var(--font-mono)", fontSize: 8, color: "rgba(246,196,83,0.7)",
+        letterSpacing: "0.1em",
+      }}>v.7</span>
     </span>
   );
 }
 
-export default function Header() {
-  const { xp, streak, level, currentSection, soundEnabled, toggleSound, sectionComplete } =
-    useXP();
-
-  const goldenStreak = streak >= 7;
-
+function DiagonalDivider() {
   return (
-    <header
-      className="fixed top-0 left-0 right-0 z-50 h-[60px]"
-      style={{
-        background: "rgba(7,7,13,0.94)",
-        backdropFilter: "blur(16px)",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      <div className="h-full max-w-5xl mx-auto px-4 flex items-center gap-4">
-        {/* Wordmark */}
-        <Wordmark golden={goldenStreak} />
+    <div style={{
+      width: 1, height: 28,
+      background: "linear-gradient(180deg, transparent, rgba(255,255,255,0.16), transparent)",
+      transform: "skewX(-18deg)",
+      flexShrink: 0,
+    }} />
+  );
+}
 
-        {/* Section rail */}
-        <div className="flex-1 flex items-center gap-1 min-w-0">
-          {SECTION_LABELS.map((label, i) => {
-            const isActive = i === currentSection;
-            const isDone = sectionComplete[i];
-            return (
-              <div
-                key={i}
-                className="flex-1 min-w-0 flex flex-col items-center gap-0.5"
-              >
-                <div className="w-full h-[3px] rounded-full overflow-hidden bg-white/[0.05]">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{
-                      background: isDone
-                        ? "linear-gradient(90deg,#065f46,var(--emerald))"
-                        : isActive
-                        ? "linear-gradient(90deg,var(--violet-dim),var(--cyan))"
-                        : "transparent",
-                    }}
-                    initial={{ scaleX: 0, originX: 0 }}
-                    animate={{ scaleX: isDone || isActive ? 1 : 0 }}
-                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  />
-                </div>
-                <div className="flex items-center gap-1">
-                  {isDone && (
-                    <span style={{ color: "var(--emerald)", fontSize: 6 }}>✓</span>
-                  )}
-                  {isActive && !isDone && (
-                    <span
-                      className="relative w-1 h-1 rounded-full"
-                      style={{ background: "var(--violet)", flexShrink: 0 }}
-                    >
-                      <span
-                        className="absolute inset-0 rounded-full animate-ping"
-                        style={{ background: "var(--violet)", opacity: 0.5 }}
-                      />
-                    </span>
-                  )}
-                  <span
-                    className="text-[9px] font-semibold leading-none hidden sm:block truncate"
-                    style={{
-                      color: isActive
-                        ? "var(--violet)"
-                        : isDone
-                        ? "var(--emerald)"
-                        : "rgba(255,255,255,0.15)",
-                    }}
-                  >
-                    {label}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* XP meter */}
-        <div
-          className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg shrink-0"
-          style={{
-            background: "rgba(246,196,83,0.07)",
-            border: "1px solid rgba(246,196,83,0.2)",
-          }}
-        >
-          <span style={{ color: "var(--gold)", fontSize: 11 }}>⚡</span>
-          <div className="flex flex-col items-end">
-            <span
-              className="font-black tabular-nums leading-none"
-              style={{ color: "var(--gold)", fontSize: 11, fontFamily: "var(--font-mono)" }}
-            >
-              <TickNumber value={xp} />
-            </span>
-            <span
-              className="leading-none hidden sm:block"
-              style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, fontFamily: "var(--font-mono)" }}
-            >
-              {level.split(" ")[0]}
-            </span>
-          </div>
-        </div>
-
-        {/* Streak */}
-        <div
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg shrink-0"
-          style={{
-            background: goldenStreak ? "rgba(251,113,28,0.12)" : "rgba(255,255,255,0.04)",
-            border: `1px solid ${goldenStreak ? "rgba(251,113,28,0.35)" : "var(--border)"}`,
-          }}
-        >
-          <motion.span
-            className="text-sm leading-none"
-            animate={streak > 0 ? { scale: [1, 1.35, 1] } : {}}
-            transition={{ duration: 0.3, delay: 0.05 }}
-            key={streak}
-          >
-            🔥
-          </motion.span>
-          <span
-            className="font-black tabular-nums"
+function SectionRail({ current, onJump }: { current: number; onJump: (i: number) => void }) {
+  return (
+    <div style={{ display: "flex", alignItems: "stretch", gap: 6, flex: 1, minWidth: 0 }}>
+      {SECTION_LABELS.map((s, i) => {
+        const isActive = i === current;
+        const isDone   = i < current;
+        return (
+          <button
+            key={s.code}
+            onClick={() => onJump(i)}
             style={{
-              color: goldenStreak ? "#fb923c" : "rgba(255,255,255,0.5)",
-              fontSize: 11,
-              fontFamily: "var(--font-mono)",
+              flex: 1, minWidth: 0,
+              display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4,
+              padding: "8px 10px",
+              background: isActive ? "rgba(167,139,250,0.08)" : "transparent",
+              border: "1px solid " + (isActive ? "rgba(167,139,250,0.35)" : "transparent"),
+              borderRadius: 6,
+              cursor: "pointer",
+              position: "relative",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) e.currentTarget.style.background = "transparent";
             }}
           >
-            {streak}
-          </span>
-        </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+              <span style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 9,
+                color: isActive ? "#f6c453" : isDone ? "rgba(110,231,183,0.7)" : "rgba(235,233,227,0.25)",
+                letterSpacing: "0.12em",
+              }}>{s.code}</span>
+              <span style={{
+                fontSize: 11, fontWeight: 600,
+                color: isActive ? "#ebe9e3" : isDone ? "rgba(110,231,183,0.65)" : "rgba(235,233,227,0.35)",
+                letterSpacing: "0.02em",
+              }}>{s.name}</span>
+              {isDone && (
+                <span style={{ marginLeft: "auto" }}>
+                  <Check size={10} color="rgba(110,231,183,0.8)" />
+                </span>
+              )}
+              {isActive && (
+                <span style={{ marginLeft: "auto", position: "relative", display: "inline-flex" }}>
+                  <Live size={6} color="#f6c453" />
+                  <span style={{
+                    position: "absolute", inset: -4, borderRadius: "50%",
+                    border: "1px solid rgba(246,196,83,0.5)",
+                    animation: "pulse-ring 2s ease-out infinite",
+                  }} />
+                </span>
+              )}
+            </div>
+            <div style={{
+              height: 2, width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              borderRadius: 2, overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%",
+                width: isDone ? "100%" : isActive ? "60%" : "0%",
+                background: isDone
+                  ? "linear-gradient(90deg,#34d399,#6ee7b7)"
+                  : "linear-gradient(90deg,#a78bfa,#f6c453)",
+                transition: "width 0.6s cubic-bezier(.16,1,.3,1)",
+                boxShadow: isActive ? "0 0 8px rgba(246,196,83,0.4)" : "none",
+              }} />
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
-        {/* Sound */}
-        <button
-          onClick={toggleSound}
-          className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shrink-0"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid var(--border)",
-            color: soundEnabled ? "var(--cyan)" : "rgba(255,255,255,0.25)",
-          }}
-          title={soundEnabled ? "Sound on" : "Sound off"}
-        >
-          {soundEnabled ? <Speaker size={12} /> : <SpeakerOff size={12} />}
-        </button>
+function XPMeter({ xp, level }: { xp: number; level: string }) {
+  const into = xp % 200;
+  const pct = (into / 200) * 100;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "6px 12px 6px 10px",
+      background: "rgba(246,196,83,0.05)",
+      border: "1px solid rgba(246,196,83,0.18)",
+      borderRadius: 8,
+      position: "relative",
+    }}>
+      <Bolt size={14} color="#f6c453" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 70 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+          <span style={{ color: "#f6c453", fontWeight: 700, fontSize: 13, letterSpacing: "0.02em", fontFamily: "var(--font-mono)" }}>
+            <TickNumber value={xp} />
+          </span>
+          <span style={{ color: "rgba(246,196,83,0.4)", fontSize: 9, letterSpacing: "0.1em", fontFamily: "var(--font-mono)" }}>XP</span>
+        </div>
+        <div style={{ height: 3, width: "100%", background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{
+            height: "100%", width: pct + "%",
+            background: "linear-gradient(90deg,#f6c453,#fde68a)",
+            boxShadow: "0 0 8px rgba(246,196,83,0.6)",
+            transition: "width 0.6s cubic-bezier(.16,1,.3,1)",
+          }} />
+        </div>
+      </div>
+      <div style={{
+        position: "absolute", top: -7, right: 10,
+        fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.12em",
+        color: "rgba(246,196,83,0.7)",
+        background: "#0c0c14", padding: "0 4px",
+      }}>{level || "INITIATE"}</div>
+    </div>
+  );
+}
+
+function StreakBadge({ streak }: { streak: number }) {
+  const golden = streak >= 7;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      padding: "6px 12px",
+      background: golden ? "rgba(246,196,83,0.08)" : "rgba(251,113,133,0.06)",
+      border: "1px solid " + (golden ? "rgba(246,196,83,0.3)" : "rgba(251,113,133,0.22)"),
+      borderRadius: 8,
+    }}>
+      <span style={{
+        display: "inline-block",
+        animation: streak > 0 ? "float-y 2.2s ease-in-out infinite" : "none",
+      }}>
+        <Flame size={14} color={golden ? "#f6c453" : "#fb7185"} />
+      </span>
+      <span style={{
+        color: golden ? "#f6c453" : "#fb7185",
+        fontWeight: 700, fontSize: 13, letterSpacing: "0.02em",
+        fontFamily: "var(--font-mono)",
+      }}>
+        <TickNumber value={streak} />
+      </span>
+      <span style={{
+        fontSize: 8, letterSpacing: "0.12em",
+        color: golden ? "rgba(246,196,83,0.55)" : "rgba(251,113,133,0.5)",
+        fontFamily: "var(--font-mono)",
+      }}>DAYS</span>
+    </div>
+  );
+}
+
+function IconButton({ children, title, onClick }: { children: React.ReactNode; title: string; onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        width: 32, height: 32,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 8,
+        cursor: "pointer",
+        color: "rgba(235,233,227,0.65)",
+        transition: "all 0.15s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(167,139,250,0.1)";
+        e.currentTarget.style.borderColor = "rgba(167,139,250,0.4)";
+        e.currentTarget.style.color = "#ebe9e3";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+        e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+        e.currentTarget.style.color = "rgba(235,233,227,0.65)";
+      }}
+    >{children}</button>
+  );
+}
+
+export default function Header({ onMap }: { onMap?: () => void }) {
+  const { xp, streak, level, currentSection, goToSection, soundEnabled, toggleSound } = useXP();
+  const golden = streak >= 7;
+
+  return (
+    <header style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+      height: "var(--hud-h)",
+      background: "linear-gradient(180deg, rgba(7,7,13,0.92), rgba(7,7,13,0.78))",
+      backdropFilter: "blur(18px)",
+      borderBottom: "1px solid rgba(255,255,255,0.06)",
+    }}>
+      {/* Bottom accent line */}
+      <div style={{
+        position: "absolute", left: 0, right: 0, bottom: 0, height: 1,
+        background: "linear-gradient(90deg, transparent, rgba(167,139,250,0.5), rgba(246,196,83,0.4), transparent)",
+      }} />
+      {/* Sweep scan beam */}
+      <div style={{
+        position: "absolute", left: 0, right: 0, bottom: 0, height: 1,
+        background: "linear-gradient(90deg, transparent 0%, rgba(246,196,83,0.9) 50%, transparent 100%)",
+        backgroundSize: "30% 100%",
+        animation: "border-sweep 8s linear infinite",
+        opacity: 0.6,
+      }} />
+
+      <div style={{
+        height: "100%",
+        maxWidth: 1280, margin: "0 auto", padding: "0 20px",
+        display: "flex", alignItems: "center", gap: 18,
+      }}>
+        <Wordmark golden={golden} />
+        <DiagonalDivider />
+        <SectionRail current={currentSection} onJump={goToSection} />
+        <DiagonalDivider />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <XPMeter xp={xp} level={level} />
+          <StreakBadge streak={streak} />
+          <IconButton title="World Map" onClick={onMap}>
+            <Compass size={15} />
+          </IconButton>
+          <IconButton title={soundEnabled ? "Sound on" : "Sound off"} onClick={toggleSound}>
+            {soundEnabled ? <Speaker size={14} /> : <SpeakerOff size={14} />}
+          </IconButton>
+        </div>
       </div>
     </header>
   );

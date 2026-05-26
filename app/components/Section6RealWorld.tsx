@@ -97,7 +97,7 @@ export default function Section6RealWorld() {
   }, [sessionStartTime]);
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
+    <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
       <div className="max-w-3xl w-full">
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-3">

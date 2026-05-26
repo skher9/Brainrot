@@ -99,7 +99,7 @@ export default function Section3BeatTheClock() {
     timeLeft > 30 ? "text-emerald-400" : timeLeft > 10 ? "text-yellow-400" : "text-red-400";
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
+    <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
       {gameState === "won" && <Confetti />}
       <div className="max-w-3xl w-full">
         <div className="mb-10">

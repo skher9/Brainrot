@@ -10,19 +10,40 @@ const INITIAL_ARRAY = [64, 34, 25, 12, 22, 11, 90];
 const SPEEDS = { slow: 1400, normal: 650, fast: 180 } as const;
 type Speed = keyof typeof SPEEDS;
 
-const BAR_GRADIENT: Record<string, string> = {
-  default: "linear-gradient(to top, #4f46e5, #8b5cf6)",
-  comparing: "linear-gradient(to top, #b45309, #fbbf24)",
-  swapping: "linear-gradient(to top, #be123c, #f43f5e)",
-  sorted: "linear-gradient(to top, #065f46, #34d399)",
-};
+// Each bar position gets its own color identity
+const BAR_BASE: [string, string][] = [
+  ["#7c3aed", "#c4b5fd"], // violet
+  ["#0e7490", "#67e8f9"], // cyan
+  ["#b45309", "#fde68a"], // amber
+  ["#be123c", "#fda4af"], // rose
+  ["#065f46", "#6ee7b7"], // emerald
+  ["#1d4ed8", "#93c5fd"], // blue
+  ["#7c2d12", "#fdba74"], // orange
+];
 
-const BAR_GLOW: Record<string, string> = {
-  default: "none",
-  comparing: "0 0 18px rgba(251,191,36,0.55)",
-  swapping: "0 0 18px rgba(244,63,94,0.6)",
-  sorted: "0 0 14px rgba(52,211,153,0.45)",
-};
+function getBarBg(i: number, state: string): string {
+  if (state === "comparing") return "linear-gradient(to top,#92400e,#fbbf24)";
+  if (state === "swapping") return "linear-gradient(to top,#9f1239,#f43f5e)";
+  if (state === "sorted") return "linear-gradient(to top,#065f46,#34d399)";
+  const [from, to] = BAR_BASE[i % BAR_BASE.length];
+  return `linear-gradient(to top,${from},${to})`;
+}
+
+function getBarGlow(i: number, state: string): string {
+  if (state === "comparing") return "0 0 22px rgba(251,191,36,0.65)";
+  if (state === "swapping") return "0 0 22px rgba(244,63,94,0.7)";
+  if (state === "sorted") return "0 0 16px rgba(52,211,153,0.5)";
+  const glows = [
+    "0 0 12px rgba(124,58,237,0.35)",
+    "0 0 12px rgba(6,182,212,0.35)",
+    "0 0 12px rgba(217,119,6,0.35)",
+    "0 0 12px rgba(190,18,60,0.35)",
+    "0 0 12px rgba(6,95,70,0.35)",
+    "0 0 12px rgba(29,78,216,0.35)",
+    "0 0 12px rgba(124,45,18,0.35)",
+  ];
+  return glows[i % glows.length];
+}
 
 function getBarState(i: number, step: SortStep): string {
   if (step.sortedIndices.includes(i)) return "sorted";
@@ -80,42 +101,46 @@ export default function Section1Visualizer() {
   };
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
+    <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
       <div className="max-w-3xl w-full">
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-[10px] font-black tracking-widest text-violet-400 uppercase bg-violet-950/60 px-2 py-0.5 rounded">
+        {/* Section header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-[10px] font-black tracking-widest text-violet-400 uppercase bg-violet-950/60 px-2 py-0.5 rounded-md">
               01 / 06
             </span>
-            <span className="text-[10px] text-slate-600">5 min</span>
+            <span className="text-[10px] text-white/25 font-medium">5 min</span>
           </div>
-          <h2 className="text-4xl font-black text-white mb-3 leading-tight">
+          <h2 className="text-3xl font-black text-white mb-2 leading-tight">
             Watch it happen.
           </h2>
-          <p className="text-slate-400 text-sm max-w-lg leading-relaxed">
-            Bubble sort in action. Each comparison, each swap. Watch it enough
-            times and the pattern becomes obvious — and so does why it&apos;s slow.
+          <p className="text-white/40 text-sm max-w-lg leading-relaxed">
+            Bubble sort live. Each comparison, each swap. Watch the pattern form.
           </p>
         </div>
 
         {/* Bar chart */}
-        <div className="bg-[#12122a] rounded-2xl p-8 mb-5 border border-[#1c1c3a]">
-          <div className="flex items-end justify-center gap-3 h-[220px]">
+        <div className="bg-white/[0.03] rounded-2xl p-6 mb-4 border border-white/[0.06] relative overflow-hidden">
+          {/* Subtle grid */}
+          <div className="absolute inset-0 opacity-[0.03]"
+            style={{ backgroundImage: "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)", backgroundSize: "60px 40px" }}
+          />
+          <div className="flex items-end justify-center gap-4 h-[240px] relative z-10">
             {step.array.map((val, i) => {
               const state = getBarState(i, step);
-              const height = Math.max(12, (val / maxVal) * 200);
+              const height = Math.max(14, (val / maxVal) * 220);
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
                   <motion.div
                     animate={{
                       height,
-                      background: BAR_GRADIENT[state],
-                      boxShadow: BAR_GLOW[state],
+                      background: getBarBg(i, state),
+                      boxShadow: getBarGlow(i, state),
                     }}
-                    transition={{ duration: 0.28, ease: "easeOut" }}
-                    style={{ width: 44, borderRadius: "6px 6px 3px 3px" }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ width: 46, borderRadius: "6px 6px 3px 3px" }}
                   />
-                  <span className="text-xs font-bold text-slate-500 tabular-nums">
+                  <span className="text-[11px] font-bold text-white/30 tabular-nums">
                     {val}
                   </span>
                 </div>
@@ -124,28 +149,35 @@ export default function Section1Visualizer() {
           </div>
         </div>
 
-        {/* Description */}
+        {/* Step description — unified box with counter */}
         <AnimatePresence mode="wait">
           <motion.div
             key={idx}
-            initial={{ opacity: 0, y: 5 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.18 }}
-            className="bg-[#12122a] rounded-xl px-5 py-3.5 mb-6 border border-[#1c1c3a] min-h-[52px] flex items-center gap-3"
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="flex items-start gap-3 bg-white/[0.03] rounded-xl px-4 py-3.5 mb-5 border border-white/[0.06] min-h-[54px]"
           >
-            <span className="text-violet-500 text-xs font-black tabular-nums shrink-0">
-              {idx + 1}/{steps.length}
-            </span>
-            <p className="text-slate-300 text-sm leading-relaxed">{step.description}</p>
+            {/* Step counter as progress bar */}
+            <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5">
+              <span className="text-[10px] font-black text-violet-400 tabular-nums leading-none">
+                {idx + 1}
+              </span>
+              <div className="w-px flex-1 bg-white/[0.08] min-h-[16px]" />
+              <span className="text-[9px] text-white/20 tabular-nums leading-none">
+                {steps.length}
+              </span>
+            </div>
+            <p className="text-white/70 text-sm leading-relaxed">{step.description}</p>
           </motion.div>
         </AnimatePresence>
 
         {/* Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setPlaying((p) => !p)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 active:scale-95 text-white font-bold rounded-xl transition-all text-sm shadow-lg shadow-violet-900/40"
+            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 active:scale-[0.97] text-white font-bold rounded-xl transition-all text-sm shadow-lg shadow-violet-900/40"
           >
             {playing ? "⏸ Pause" : "▶ Play"}
           </button>
@@ -153,19 +185,19 @@ export default function Section1Visualizer() {
           <button
             onClick={() => { setPlaying(false); advance(); }}
             disabled={idx >= steps.length - 1}
-            className="px-4 py-2.5 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 text-white font-medium rounded-xl transition-all text-sm border border-[#2a2a4a]"
+            className="px-4 py-2.5 bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-25 disabled:cursor-not-allowed active:scale-[0.97] text-white/70 font-medium rounded-xl transition-all text-sm border border-white/[0.08]"
           >
-            ▶▶ Step
+            Step →
           </button>
 
           <button
             onClick={reset}
-            className="px-4 py-2.5 bg-[#1c1c3a] hover:bg-[#252550] active:scale-95 text-slate-300 font-medium rounded-xl transition-all text-sm border border-[#2a2a4a]"
+            className="px-4 py-2.5 bg-white/[0.05] hover:bg-white/[0.08] active:scale-[0.97] text-white/50 font-medium rounded-xl transition-all text-sm border border-white/[0.08]"
           >
-            ↺ Reset
+            ↺
           </button>
 
-          <div className="flex items-center bg-[#1c1c3a] rounded-xl border border-[#2a2a4a] overflow-hidden ml-auto">
+          <div className="flex items-center bg-white/[0.04] rounded-xl border border-white/[0.07] overflow-hidden ml-auto">
             {(["slow", "normal", "fast"] as Speed[]).map((s) => (
               <button
                 key={s}
@@ -173,7 +205,7 @@ export default function Section1Visualizer() {
                 className={`px-3 py-2.5 text-xs font-bold transition-all capitalize ${
                   speed === s
                     ? "bg-violet-700 text-white"
-                    : "text-slate-500 hover:text-white"
+                    : "text-white/30 hover:text-white/70"
                 }`}
               >
                 {s}
@@ -188,17 +220,18 @@ export default function Section1Visualizer() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8 p-5 bg-emerald-950/40 border border-emerald-700/40 rounded-2xl flex items-center justify-between"
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="mt-6 p-5 bg-emerald-950/30 border border-emerald-700/30 rounded-2xl flex items-center justify-between"
             >
               <div>
-                <p className="text-emerald-400 font-black text-base">
+                <p className="text-emerald-400 font-black text-sm">
                   Pattern locked in. Now you drive it.
                 </p>
-                <p className="text-slate-500 text-xs mt-0.5">+50 XP</p>
+                <p className="text-white/25 text-xs mt-0.5">+50 XP earned</p>
               </div>
               <button
                 onClick={() => goToSection(1)}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-emerald-900/40"
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition-all active:scale-[0.97] text-sm shadow-lg shadow-emerald-900/40"
               >
                 Next →
               </button>

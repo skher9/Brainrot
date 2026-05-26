@@ -3,14 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useXP } from "@/lib/xpContext";
 
-const SECTION_NAMES = [
-  "Watch It",
-  "Drive It",
-  "Beat Clock",
-  "Spot Bug",
-  "Boss Level",
-  "Real World",
-];
+const SECTION_LABELS = ["Watch", "Drive", "Race", "Debug", "Boss", "Context"];
 
 export default function Header() {
   const { xp, streak, level, currentSection, soundEnabled, toggleSound } =
@@ -19,18 +12,18 @@ export default function Header() {
   const goldenStreak = streak >= 7;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#08080f]/90 backdrop-blur-xl border-b border-[#1c1c3a]">
-      <div className="max-w-5xl mx-auto px-4 pt-2.5 pb-1.5 flex items-center gap-4">
+    <header className="fixed top-0 left-0 right-0 z-50 h-[60px] bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/[0.06]">
+      <div className="h-full max-w-5xl mx-auto px-5 flex items-center gap-5">
         {/* Logo */}
         <motion.span
-          className="font-black text-base tracking-tight shrink-0 cursor-default select-none"
+          className="font-black text-sm tracking-tight shrink-0 cursor-default select-none"
           animate={
             goldenStreak
               ? {
                   filter: [
-                    "drop-shadow(0 0 6px rgba(251,191,36,0.4))",
-                    "drop-shadow(0 0 14px rgba(251,191,36,0.8))",
-                    "drop-shadow(0 0 6px rgba(251,191,36,0.4))",
+                    "drop-shadow(0 0 6px rgba(251,191,36,0.5))",
+                    "drop-shadow(0 0 16px rgba(251,191,36,0.9))",
+                    "drop-shadow(0 0 6px rgba(251,191,36,0.5))",
                   ],
                 }
               : {}
@@ -45,42 +38,80 @@ export default function Header() {
           </span>
         </motion.span>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+        {/* Section progress pills */}
+        <div className="flex-1 flex items-center gap-1 min-w-0">
+          {SECTION_LABELS.map((label, i) => {
+            const isActive = i === currentSection;
+            const isDone = i < currentSection;
+            return (
+              <div
+                key={i}
+                className="flex-1 min-w-0 flex flex-col items-center gap-0.5"
+              >
+                <div className="w-full h-[3px] rounded-full overflow-hidden bg-white/[0.06]">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{
+                      background: isDone
+                        ? "linear-gradient(90deg,#059669,#34d399)"
+                        : isActive
+                        ? "linear-gradient(90deg,#7c3aed,#22d3ee)"
+                        : "transparent",
+                    }}
+                    initial={{ scaleX: 0, originX: 0 }}
+                    animate={{ scaleX: isDone || isActive ? 1 : 0 }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </div>
+                <span
+                  className={`text-[9px] font-semibold leading-none hidden sm:block truncate ${
+                    isActive
+                      ? "text-violet-400"
+                      : isDone
+                      ? "text-emerald-600"
+                      : "text-white/20"
+                  }`}
+                >
+                  {label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
 
-        {/* XP + level */}
+        {/* XP */}
         <div className="flex flex-col items-center shrink-0">
-          <div className="flex items-center gap-1.5 bg-[#1c1c3a] rounded-full px-3 py-1 border border-[#2a2a4a]">
-            <span className="text-amber-400 text-xs">⚡</span>
+          <div className="flex items-center gap-1 bg-white/[0.06] rounded-full px-2.5 py-1 border border-white/[0.08]">
+            <span className="text-amber-400 text-[11px]">⚡</span>
             <AnimatePresence mode="wait">
               <motion.span
                 key={xp}
-                className="text-amber-300 font-black text-xs tabular-nums"
-                initial={{ y: -8, opacity: 0 }}
+                className="text-amber-300 font-black text-[11px] tabular-nums"
+                initial={{ y: -6, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 8, opacity: 0 }}
-                transition={{ duration: 0.15 }}
+                exit={{ y: 6, opacity: 0 }}
+                transition={{ duration: 0.12 }}
               >
-                {xp} XP
+                {xp}
               </motion.span>
             </AnimatePresence>
           </div>
-          <span className="text-[9px] text-slate-600 mt-0.5 font-medium leading-none">
+          <span className="text-[8px] text-white/25 mt-0.5 font-medium leading-none hidden sm:block">
             {level}
           </span>
         </div>
 
         {/* Streak */}
-        <div className="flex items-center gap-1.5 bg-[#1c1c3a] rounded-full px-3 py-1 border border-[#2a2a4a] shrink-0">
+        <div className="flex items-center gap-1 bg-white/[0.06] rounded-full px-2.5 py-1 border border-white/[0.08] shrink-0">
           <motion.span
-            className="text-sm leading-none"
-            animate={streak > 0 ? { scale: [1, 1.3, 1] } : {}}
-            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-[13px] leading-none"
+            animate={streak > 0 ? { scale: [1, 1.4, 1] } : {}}
+            transition={{ duration: 0.35, delay: 0.05 }}
             key={streak}
           >
             🔥
           </motion.span>
-          <span className="text-orange-400 font-black text-xs tabular-nums">
+          <span className="text-orange-400 font-black text-[11px] tabular-nums">
             {streak}
           </span>
         </div>
@@ -88,31 +119,11 @@ export default function Header() {
         {/* Sound toggle */}
         <button
           onClick={toggleSound}
-          className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1c1c3a] border border-[#2a2a4a] hover:border-violet-600 transition-colors text-sm shrink-0"
-          title={soundEnabled ? "Sound on — click to mute" : "Sound off — click to enable"}
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-white/[0.06] border border-white/[0.08] hover:border-violet-600/60 hover:bg-violet-950/40 transition-all text-[13px] shrink-0"
+          title={soundEnabled ? "Sound on" : "Sound off"}
         >
           {soundEnabled ? "🔊" : "🔇"}
         </button>
-      </div>
-
-      {/* Section progress bar */}
-      <div className="max-w-5xl mx-auto px-4 pb-2 flex gap-1">
-        {SECTION_NAMES.map((_, i) => (
-          <div key={i} className="flex-1 h-0.5 rounded-full bg-[#1c1c3a] overflow-hidden">
-            <motion.div
-              className="h-full rounded-full"
-              style={{
-                background:
-                  i < currentSection
-                    ? "linear-gradient(90deg,#059669,#34d399)"
-                    : "linear-gradient(90deg,#6d28d9,#22d3ee)",
-              }}
-              initial={{ width: 0 }}
-              animate={{ width: i <= currentSection ? "100%" : "0%" }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            />
-          </div>
-        ))}
       </div>
     </header>
   );

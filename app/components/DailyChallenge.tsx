@@ -35,7 +35,7 @@ export default function DailyChallenge() {
       transition={{ duration: 0.4, delay: 0.1 }}
       className="max-w-5xl mx-auto px-4 pt-2 pb-1"
     >
-      <div className="flex items-center justify-between bg-[#12121a] border border-[#1c1c3a] rounded-xl px-4 py-2.5">
+      <div className="flex items-center justify-between bg-gradient-to-r from-violet-950/40 via-[#12121a] to-cyan-950/30 border border-violet-800/40 rounded-xl px-4 py-3 shadow-lg shadow-violet-950/20">
         {/* Left: streak */}
         <div className="flex items-center gap-2">
           <motion.span

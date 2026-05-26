@@ -30,37 +30,32 @@ function BubbleSortModule() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#0a0a0f]">
+      <div className="bg-[#0a0a0f]">
         <Header />
-
-        {/* Daily challenge — only on first section, below fixed header */}
-        <div className="pt-[68px]">
+        {/* Offset for fixed header (60px) */}
+        <div className="pt-[60px]">
           {currentSection === 0 && <DailyChallenge />}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSection}
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.22, ease: "easeInOut" }}
+            >
+              <ActiveSection />
+            </motion.div>
+          </AnimatePresence>
         </div>
-        {currentSection !== 0 && <div className="pt-[68px]" />}
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSection}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.28, ease: "easeInOut" }}
-          >
-            <ActiveSection />
-          </motion.div>
-        </AnimatePresence>
       </div>
 
-      {/* World Map overlay */}
       <WorldMap open={showMap} onClose={() => setShowMap(false)} />
 
-      {/* World Map button — fixed bottom right */}
       <motion.button
         onClick={() => setShowMap(true)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-2.5 bg-[#12121a] border border-violet-700/40 rounded-2xl text-violet-400 font-black text-sm hover:border-violet-500/70 transition-colors shadow-xl shadow-violet-900/20 backdrop-blur-sm"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-2.5 bg-[#12121a]/90 backdrop-blur-sm border border-violet-700/30 rounded-2xl text-violet-400 font-black text-sm hover:border-violet-500/60 hover:bg-violet-950/40 transition-all shadow-xl shadow-violet-900/20"
       >
         🗺️ <span className="hidden sm:inline">World Map</span>
       </motion.button>

@@ -9,12 +9,24 @@ import { useXP } from "@/lib/xpContext";
 const SOURCE_ARRAY = [5, 3, 8, 1, 6, 4, 7, 2];
 const TOTAL_QUESTIONS = 10;
 
-const BAR_GRADIENT: Record<string, string> = {
-  default: "linear-gradient(to top, #4f46e5, #8b5cf6)",
-  comparing: "linear-gradient(to top, #b45309, #fbbf24)",
-  correct: "linear-gradient(to top, #065f46, #34d399)",
-  wrong: "linear-gradient(to top, #be123c, #f43f5e)",
-};
+const BAR_BASE: [string, string][] = [
+  ["#7c3aed", "#c4b5fd"],
+  ["#0e7490", "#67e8f9"],
+  ["#b45309", "#fde68a"],
+  ["#be123c", "#fda4af"],
+  ["#065f46", "#6ee7b7"],
+  ["#1d4ed8", "#93c5fd"],
+  ["#7c2d12", "#fdba74"],
+  ["#4f46e5", "#a78bfa"],
+];
+
+function getBarBg(i: number, state: string): string {
+  if (state === "comparing") return "linear-gradient(to top,#92400e,#fbbf24)";
+  if (state === "correct") return "linear-gradient(to top,#065f46,#34d399)";
+  if (state === "wrong") return "linear-gradient(to top,#9f1239,#f43f5e)";
+  const [from, to] = BAR_BASE[i % BAR_BASE.length];
+  return `linear-gradient(to top,${from},${to})`;
+}
 
 type Feedback = "correct" | "wrong" | null;
 
@@ -70,7 +82,7 @@ export default function Section2Interactive() {
 
   if (done) {
     return (
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
+      <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
         <div className="max-w-lg w-full text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -113,7 +125,7 @@ export default function Section2Interactive() {
   }
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
+    <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
       <div className="max-w-3xl w-full">
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-3">
@@ -166,7 +178,7 @@ export default function Section2Interactive() {
                   <motion.div
                     animate={{
                       height,
-                      background: BAR_GRADIENT[state],
+                      background: getBarBg(i, state),
                       boxShadow:
                         isComparing && !feedback
                           ? "0 0 18px rgba(251,191,36,0.55)"

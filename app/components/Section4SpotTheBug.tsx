@@ -114,7 +114,7 @@ export default function Section4SpotTheBug() {
 
   if (allDone) {
     return (
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
+      <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
         <div className="max-w-lg w-full text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -148,7 +148,7 @@ export default function Section4SpotTheBug() {
   const maxVal = Math.max(...ROUNDS_ARRAYS[roundIdx]);
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-28">
+    <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
       <div className="max-w-3xl w-full">
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-3">

@@ -80,13 +80,13 @@ export default function ColdOpen({ onStart }: { onStart: () => void }) {
       </motion.div>
 
       {/* Bars — center stage */}
-      <div className="flex items-end justify-center gap-3 mb-10" style={{ height: 210 }}>
+      <div className="flex items-end justify-center gap-4 mb-10" style={{ height: 240 }}>
         {step.array.map((val, i) => {
           const isComparing =
             step.comparing &&
             (i === step.comparing[0] || i === step.comparing[1]);
           const isSorted = step.sortedIndices.includes(i);
-          const height = Math.max(14, (val / MAX_VAL) * 190);
+          const height = Math.max(16, (val / MAX_VAL) * 215);
 
           return (
             <motion.div
@@ -94,18 +94,18 @@ export default function ColdOpen({ onStart }: { onStart: () => void }) {
               animate={{ height }}
               transition={{ duration: 0.45, ease: "easeInOut" }}
               style={{
-                width: 38,
+                width: 50,
                 background: isSorted
                   ? "linear-gradient(to top, #065f46, #34d399)"
                   : isComparing
                   ? "linear-gradient(to top, #92400e, #fbbf24)"
                   : BAR_COLORS[i % BAR_COLORS.length],
-                borderRadius: "5px 5px 2px 2px",
+                borderRadius: "6px 6px 3px 3px",
                 boxShadow: isComparing
-                  ? "0 0 20px rgba(251,191,36,0.55)"
+                  ? "0 0 24px rgba(251,191,36,0.6)"
                   : isSorted
-                  ? "0 0 14px rgba(52,211,153,0.45)"
-                  : `0 0 10px rgba(124,58,237,0.18)`,
+                  ? "0 0 16px rgba(52,211,153,0.5)"
+                  : `0 0 12px rgba(124,58,237,0.22)`,
               }}
             />
           );

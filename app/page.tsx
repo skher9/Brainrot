@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { XPProvider, useXP } from "@/lib/xpContext";
 import ColdOpen from "@/components/ColdOpen";
@@ -13,6 +13,8 @@ import Section3BeatTheClock from "@/components/Section3BeatTheClock";
 import Section4SpotTheBug from "@/components/Section4SpotTheBug";
 import Section5BossLevel from "@/components/Section5BossLevel";
 import Section6RealWorld from "@/components/Section6RealWorld";
+import { AmbientStage, BurstHost } from "@/components/Effects";
+import { CursorAurora, Constellation, ToastHost, LiveFeed, TrendingRail } from "@/components/Extras";
 
 const SECTIONS = [
   Section1Visualizer,
@@ -23,39 +25,147 @@ const SECTIONS = [
   Section6RealWorld,
 ];
 
+/* ── Venn companion mascot (geometric owl) ───────────────── */
+function Venn({ hint }: { hint: string | null }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (hint) {
+      setVisible(true);
+      const t = setTimeout(() => setVisible(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [hint]);
+
+  return (
+    <div className="fixed bottom-20 left-5 z-40 pointer-events-none">
+      <AnimatePresence>
+        {hint && visible && (
+          <motion.div
+            initial={{ opacity: 0, x: -16, y: 8 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="flex items-end gap-2"
+          >
+            {/* Speech bubble */}
+            <div
+              className="max-w-[180px] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed"
+              style={{
+                background: "rgba(13,13,20,0.95)",
+                border: "1px solid rgba(167,139,250,0.25)",
+                color: "rgba(255,255,255,0.55)",
+              }}
+            >
+              {hint}
+            </div>
+
+            {/* Owl SVG */}
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+              {/* Body */}
+              <polygon points="18,4 32,28 4,28" fill="rgba(124,58,237,0.2)" stroke="rgba(167,139,250,0.4)" strokeWidth="1" />
+              {/* Eyes */}
+              <circle cx="13" cy="18" r="4" fill="rgba(13,13,20,0.9)" stroke="rgba(167,139,250,0.5)" strokeWidth="1" />
+              <circle cx="23" cy="18" r="4" fill="rgba(13,13,20,0.9)" stroke="rgba(167,139,250,0.5)" strokeWidth="1" />
+              <circle cx="13" cy="18" r="1.8" fill="rgba(167,139,250,0.9)" />
+              <circle cx="23" cy="18" r="1.8" fill="rgba(167,139,250,0.9)" />
+              {/* Beak */}
+              <polygon points="18,20 16,24 20,24" fill="rgba(246,196,83,0.7)" />
+              {/* Ear tufts */}
+              <polygon points="10,8 8,2 14,7" fill="rgba(124,58,237,0.3)" stroke="rgba(167,139,250,0.3)" strokeWidth="0.5" />
+              <polygon points="26,8 22,7 28,2" fill="rgba(124,58,237,0.3)" stroke="rgba(167,139,250,0.3)" strokeWidth="0.5" />
+            </svg>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+const VENN_HINTS = [
+  "Hover the bars to see array indices.",
+  "Use the step button to go one at a time.",
+  "Watch the sorted suffix grow from the right.",
+  "The combo meter tracks consecutive swaps.",
+  "Fast mode is great for getting the full picture.",
+];
+
 function BubbleSortModule() {
   const { currentSection } = useXP();
   const [showMap, setShowMap] = useState(false);
+  const [vennHint, setVennHint] = useState<string | null>(null);
+  const [vennIdx, setVennIdx] = useState(0);
   const ActiveSection = SECTIONS[currentSection];
+
+  // Idle hint system: fire a hint if user is idle on section 0
+  useEffect(() => {
+    if (currentSection !== 0) return;
+    const t = setTimeout(() => {
+      setVennHint(VENN_HINTS[vennIdx % VENN_HINTS.length]);
+      setVennIdx((i) => i + 1);
+    }, 12000);
+    return () => clearTimeout(t);
+  }, [currentSection, vennIdx]);
 
   return (
     <>
-      <div className="bg-[#0a0a0f]">
+      {/* Global effects */}
+      <AmbientStage />
+      <BurstHost />
+      <CursorAurora />
+      <ToastHost />
+      <Constellation />
+
+      <div style={{ background: "var(--bg-0)", position: "relative", zIndex: 1 }}>
         <Header />
-        {/* Offset for fixed header (60px) */}
         <div className="pt-[60px]">
           {currentSection === 0 && <DailyChallenge />}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSection}
-              initial={{ opacity: 0, x: 30 }}
+              initial={{ opacity: 0, x: 28 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-              transition={{ duration: 0.22, ease: "easeInOut" }}
+              exit={{ opacity: 0, x: -28 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
             >
               <ActiveSection />
             </motion.div>
           </AnimatePresence>
+
+          {/* Trending + live feed below section 0 */}
+          {currentSection === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              <TrendingRail />
+              <div className="max-w-5xl mx-auto px-4 pb-6">
+                <LiveFeed />
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 
+      {/* Companion mascot */}
+      <Venn hint={vennHint} />
+
+      {/* World Map */}
       <WorldMap open={showMap} onClose={() => setShowMap(false)} />
 
       <motion.button
         onClick={() => setShowMap(true)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-2.5 bg-[#12121a]/90 backdrop-blur-sm border border-violet-700/30 rounded-2xl text-violet-400 font-black text-sm hover:border-violet-500/60 hover:bg-violet-950/40 transition-all shadow-xl shadow-violet-900/20"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black text-sm transition-all"
+        style={{
+          background: "rgba(13,13,20,0.92)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(167,139,250,0.2)",
+          color: "var(--violet)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+        }}
       >
         🗺️ <span className="hidden sm:inline">World Map</span>
       </motion.button>
@@ -67,7 +177,15 @@ export default function Page() {
   const [phase, setPhase] = useState<"cold" | "module">("cold");
 
   if (phase === "cold") {
-    return <ColdOpen onStart={() => setPhase("module")} />;
+    return (
+      <>
+        <AmbientStage />
+        <BurstHost />
+        <CursorAurora />
+        <Constellation />
+        <ColdOpen onStart={() => setPhase("module")} />
+      </>
+    );
   }
 
   return (

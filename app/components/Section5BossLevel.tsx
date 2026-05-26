@@ -329,7 +329,8 @@ export default function Section5BossLevel() {
                   </button>
                   <button
                     onClick={() => goToSection(5)}
-                    className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-xl transition-all active:scale-95 shadow-lg shadow-violet-900/40 text-sm"
+                    className="flex-1 py-3 font-black rounded-xl transition-all active:scale-95 text-sm"
+                    style={{ background: "var(--gold)", color: "#07070d", boxShadow: "0 0 20px rgba(246,196,83,0.3)" }}
                   >
                     Finish →
                   </button>
@@ -361,10 +362,10 @@ export default function Section5BossLevel() {
 
         <div className="mb-7">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-xs font-black tracking-widest text-red-400 uppercase bg-red-950/60 px-2.5 py-1 rounded">
+            <span className="text-xs font-black tracking-widest text-red-400 uppercase bg-red-950/60 px-2.5 py-1 rounded" style={{ fontFamily: "var(--font-mono)", border: "1px solid rgba(244,63,94,0.2)" }}>
               05 / 06
             </span>
-            <span className="text-xs text-slate-600">15 min</span>
+            <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-mono)" }}>15 min</span>
           </div>
           <h2 className="text-4xl font-black text-white mb-2 leading-tight">
             Boss level.

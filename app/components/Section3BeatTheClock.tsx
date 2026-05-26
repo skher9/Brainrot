@@ -104,10 +104,10 @@ export default function Section3BeatTheClock() {
       <div className="max-w-3xl w-full">
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-[10px] font-black tracking-widest text-yellow-400 uppercase bg-yellow-950/60 px-2 py-0.5 rounded">
+            <span className="text-xs font-black tracking-widest text-yellow-400 uppercase bg-yellow-950/60 px-2.5 py-1 rounded" style={{ fontFamily: "var(--font-mono)", border: "1px solid rgba(250,204,21,0.15)" }}>
               03 / 06
             </span>
-            <span className="text-[10px] text-slate-600">10 min</span>
+            <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-mono)" }}>10 min</span>
           </div>
           <h2 className="text-4xl font-black text-white mb-3 leading-tight">
             Beat the clock.

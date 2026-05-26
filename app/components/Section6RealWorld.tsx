@@ -101,10 +101,10 @@ export default function Section6RealWorld() {
       <div className="max-w-3xl w-full">
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase bg-slate-900/60 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded" style={{ color: "rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", fontFamily: "var(--font-mono)" }}>
               06 / 06
             </span>
-            <span className="text-[10px] text-slate-600">5 min</span>
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-mono)" }}>5 min</span>
           </div>
           <h2 className="text-4xl font-black text-white mb-3 leading-tight">
             The bigger picture.
@@ -146,7 +146,7 @@ export default function Section6RealWorld() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-8 bg-[#12121a] rounded-2xl border border-[#1c1c3a] p-6"
+          className="mt-8 rounded-2xl p-6" style={{ background: "var(--bg-2)", border: "1px solid rgba(255,255,255,0.07)" }}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-black text-base">Your session</h3>
@@ -200,7 +200,7 @@ export default function Section6RealWorld() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="mt-6 p-8 bg-gradient-to-r from-violet-950/60 to-cyan-950/40 rounded-3xl border border-violet-700/30 text-center"
+          className="relative mt-6 p-8 rounded-3xl text-center overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(14,116,144,0.08))", border: "1px solid rgba(167,139,250,0.2)" }}
         >
           <div className="text-5xl mb-4">🏁</div>
           <h3 className="text-2xl font-black text-white mb-2">

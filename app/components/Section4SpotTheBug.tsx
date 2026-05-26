@@ -152,7 +152,7 @@ export default function Section4SpotTheBug() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#12122a] rounded-3xl p-10 border border-[#1c1c3a]"
+            className="relative rounded-3xl p-10 overflow-hidden" style={{ background: "var(--bg-2)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             <div className="text-6xl mb-4">
               {pct >= 80 ? "🎯" : pct >= 60 ? "👀" : "🔍"}
@@ -177,7 +177,8 @@ export default function Section4SpotTheBug() {
             </div>
             <button
               onClick={() => goToSection(4)}
-              className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-xl transition-all active:scale-95 shadow-lg shadow-violet-900/40"
+              className="w-full py-3 font-black rounded-xl transition-all active:scale-95"
+              style={{ background: "var(--gold)", color: "#07070d", boxShadow: "0 0 24px rgba(246,196,83,0.3)" }}
             >
               Final boss →
             </button>
@@ -192,10 +193,10 @@ export default function Section4SpotTheBug() {
       <div className="max-w-3xl w-full">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-xs font-black tracking-widest text-pink-400 uppercase bg-pink-950/60 px-2.5 py-1 rounded">
+            <span className="text-xs font-black tracking-widest text-pink-400 uppercase bg-pink-950/60 px-2.5 py-1 rounded" style={{ fontFamily: "var(--font-mono)", border: "1px solid rgba(244,114,182,0.15)" }}>
               04 / 06
             </span>
-            <span className="text-xs text-slate-600">15 min</span>
+            <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-mono)" }}>15 min</span>
           </div>
           <h2 className="text-4xl font-black text-white mb-2 leading-tight">
             Spot the bug.

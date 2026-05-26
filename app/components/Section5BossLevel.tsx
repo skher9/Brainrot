@@ -46,6 +46,51 @@ function isSorted(arr: number[]): boolean {
   return arr.every((v, i) => i === 0 || arr[i - 1] <= v);
 }
 
+interface RoundConfig {
+  label: string;
+  pattern: string;
+  patternDesc: string;
+  buildArray: () => number[];
+}
+
+const ROUND_CONFIGS: RoundConfig[] = [
+  {
+    label: "Round 1",
+    pattern: "Random",
+    patternDesc: "Random 4-element array. Get your bearings.",
+    buildArray: () => shuffle([10, 25, 40, 55]),
+  },
+  {
+    label: "Round 2",
+    pattern: "Nearly Sorted",
+    patternDesc: "Almost in order — just 1-2 elements out of place. Watch your ≤ edge cases.",
+    buildArray: () => {
+      // [10, 25, 40, 55, 70] nearly sorted — swap positions 1 and 2
+      return [10, 40, 25, 55, 70];
+    },
+  },
+  {
+    label: "Round 3",
+    pattern: "Worst Case",
+    patternDesc: "Fully reversed. Every single comparison needs a swap. This is O(n²) in action.",
+    buildArray: () => [70, 55, 40, 30, 20, 10],
+  },
+  {
+    label: "Round 4",
+    pattern: "Duplicates",
+    patternDesc: "Equal elements never swap — ≤ not <. Watch which pairs you call.",
+    buildArray: () => shuffle([20, 20, 10, 40, 20, 30]),
+  },
+  {
+    label: "Round 5",
+    pattern: "Random (Hard)",
+    patternDesc: "Larger 7-element random array. Full boss difficulty.",
+    buildArray: () => shuffle([5, 15, 25, 35, 45, 55, 65]),
+  },
+];
+
+const TOTAL_ROUNDS = ROUND_CONFIGS.length;
+
 const BAR_BASE: [string, string][] = [
   ["#7c3aed", "#c4b5fd"],
   ["#0e7490", "#67e8f9"],
@@ -53,40 +98,55 @@ const BAR_BASE: [string, string][] = [
   ["#be123c", "#fda4af"],
   ["#065f46", "#6ee7b7"],
   ["#1d4ed8", "#93c5fd"],
+  ["#7c2d12", "#fdba74"],
 ];
 
 function getBarBg(i: number, state: string): string {
   if (state === "comparing") return "linear-gradient(to top,#92400e,#fbbf24)";
-  if (state === "swapping") return "linear-gradient(to top,#9f1239,#f43f5e)";
-  if (state === "sorted") return "linear-gradient(to top,#065f46,#34d399)";
+  if (state === "swapping")  return "linear-gradient(to top,#9f1239,#f43f5e)";
+  if (state === "sorted")    return "linear-gradient(to top,#065f46,#34d399)";
   const [from, to] = BAR_BASE[i % BAR_BASE.length];
   return `linear-gradient(to top,${from},${to})`;
 }
 
 type Feedback = "correct" | "wrong" | null;
 
+function useRound(config: RoundConfig) {
+  const initArray = useState(() => config.buildArray())[0];
+  const [array, setArray] = useState<number[]>([...initArray]);
+  const [comparisons] = useState<Comparison[]>(() => buildComparisons([...initArray]));
+  const [cIdx, setCIdx] = useState(0);
+  return { initArray, array, setArray, comparisons, cIdx, setCIdx };
+}
+
 export default function Section5BossLevel() {
   const { addXP, markComplete, goToSection, streak, totalSessionXP, setSessionAccuracy } = useXP();
 
-  const [initArray] = useState(() => shuffle([10, 25, 40, 55, 70, 85]));
-  const [array, setArray] = useState<number[]>([...initArray]);
-  const [comparisons] = useState<Comparison[]>(() =>
-    buildComparisons([...initArray])
-  );
+  const [roundNum, setRoundNum] = useState(0);
+  const [roundArrays] = useState<number[][]>(() => ROUND_CONFIGS.map((c) => c.buildArray()));
+
+  const [array, setArray] = useState<number[]>(() => [...roundArrays[0]]);
+  const [comparisons, setComparisons] = useState<Comparison[]>(() => buildComparisons([...roundArrays[0]]));
   const [cIdx, setCIdx] = useState(0);
-  const [score, setScore] = useState(0);
-  const [wrong, setWrong] = useState(0);
+
+  const [totalScore, setTotalScore] = useState(0);
+  const [totalWrong, setTotalWrong] = useState(0);
+  const [roundScore, setRoundScore] = useState(0);
+  const [roundWrong, setRoundWrong] = useState(0);
+
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [explanation, setExplanation] = useState("");
-  const [done, setDone] = useState(false);
+  const [roundDone, setRoundDone] = useState(false);
+  const [allDone, setAllDone] = useState(false);
   const [showCard, setShowCard] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [copied, setCopied] = useState(false);
   const lockRef = useRef(false);
-  const doneTimeRef = useRef<number>(0);
 
-  const maxVal = Math.max(...initArray);
+  const maxVal = Math.max(...array);
   const current = comparisons[cIdx];
+  const totalComparisons = comparisons.length;
+  const progress = cIdx / totalComparisons;
 
   const getBarState = useCallback(
     (i: number): string => {
@@ -108,8 +168,9 @@ export default function Section5BossLevel() {
 
     if (isCorrect) {
       setFeedback("correct");
-      setScore((s) => s + 1);
-      addXP(25);
+      setRoundScore((s) => s + 1);
+      setTotalScore((s) => s + 1);
+      addXP(20);
       sound.correct();
       sound.xp();
       if (current.shouldSwap) {
@@ -121,11 +182,11 @@ export default function Section5BossLevel() {
       }
     } else {
       setFeedback("wrong");
-      setWrong((w) => w + 1);
+      setRoundWrong((w) => w + 1);
+      setTotalWrong((w) => w + 1);
       sound.wrong();
       setShaking(true);
       setTimeout(() => setShaking(false), 400);
-      // Still advance the array correctly regardless
       if (current.shouldSwap) {
         setArray((prev) => {
           const a = [...prev];
@@ -140,41 +201,56 @@ export default function Section5BossLevel() {
       lockRef.current = false;
       const next = cIdx + 1;
       if (next >= comparisons.length) {
-        setDone(true);
-        markComplete(4);
-        addXP(100);
-        doneTimeRef.current = Date.now();
-        // 3s silence then dramatic chord
-        setTimeout(() => {
-          sound.chord();
-          setTimeout(() => setShowCard(true), 400);
-        }, 3000);
+        setRoundDone(true);
+        sound.win();
       } else {
         setCIdx(next);
       }
-    }, 1500);
+    }, 1400);
   };
 
-  const totalComparisons = comparisons.length;
-  const progress = cIdx / totalComparisons;
+  const startNextRound = () => {
+    const next = roundNum + 1;
+    if (next >= TOTAL_ROUNDS) {
+      markComplete(4);
+      addXP(150);
+      setAllDone(true);
+      setTimeout(() => {
+        sound.chord();
+        setTimeout(() => setShowCard(true), 400);
+      }, 2000);
+      return;
+    }
+    const nextArr = roundArrays[next];
+    setRoundNum(next);
+    setArray([...nextArr]);
+    setComparisons(buildComparisons([...nextArr]));
+    setCIdx(0);
+    setRoundScore(0);
+    setRoundWrong(0);
+    setRoundDone(false);
+  };
 
-  // Store accuracy when done
+  const allComparisons = ROUND_CONFIGS.reduce(
+    (sum, _, i) => sum + buildComparisons([...roundArrays[i]]).length,
+    0
+  );
+
   useEffect(() => {
-    if (done) {
-      const acc = Math.round((score / totalComparisons) * 100);
+    if (allDone) {
+      const acc = Math.round((totalScore / allComparisons) * 100);
       setSessionAccuracy(acc);
     }
-  }, [done, score, totalComparisons, setSessionAccuracy]);
+  }, [allDone, totalScore, allComparisons, setSessionAccuracy]);
 
-  if (done) {
-    const accuracy = Math.round((score / totalComparisons) * 100);
-    const shareText = `I just beat Bubble Sort on Brainrot\n\n⚡ ${totalSessionXP} XP earned\n🎯 ${accuracy}% accuracy\n🔥 ${streak} day streak\n\nRot smarter → brainrot.dev`;
+  if (allDone) {
+    const accuracy = Math.round((totalScore / allComparisons) * 100);
+    const shareText = `I just beat Bubble Sort (Boss Mode) on Brainrot\n\n⚡ ${totalSessionXP} XP earned\n🎯 ${accuracy}% accuracy\n🔥 ${streak} day streak\n\nRot smarter → brainrot.dev`;
 
     const handleShare = async () => {
       try {
-        if (navigator.share) {
-          await navigator.share({ text: shareText });
-        } else {
+        if (navigator.share) await navigator.share({ text: shareText });
+        else {
           await navigator.clipboard.writeText(shareText);
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -186,7 +262,6 @@ export default function Section5BossLevel() {
       <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
         <Confetti />
         <div className="max-w-lg w-full">
-          {/* Win message — shows immediately */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -205,11 +280,10 @@ export default function Section5BossLevel() {
                 : "Keep going. The reps build the reflex."}
             </h2>
             <p className="text-slate-500 text-sm mt-2">
-              {score}/{totalComparisons} correct — {accuracy}% accuracy
+              {totalScore}/{allComparisons} correct across all {TOTAL_ROUNDS} rounds — {accuracy}%
             </p>
           </motion.div>
 
-          {/* Shareable result card — appears after chord */}
           <AnimatePresence>
             {showCard && (
               <motion.div
@@ -218,7 +292,6 @@ export default function Section5BossLevel() {
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="mb-6"
               >
-                {/* Card */}
                 <div className="bg-gradient-to-br from-[#0d0d1a] to-[#12122a] rounded-2xl p-6 border border-violet-700/30 shadow-2xl shadow-violet-900/30">
                   <div className="flex items-center justify-between mb-5">
                     <span className="font-black text-lg">
@@ -226,39 +299,27 @@ export default function Section5BossLevel() {
                       <span className="text-cyan-400">rot</span>
                     </span>
                     <span className="text-slate-600 text-xs font-medium tracking-widest uppercase">
-                      Bubble Sort
+                      Boss Mode Complete
                     </span>
                   </div>
-
                   <p className="text-white font-black text-base mb-5 leading-snug">
-                    I just beat Bubble Sort on Brainrot
+                    I just beat Bubble Sort (Boss Mode) on Brainrot
                   </p>
-
                   <div className="grid grid-cols-3 gap-3 mb-5">
                     {[
                       { icon: "⚡", val: `${totalSessionXP} XP`, label: "earned" },
-                      { icon: "🎯", val: `${accuracy}%`, label: "accuracy" },
-                      { icon: "🔥", val: `${streak}`, label: "day streak" },
+                      { icon: "🎯", val: `${accuracy}%`,          label: "accuracy" },
+                      { icon: "🔥", val: `${streak}`,             label: "day streak" },
                     ].map((s) => (
-                      <div
-                        key={s.label}
-                        className="bg-[#1c1c3a]/60 rounded-xl p-3 text-center"
-                      >
+                      <div key={s.label} className="bg-[#1c1c3a]/60 rounded-xl p-3 text-center">
                         <p className="text-sm mb-0.5">{s.icon}</p>
-                        <p className="text-white font-black text-base tabular-nums">
-                          {s.val}
-                        </p>
+                        <p className="text-white font-black text-base tabular-nums">{s.val}</p>
                         <p className="text-slate-600 text-[10px]">{s.label}</p>
                       </div>
                     ))}
                   </div>
-
-                  <p className="text-slate-600 text-xs text-center">
-                    Rot smarter.
-                  </p>
+                  <p className="text-slate-600 text-xs text-center">Rot smarter.</p>
                 </div>
-
-                {/* Share + Next */}
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={handleShare}
@@ -292,46 +353,120 @@ export default function Section5BossLevel() {
     );
   }
 
+  const config = ROUND_CONFIGS[roundNum];
+
   return (
     <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
       <div className="max-w-3xl w-full">
-        <div className="mb-10">
+
+        <div className="mb-7">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-[10px] font-black tracking-widest text-red-400 uppercase bg-red-950/60 px-2 py-0.5 rounded">
+            <span className="text-xs font-black tracking-widest text-red-400 uppercase bg-red-950/60 px-2.5 py-1 rounded">
               05 / 06
             </span>
-            <span className="text-[10px] text-slate-600">10 min</span>
+            <span className="text-xs text-slate-600">15 min</span>
           </div>
-          <h2 className="text-4xl font-black text-white mb-3 leading-tight">
+          <h2 className="text-4xl font-black text-white mb-2 leading-tight">
             Boss level.
           </h2>
           <p className="text-slate-400 text-sm">
-            Drive this sort from start to finish. Every comparison. Every swap decision.
+            Drive every sort from start to finish. {TOTAL_ROUNDS} rounds, increasing difficulty.
           </p>
         </div>
 
-        {/* Progress */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 h-1.5 bg-[#1c1c3a] rounded-full overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-violet-600 to-red-500"
-              animate={{ width: `${progress * 100}%` }}
-              transition={{ duration: 0.3 }}
+        {/* Round tabs */}
+        <div className="flex items-center gap-1.5 mb-5">
+          {ROUND_CONFIGS.map((r, i) => (
+            <div
+              key={i}
+              className={`flex-1 h-1.5 rounded-full transition-all ${
+                i < roundNum
+                  ? "bg-emerald-500"
+                  : i === roundNum
+                  ? "bg-red-500"
+                  : "bg-[#1c1c3a]"
+              }`}
             />
-          </div>
-          <span className="text-slate-500 text-xs tabular-nums shrink-0">
-            {cIdx}/{totalComparisons}
+          ))}
+          <span className="text-slate-500 text-xs ml-2 shrink-0">
+            Round {roundNum + 1}/{TOTAL_ROUNDS}
           </span>
         </div>
 
+        {/* Pattern badge */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={roundNum}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mb-5 p-3.5 bg-[#12122a] rounded-xl border border-[#1c1c3a]"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-black text-red-400">{config.label}</span>
+              <span className="text-xs text-slate-500 px-2 py-0.5 bg-[#1c1c3a] rounded border border-[#2a2a4a]">
+                {config.pattern}
+              </span>
+            </div>
+            <p className="text-slate-500 text-xs">{config.patternDesc}</p>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Round-done interstitial */}
+        <AnimatePresence>
+          {roundDone && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-5 p-5 bg-emerald-950/30 border border-emerald-700/30 rounded-2xl flex items-center justify-between"
+            >
+              <div>
+                <p className="text-emerald-400 font-black text-sm">
+                  {config.label} done.{" "}
+                  <span className="text-white/60 font-normal">
+                    {roundScore}/{totalComparisons} correct
+                  </span>
+                </p>
+                <p className="text-slate-600 text-xs mt-0.5">
+                  {roundNum + 1 < TOTAL_ROUNDS
+                    ? `Next: ${ROUND_CONFIGS[roundNum + 1].pattern}`
+                    : "Final round complete!"}
+                </p>
+              </div>
+              <button
+                onClick={startNextRound}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-emerald-900/40 shrink-0 ml-4"
+              >
+                {roundNum + 1 < TOTAL_ROUNDS ? "Next round →" : "Finish →"}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Progress within round */}
+        {!roundDone && (
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex-1 h-1 bg-[#1c1c3a] rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-violet-600 to-red-500"
+                animate={{ width: `${progress * 100}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <span className="text-slate-600 text-xs tabular-nums shrink-0">
+              {cIdx}/{totalComparisons}
+            </span>
+          </div>
+        )}
+
         {/* Bar chart */}
-        <div
-          className={`bg-[#12122a] rounded-2xl p-8 mb-5 border border-[#1c1c3a] ${shaking ? "shake" : ""}`}
-        >
-          <div className="flex items-end justify-center gap-3 h-[200px]">
+        <div className={`bg-[#12122a] rounded-2xl p-6 mb-5 border border-[#1c1c3a] ${shaking ? "shake" : ""}`}>
+          <div className="flex items-end justify-center gap-3" style={{ height: 180 }}>
             {array.map((val, i) => {
               const state = getBarState(i);
-              const height = Math.max(12, (val / maxVal) * 180);
+              const height = Math.max(12, (val / maxVal) * 158);
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
                   <motion.div
@@ -339,28 +474,24 @@ export default function Section5BossLevel() {
                       height,
                       background: getBarBg(i, state),
                       boxShadow:
-                        state === "comparing"
-                          ? "0 0 18px rgba(251,191,36,0.55)"
-                          : state === "sorted"
-                          ? "0 0 14px rgba(52,211,153,0.4)"
-                          : "none",
+                        state === "comparing" ? "0 0 18px rgba(251,191,36,0.55)"
+                        : state === "sorted"   ? "0 0 14px rgba(52,211,153,0.4)"
+                        : "none",
                     }}
                     transition={{ duration: 0.28 }}
-                    style={{ width: 52, borderRadius: "6px 6px 3px 3px" }}
+                    style={{ width: 46, borderRadius: "6px 6px 3px 3px" }}
                   />
-                  <span className="text-xs font-bold text-slate-500 tabular-nums">
-                    {val}
-                  </span>
+                  <span className="text-xs font-bold text-slate-500 tabular-nums">{val}</span>
                 </div>
               );
             })}
           </div>
 
-          {current && (
-            <div className="mt-5 text-center">
+          {current && !roundDone && (
+            <div className="mt-4 text-center">
               <p className="text-white text-xl font-black">
                 <span className="text-yellow-400">{array[current.j]}</span>
-                <span className="text-slate-600 mx-2">vs</span>
+                <span className="text-slate-600 mx-2 text-base font-normal">vs</span>
                 <span className="text-yellow-400">{array[current.j + 1]}</span>
               </p>
               <p className="text-slate-500 text-sm mt-1">
@@ -383,38 +514,36 @@ export default function Section5BossLevel() {
                   : "bg-red-950/50 border-red-700/40 text-red-400"
               }`}
             >
-              {feedback === "correct" ? "✓ " : "✗ "}
-              {explanation}
+              {feedback === "correct" ? "✓ " : "✗ "}{explanation}
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Buttons */}
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => answer(true)}
-            disabled={feedback !== null}
-            className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-violet-700"
-          >
-            ↕ Swap
-          </button>
-          <button
-            onClick={() => answer(false)}
-            disabled={feedback !== null}
-            className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-cyan-700"
-          >
-            → Keep
-          </button>
-        </div>
+        {!roundDone && (
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => answer(true)}
+              disabled={feedback !== null}
+              className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-violet-700"
+            >
+              ↕ Swap
+            </button>
+            <button
+              onClick={() => answer(false)}
+              disabled={feedback !== null}
+              className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-cyan-700"
+            >
+              → Keep
+            </button>
+          </div>
+        )}
 
         {/* Live score */}
-        <div className="mt-4 flex items-center justify-center gap-6 text-xs text-slate-600">
-          <span>
-            ✓ <span className="text-emerald-500 font-bold">{score}</span>
-          </span>
-          <span>
-            ✗ <span className="text-red-500 font-bold">{wrong}</span>
-          </span>
+        <div className="mt-4 flex items-center justify-center gap-8 text-xs text-slate-600">
+          <span>✓ <span className="text-emerald-500 font-bold">{roundScore}</span> this round</span>
+          <span>Total: <span className="text-violet-400 font-bold">{totalScore}</span></span>
+          <span>✗ <span className="text-red-500 font-bold">{roundWrong}</span></span>
         </div>
       </div>
     </section>

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { XPProvider, useXP } from "@/lib/xpContext";
 import { createClient } from "@/lib/supabase/client";
-import ColdOpen from "@/components/ColdOpen";
 import Header from "@/components/Header";
 import DailyChallenge from "@/components/DailyChallenge";
 import Section1Visualizer from "@/components/Section1Visualizer";
@@ -119,7 +118,7 @@ function BubbleSortModule({ onHub, onLogout }: { onHub: () => void; onLogout: ()
 }
 
 export default function Page() {
-  const [phase, setPhase] = useState<"landing" | "cold" | "hub" | "module">("landing");
+  const [phase, setPhase] = useState<"landing" | "hub" | "module">("landing");
   const [authOpen, setAuthOpen] = useState<"login" | "signup" | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
@@ -171,21 +170,9 @@ export default function Page() {
           onSwitch={(m) => setAuthOpen(m)}
           onAuth={() => {
             setAuthOpen(null);
-            setPhase("cold");
+            setPhase("hub");
           }}
         />
-      </>
-    );
-  }
-
-  if (phase === "cold") {
-    return (
-      <>
-        <AmbientStage />
-        <BurstHost />
-        <CursorAurora />
-        <Constellation />
-        <ColdOpen onStart={() => setPhase("hub")} />
       </>
     );
   }

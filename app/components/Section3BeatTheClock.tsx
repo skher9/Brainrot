@@ -239,7 +239,8 @@ export default function Section3BeatTheClock() {
                 )}
                 <button
                   onClick={() => goToSection(3)}
-                  className="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-xl transition-all active:scale-95 shadow-lg shadow-violet-900/40 text-sm"
+                  className="px-6 py-2.5 font-black rounded-xl transition-all active:scale-95 text-sm"
+                  style={{ background: "var(--gold)", color: "#07070d", boxShadow: "0 0 20px rgba(246,196,83,0.3)" }}
                 >
                   Next challenge →
                 </button>

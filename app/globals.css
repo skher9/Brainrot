@@ -3,26 +3,50 @@
 /* ── Design tokens ───────────────────────────────────────── */
 :root {
   --bg-0: #07070d;
-  --bg-1: #0d0d14;
-  --bg-2: #12121a;
+  --bg-1: #0c0c14;
+  --bg-2: #11111c;
   --bg-3: #1a1a28;
-  --gold: #f6c453;
+
+  --panel:   rgba(255, 255, 255, 0.035);
+  --panel-2: rgba(255, 255, 255, 0.055);
+  --line:    rgba(255, 255, 255, 0.08);
+  --line-2:  rgba(255, 255, 255, 0.14);
+  --border:  rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --ink:   #ebe9e3;
+  --ink-2: rgba(235, 233, 227, 0.72);
+  --ink-3: rgba(235, 233, 227, 0.42);
+  --ink-4: rgba(235, 233, 227, 0.22);
+  --ink-dim:   rgba(235, 233, 227, 0.42);
+  --ink-ghost: rgba(235, 233, 227, 0.12);
+
+  --gold:     #f6c453;
+  --gold-2:   #e3a93f;
   --gold-dim: #c49a2f;
   --gold-glow: rgba(246, 196, 83, 0.25);
-  --violet: #a78bfa;
-  --violet-dim: #7c3aed;
-  --cyan: #67e8f9;
+
+  --violet:      #a78bfa;
+  --violet-2:    #7c5cf5;
+  --violet-dim:  #7c3aed;
+  --violet-deep: #2a1f4b;
+
+  --cyan:     #67e8f9;
   --cyan-dim: #0e7490;
-  --red: #f43f5e;
-  --emerald: #34d399;
-  --ink: rgba(255, 255, 255, 0.75);
-  --ink-dim: rgba(255, 255, 255, 0.35);
-  --ink-ghost: rgba(255, 255, 255, 0.1);
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --font-display: var(--font-instrument-serif), "Georgia", serif;
-  --font-mono: var(--font-jetbrains-mono), "Courier New", monospace;
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --rose:     #fb7185;
+  --emerald:  #6ee7b7;
+  --emerald-2: #34d399;
+  --red:      #f43f5e;
+
+  --hud-h: 64px;
+
+  --font-display: var(--font-instrument-serif), "Instrument Serif", "Georgia", serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", "Courier New", monospace;
+  --font-sans: var(--font-geist-sans), "Inter", system-ui, sans-serif;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
 }
 
 /* ── Reset ───────────────────────────────────────────────── */
@@ -31,11 +55,15 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg-0);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(124, 92, 245, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 90% 110%, rgba(246, 196, 83, 0.06), transparent 60%),
+    var(--bg-0);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-sans);
+  letter-spacing: -0.005em;
 }
 
 ::selection { background: rgba(246, 196, 83, 0.3); }
@@ -65,59 +93,58 @@ body {
   clip-path: polygon(10px 0%, 100% 0%, 100% 100%, 0% 100%, 0% 10px);
 }
 
-/* ── Chrome animated border ──────────────────────────────── */
-@property --chrome-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
+/* ── Chrome animated border sweep ───────────────────────── */
+@keyframes border-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .chrome-edge {
   position: relative;
-  isolation: isolate;
-}
-.chrome-edge::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: conic-gradient(
-    from var(--chrome-angle),
-    transparent 0%,
-    var(--gold) 15%,
-    transparent 30%
-  );
-  animation: chrome-spin 3s linear infinite;
-  z-index: -1;
 }
 .chrome-edge::after {
   content: "";
   position: absolute;
-  inset: 1px;
+  inset: 0;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(167, 139, 250, 0.0) 20%,
+    rgba(167, 139, 250, 0.6) 50%,
+    rgba(246, 196, 83, 0.3) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
   border-radius: inherit;
-  background: var(--bg-1);
-  z-index: -1;
-}
-
-@keyframes chrome-spin {
-  to { --chrome-angle: 360deg; }
+  animation: border-sweep 6s linear infinite;
+  pointer-events: none;
 }
 
 /* ── Bar base style ──────────────────────────────────────── */
 .bar-base {
   position: relative;
-  border-radius: 5px 5px 2px 2px;
-  overflow: hidden;
+  border-radius: 4px 4px 1px 1px;
+  background: linear-gradient(180deg, var(--bc-top, #c4b5fd), var(--bc-bot, #4c1d95));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -8px 14px rgba(0,0,0,0.35),
+    0 0 var(--bar-glow, 8px) var(--bar-glow-c, rgba(167,139,250,0.25));
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
-.bar-base::after {
+.bar-base::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 35%;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.12), transparent);
-  border-radius: 5px 5px 0 0;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 30%),
+    repeating-linear-gradient(0deg, transparent 0 7px, rgba(0,0,0,0.18) 7px 8px);
   pointer-events: none;
 }
 
@@ -126,24 +153,28 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 28px;
-  background: var(--gold);
-  color: #07070d;
-  font-weight: 900;
+  gap: 10px;
+  padding: 12px 22px;
+  border: 1px solid rgba(246, 196, 83, 0.55);
+  background: linear-gradient(180deg, rgba(246, 196, 83, 0.18), rgba(246, 196, 83, 0.06));
+  color: #fff4d6;
+  font-weight: 600;
   font-size: 14px;
-  letter-spacing: 0.04em;
-  border-radius: 10px;
-  border: none;
+  letter-spacing: 0.01em;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-  box-shadow: 0 0 24px var(--gold-glow), 0 2px 8px rgba(0,0,0,0.4);
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    0 10px 30px -10px rgba(246, 196, 83, 0.35),
+    0 0 0 1px rgba(246, 196, 83, 0.1);
 }
 .btn-primary:hover {
-  background: #ffd06a;
-  box-shadow: 0 0 40px rgba(246,196,83,0.4), 0 2px 12px rgba(0,0,0,0.5);
+  background: linear-gradient(180deg, rgba(246, 196, 83, 0.28), rgba(246, 196, 83, 0.12));
+  border-color: rgba(246, 196, 83, 0.75);
 }
-.btn-primary:active { transform: scale(0.97); }
+.btn-primary:active { transform: translateY(1px); }
 
 .btn-violet {
   display: inline-flex;
@@ -166,7 +197,62 @@ body {
 }
 .btn-violet:active { transform: scale(0.97); }
 
-/* ── Ambient FX: scanlines ───────────────────────────────── */
+/* ── HUD panel ───────────────────────────────────────────── */
+.hud-panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%),
+    var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.hud-glow {
+  box-shadow:
+    0 0 0 1px rgba(167, 139, 250, 0.08) inset,
+    0 20px 60px -20px rgba(124, 92, 245, 0.25),
+    0 8px 24px -12px rgba(0,0,0,0.6);
+}
+
+/* ── Vignette ────────────────────────────────────────────── */
+.stage-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+}
+
+/* ── Ambient FX: scanlines + grain ──────────────────────── */
+.stage-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.stage-ambient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(255, 255, 255, 0.012) 3px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+}
+.stage-ambient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
 .ambient-scanlines {
   position: fixed;
   inset: 0;
@@ -181,7 +267,6 @@ body {
   );
 }
 
-/* ── Ambient FX: grain ───────────────────────────────────── */
 .ambient-grain {
   position: fixed;
   inset: 0;
@@ -189,6 +274,29 @@ body {
   z-index: 9997;
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ── Dust particle drift ─────────────────────────────────── */
+@keyframes dust-drift {
+  0%   { transform: translate3d(0,0,0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translate3d(var(--dx, 0px), var(--dy, -80px), 0); opacity: 0; }
+}
+.dust {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: rgba(246, 196, 83, 0.45);
+  border-radius: 50%;
+  filter: blur(0.5px);
+  animation: dust-drift var(--dur, 8s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.dust-violet { background: rgba(167, 139, 250, 0.45); }
+
+@keyframes scan-vertical {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(2000%); }
 }
 
 /* ── Cursor aurora ───────────────────────────────────────── */

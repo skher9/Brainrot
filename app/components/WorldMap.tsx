@@ -1,106 +1,323 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Compass, Trophy, Close, Village, Mountain, Forest,
+  Web, Castle, Circuit, ArrowRight, Check, Lock, Bolt,
+} from "@/components/Glyphs";
+import type { SVGProps, ReactElement } from "react";
 
-interface Level {
+type GlyphKey = "Village" | "Mountain" | "Forest" | "Web" | "Castle" | "Circuit";
+type G = SVGProps<SVGSVGElement> & { size?: number };
+const GLYPHS: Record<GlyphKey, (p: G) => ReactElement> = {
+  Village, Mountain, Forest, Web, Castle, Circuit,
+};
+
+interface ZoneLevel {
   name: string;
   unlocked: boolean;
   current?: boolean;
+  xp: number;
+  label: string;
 }
 
 interface Zone {
+  id: string;
   name: string;
-  icon: string;
+  region: string;
+  glyph: GlyphKey;
   accent: string;
-  border: string;
-  glow: string;
-  levels: Level[];
+  deep: string;
+  blurb: string;
+  levels: ZoneLevel[];
 }
 
 const ZONES: Zone[] = [
   {
-    name: "Sorting Village",
-    icon: "🏘️",
-    accent: "text-violet-400",
-    border: "border-violet-700/40",
-    glow: "shadow-violet-900/40",
+    id: "sort", name: "Sorting Village", region: "I",
+    glyph: "Village", accent: "#a78bfa", deep: "#5b21b6",
+    blurb: "Where order first finds its footing.",
     levels: [
-      { name: "Bubble Sort", unlocked: true, current: true },
-      { name: "Selection Sort", unlocked: false },
-      { name: "Insertion Sort", unlocked: false },
-      { name: "Merge Sort", unlocked: false },
+      { name: "Bubble Sort",    unlocked: true,  current: true,  xp: 250, label: "ENTRY"  },
+      { name: "Selection Sort", unlocked: false, xp: 280, label: "TIER I"  },
+      { name: "Insertion Sort", unlocked: false, xp: 280, label: "TIER I"  },
+      { name: "Merge Sort",     unlocked: false, xp: 360, label: "TIER II" },
+      { name: "Quick Sort",     unlocked: false, xp: 360, label: "TIER II" },
     ],
   },
   {
-    name: "Search Mountains",
-    icon: "⛰️",
-    accent: "text-cyan-400",
-    border: "border-cyan-900/40",
-    glow: "shadow-cyan-900/20",
+    id: "search", name: "Search Mountains", region: "II",
+    glyph: "Mountain", accent: "#67e8f9", deep: "#0e7490",
+    blurb: "Find anything, in any conditions.",
     levels: [
-      { name: "Linear Search", unlocked: false },
-      { name: "Binary Search", unlocked: false },
-      { name: "Jump Search", unlocked: false },
-      { name: "Interpolation", unlocked: false },
+      { name: "Linear Search",  unlocked: false, xp: 200, label: "ENTRY"   },
+      { name: "Binary Search",  unlocked: false, xp: 320, label: "TIER I"  },
+      { name: "Jump Search",    unlocked: false, xp: 320, label: "TIER I"  },
+      { name: "Interpolation",  unlocked: false, xp: 400, label: "TIER II" },
     ],
   },
   {
-    name: "Tree Forest",
-    icon: "🌲",
-    accent: "text-emerald-400",
-    border: "border-emerald-900/40",
-    glow: "shadow-emerald-900/20",
+    id: "tree", name: "Tree Forest", region: "III",
+    glyph: "Forest", accent: "#6ee7b7", deep: "#065f46",
+    blurb: "Branching structure, recursive logic.",
     levels: [
-      { name: "Binary Tree", unlocked: false },
-      { name: "BST", unlocked: false },
-      { name: "AVL Tree", unlocked: false },
-      { name: "Heap", unlocked: false },
-      { name: "Trie", unlocked: false },
+      { name: "Binary Tree",   unlocked: false, xp: 280, label: "ENTRY"    },
+      { name: "BST",           unlocked: false, xp: 320, label: "TIER I"   },
+      { name: "AVL Tree",      unlocked: false, xp: 380, label: "TIER II"  },
+      { name: "Heap",          unlocked: false, xp: 380, label: "TIER II"  },
+      { name: "Trie",          unlocked: false, xp: 420, label: "TIER III" },
     ],
   },
   {
-    name: "Graph Dungeon",
-    icon: "🕸️",
-    accent: "text-pink-400",
-    border: "border-pink-900/40",
-    glow: "shadow-pink-900/20",
+    id: "graph", name: "Graph Dungeon", region: "IV",
+    glyph: "Web", accent: "#fb7185", deep: "#9f1239",
+    blurb: "Pathways, traversals, dark corners.",
     levels: [
-      { name: "Graph Basics", unlocked: false },
-      { name: "BFS", unlocked: false },
-      { name: "DFS", unlocked: false },
-      { name: "Dijkstra", unlocked: false },
-      { name: "A*", unlocked: false },
+      { name: "Graph Basics", unlocked: false, xp: 280, label: "ENTRY"    },
+      { name: "BFS",          unlocked: false, xp: 320, label: "TIER I"   },
+      { name: "DFS",          unlocked: false, xp: 320, label: "TIER I"   },
+      { name: "Dijkstra",     unlocked: false, xp: 420, label: "TIER II"  },
+      { name: "A*",           unlocked: false, xp: 480, label: "TIER III" },
     ],
   },
   {
-    name: "System Design Castle",
-    icon: "🏰",
-    accent: "text-amber-400",
-    border: "border-amber-900/40",
-    glow: "shadow-amber-900/20",
+    id: "design", name: "System Design Castle", region: "V",
+    glyph: "Castle", accent: "#f6c453", deep: "#92400e",
+    blurb: "Architecture, at scale.",
     levels: [
-      { name: "Caching", unlocked: false },
-      { name: "Load Balancing", unlocked: false },
-      { name: "Databases", unlocked: false },
-      { name: "Message Queues", unlocked: false },
-      { name: "CDNs", unlocked: false },
+      { name: "Caching",        unlocked: false, xp: 400, label: "TIER I"   },
+      { name: "Load Balancing", unlocked: false, xp: 400, label: "TIER I"   },
+      { name: "Databases",      unlocked: false, xp: 480, label: "TIER II"  },
+      { name: "Message Queues", unlocked: false, xp: 480, label: "TIER II"  },
+      { name: "CDNs",           unlocked: false, xp: 520, label: "TIER III" },
     ],
   },
   {
-    name: "AI Realm",
-    icon: "🤖",
-    accent: "text-blue-400",
-    border: "border-blue-900/40",
-    glow: "shadow-blue-900/20",
+    id: "ai", name: "AI Realm", region: "VI",
+    glyph: "Circuit", accent: "#93c5fd", deep: "#1d4ed8",
+    blurb: "The model that learns to think.",
     levels: [
-      { name: "Neural Nets", unlocked: false },
-      { name: "Backprop", unlocked: false },
-      { name: "Transformers", unlocked: false },
-      { name: "Embeddings", unlocked: false },
+      { name: "Neural Nets",  unlocked: false, xp: 480, label: "TIER II"  },
+      { name: "Backprop",     unlocked: false, xp: 520, label: "TIER III" },
+      { name: "Transformers", unlocked: false, xp: 600, label: "TIER IV"  },
+      { name: "Embeddings",   unlocked: false, xp: 560, label: "TIER III" },
     ],
   },
 ];
+
+function ZoneStat({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+      <span style={{
+        fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
+        color: "rgba(235,233,227,0.4)",
+      }}>{label}</span>
+      <span style={{
+        fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 600,
+        color: accent ?? "#ebe9e3",
+        textShadow: accent ? `0 0 10px ${accent}80` : "none",
+      }}>{value}</span>
+    </div>
+  );
+}
+
+function LevelCard({
+  level, zone, index, onLocked, onClose,
+}: {
+  level: ZoneLevel;
+  zone: Zone;
+  index: number;
+  onLocked: () => void;
+  onClose: () => void;
+}) {
+  const locked = !level.unlocked;
+  const cur = !!level.current;
+
+  return (
+    <motion.button
+      whileHover={cur || !locked ? { y: -2 } : undefined}
+      onClick={locked ? onLocked : onClose}
+      style={{
+        position: "relative", textAlign: "left",
+        padding: "16px 18px",
+        background: cur
+          ? `linear-gradient(135deg, ${zone.accent}18, ${zone.deep}28)`
+          : locked
+          ? "rgba(255,255,255,0.015)"
+          : "rgba(110,231,183,0.05)",
+        border: "1px solid " + (cur
+          ? `${zone.accent}66`
+          : locked
+          ? "rgba(255,255,255,0.05)"
+          : "rgba(110,231,183,0.3)"),
+        borderRadius: 10, cursor: "pointer",
+        overflow: "hidden", width: "100%",
+        transition: "border-color 0.2s",
+      }}
+    >
+      {locked && (
+        <div style={{
+          position: "absolute", inset: 0, opacity: 0.04,
+          backgroundImage: "repeating-linear-gradient(45deg, white 0 1px, transparent 1px 8px)",
+          pointerEvents: "none",
+        }} />
+      )}
+
+      {cur && (
+        <span style={{
+          position: "absolute", top: 12, right: 12,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: 8, height: 8, borderRadius: "50%",
+          background: zone.accent, boxShadow: `0 0 12px ${zone.accent}`,
+        }}>
+          <span style={{
+            position: "absolute", inset: -3, borderRadius: "50%",
+            border: `1px solid ${zone.accent}80`,
+            animation: "pulse-ring 1.5s ease-out infinite",
+          }} />
+        </span>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: 9,
+          color: cur ? zone.accent : "rgba(235,233,227,0.4)",
+          letterSpacing: "0.18em",
+        }}>
+          {String(index + 1).padStart(2, "0")} · {level.label}
+        </span>
+        {!locked && !cur && <Check size={11} color="#6ee7b7" />}
+        {locked && <Lock size={11} color="rgba(235,233,227,0.3)" />}
+      </div>
+
+      <div style={{
+        fontSize: 16, fontWeight: 600, marginBottom: 12,
+        color: cur ? "#ebe9e3" : locked ? "rgba(235,233,227,0.4)" : "rgba(110,231,183,0.9)",
+      }}>
+        {level.name}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Bolt size={11} color={cur ? zone.accent : "rgba(235,233,227,0.4)"} />
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 11,
+            color: cur ? "#ebe9e3" : "rgba(235,233,227,0.5)",
+            letterSpacing: "0.04em",
+          }}>+{level.xp} XP</span>
+        </div>
+        {cur && (
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 10,
+            color: zone.accent, letterSpacing: "0.15em",
+          }}>
+            IN PROGRESS · ▶
+          </span>
+        )}
+      </div>
+    </motion.button>
+  );
+}
+
+function ZoneDetail({
+  zone, onLocked, onClose,
+}: {
+  zone: Zone;
+  onLocked: (name: string) => void;
+  onClose: () => void;
+}) {
+  const Icon = GLYPHS[zone.glyph];
+  return (
+    <div style={{ padding: "28px 36px", overflowY: "auto", position: "relative" }}>
+      {/* Hero strip */}
+      <div style={{
+        position: "relative", padding: "32px",
+        background: `
+          radial-gradient(ellipse 600px 200px at 20% 0%, ${zone.accent}26, transparent 70%),
+          radial-gradient(ellipse 400px 240px at 90% 100%, ${zone.deep}40, transparent 60%),
+          rgba(12,12,20,0.6)
+        `,
+        border: `1px solid ${zone.accent}33`,
+        borderRadius: 14, marginBottom: 22, overflow: "hidden",
+      }}>
+        {/* Topology pattern */}
+        <svg style={{
+          position: "absolute", inset: 0, width: "100%", height: "100%",
+          opacity: 0.15, pointerEvents: "none",
+        }} viewBox="0 0 800 240" preserveAspectRatio="none">
+          <defs>
+            <pattern id={`topo-${zone.id}`} x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+              <circle cx="40" cy="40" r="36" fill="none" stroke={zone.accent} strokeWidth="0.5" />
+              <circle cx="40" cy="40" r="24" fill="none" stroke={zone.accent} strokeWidth="0.5" />
+              <circle cx="40" cy="40" r="12" fill="none" stroke={zone.accent} strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill={`url(#topo-${zone.id})`} />
+        </svg>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 22, position: "relative" }}>
+          <div style={{
+            width: 88, height: 88, flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: `linear-gradient(135deg, ${zone.accent}40, ${zone.deep}40)`,
+            border: `1px solid ${zone.accent}60`,
+            borderRadius: 14,
+            boxShadow: `0 10px 30px -10px ${zone.accent}40, inset 0 1px 0 ${zone.accent}40`,
+          }}>
+            <Icon size={48} color={zone.accent} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.25em",
+              color: zone.accent, marginBottom: 6,
+            }}>
+              REGION {zone.region} · CONTINENT OF SORTING
+            </div>
+            <h2 style={{
+              fontFamily: "var(--font-display)", fontSize: 38, color: "#ebe9e3",
+              letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 6,
+            }}>
+              {zone.name}
+            </h2>
+            <p style={{ fontSize: 14, color: "rgba(235,233,227,0.55)", fontStyle: "italic" }}>
+              {zone.blurb}
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "right", flexShrink: 0 }}>
+            <ZoneStat label="LEVELS"   value={zone.levels.length} />
+            <ZoneStat label="UNLOCKED" value={zone.levels.filter((l) => l.unlocked).length} accent={zone.accent} />
+            <ZoneStat label="MAX XP"   value={zone.levels.reduce((s, l) => s + l.xp, 0)} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em",
+        color: "rgba(235,233,227,0.4)", marginBottom: 10,
+      }}>
+        ◇ STAGES · SELECT TO INSPECT
+      </div>
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+        gap: 12,
+      }}>
+        {zone.levels.map((lvl, i) => (
+          <LevelCard
+            key={lvl.name}
+            level={lvl}
+            zone={zone}
+            index={i}
+            onLocked={() => onLocked(lvl.name)}
+            onClose={onClose}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function WorldMap({
   open,
@@ -109,11 +326,19 @@ export default function WorldMap({
   open: boolean;
   onClose: () => void;
 }) {
-  const [lockedMsg, setLockedMsg] = useState<string | null>(null);
+  const [active, setActive] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const handleLocked = () => {
-    setLockedMsg("Coming soon. Keep rotting.");
-    setTimeout(() => setLockedMsg(null), 1800);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const handleLocked = (name: string) => {
+    setToast(`${name} is sealed. Finish Bubble Sort first.`);
+    setTimeout(() => setToast(null), 1800);
   };
 
   return (
@@ -124,94 +349,193 @@ export default function WorldMap({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[100] bg-[#0a0a0f]/95 backdrop-blur-xl overflow-y-auto"
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(7,7,13,0.92)",
+            backdropFilter: "blur(18px)",
+          }}
         >
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-[#0a0a0f]/80 backdrop-blur border-b border-[#1c1c3a] px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-white font-black text-xl">World Map</h2>
-              <p className="text-slate-500 text-xs mt-0.5">
-                Your learning journey. One concept at a time.
-              </p>
+          {/* Top bar */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0,
+            padding: "20px 28px",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(7,7,13,0.7)",
+            backdropFilter: "blur(20px)",
+            zIndex: 2,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{
+                width: 40, height: 40,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "rgba(167,139,250,0.1)",
+                border: "1px solid rgba(167,139,250,0.3)",
+                borderRadius: 8,
+              }}>
+                <Compass size={20} color="#a78bfa" />
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: 9,
+                  letterSpacing: "0.22em", color: "rgba(246,196,83,0.7)",
+                }}>
+                  CARTOGRAPHY · CONTINENTS VI
+                </div>
+                <h2 style={{
+                  fontFamily: "var(--font-display)", fontSize: 26,
+                  color: "#ebe9e3", lineHeight: 1.1,
+                }}>
+                  The atlas of unreasonable understanding.
+                </h2>
+              </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1c1c3a] border border-[#2a2a4a] hover:border-red-700/60 text-slate-400 hover:text-red-400 transition-colors text-sm font-bold"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Zones */}
-          <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-            {ZONES.map((zone, zi) => (
-              <motion.div
-                key={zone.name}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: zi * 0.06, duration: 0.4 }}
-                className={`rounded-2xl border bg-[#12121a] p-5 ${zone.border}`}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Trophy size={14} color="#f6c453" />
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 10,
+                  letterSpacing: "0.18em", color: "rgba(235,233,227,0.55)",
+                }}>
+                  1 OF 27 UNLOCKED
+                </span>
+              </div>
+              <button
+                onClick={onClose}
+                title="Close (Esc)"
+                style={{
+                  width: 36, height: 36,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 8, cursor: "pointer",
+                  color: "rgba(235,233,227,0.7)",
+                }}
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">{zone.icon}</span>
-                  <div>
-                    <h3 className={`font-black text-base ${zone.accent}`}>
-                      {zone.name}
-                    </h3>
-                    <p className="text-slate-600 text-xs">
-                      {zone.levels.filter((l) => l.unlocked).length}/
-                      {zone.levels.length} unlocked
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 flex-wrap">
-                  {zone.levels.map((lvl) => (
-                    <button
-                      key={lvl.name}
-                      onClick={lvl.unlocked ? undefined : handleLocked}
-                      className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
-                        lvl.current
-                          ? `bg-violet-600/20 border-violet-500/60 text-violet-300 shadow-lg shadow-violet-900/30`
-                          : lvl.unlocked
-                          ? `bg-emerald-900/20 border-emerald-700/40 text-emerald-400 hover:border-emerald-500`
-                          : `bg-[#0d0d14] border-[#1c1c3a] text-slate-700 cursor-default`
-                      }`}
-                    >
-                      {lvl.current && (
-                        <motion.span
-                          className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-violet-400"
-                          animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        />
-                      )}
-                      {!lvl.unlocked && (
-                        <span className="text-slate-700 text-xs">🔒</span>
-                      )}
-                      {lvl.unlocked && !lvl.current && (
-                        <span className="text-emerald-500 text-xs">✓</span>
-                      )}
-                      {lvl.current && (
-                        <span className="text-violet-400 text-xs">▶</span>
-                      )}
-                      {lvl.name}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
+                <Close size={14} />
+              </button>
+            </div>
           </div>
 
-          {/* Locked level toast */}
+          {/* Body: zone strip + detail */}
+          <div style={{
+            position: "absolute", top: 80, left: 0, right: 0, bottom: 0,
+            display: "grid",
+            gridTemplateColumns: "320px 1fr",
+            overflow: "hidden",
+          }}>
+            {/* Left: zone list */}
+            <div style={{
+              padding: "20px 16px 20px 28px",
+              overflowY: "auto",
+              borderRight: "1px solid rgba(255,255,255,0.05)",
+              display: "flex", flexDirection: "column", gap: 8,
+            }}>
+              {ZONES.map((zone, i) => {
+                const Icon = GLYPHS[zone.glyph];
+                const isActive = i === active;
+                const unlocked = zone.levels.filter((l) => l.unlocked).length;
+                return (
+                  <motion.button
+                    key={zone.id}
+                    onClick={() => setActive(i)}
+                    whileHover={!isActive ? { background: "rgba(255,255,255,0.025)" } : undefined}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 14,
+                      padding: "12px 14px",
+                      background: isActive ? `linear-gradient(90deg, ${zone.accent}18, transparent)` : "transparent",
+                      border: "1px solid " + (isActive ? zone.accent + "55" : "rgba(255,255,255,0.05)"),
+                      borderRadius: 10,
+                      cursor: "pointer", textAlign: "left",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <div style={{
+                      width: 40, height: 40, flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: `linear-gradient(135deg, ${zone.accent}26, ${zone.deep}30)`,
+                      border: `1px solid ${zone.accent}40`,
+                      borderRadius: 8,
+                    }}>
+                      <Icon size={20} color={zone.accent} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <span style={{
+                          fontFamily: "var(--font-mono)", fontSize: 8,
+                          color: zone.accent, letterSpacing: "0.2em",
+                        }}>{zone.region}</span>
+                        <span style={{
+                          fontSize: 13, fontWeight: 600,
+                          color: isActive ? "#ebe9e3" : "rgba(235,233,227,0.7)",
+                        }}>{zone.name}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{
+                          fontFamily: "var(--font-mono)", fontSize: 9,
+                          color: "rgba(235,233,227,0.4)", letterSpacing: "0.1em",
+                        }}>
+                          {unlocked} / {zone.levels.length}
+                        </span>
+                        <div style={{
+                          flex: 1, height: 2,
+                          background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden",
+                        }}>
+                          <div style={{
+                            height: "100%",
+                            width: `${(unlocked / zone.levels.length) * 100}%`,
+                            background: zone.accent,
+                            boxShadow: unlocked > 0 ? `0 0 6px ${zone.accent}` : "none",
+                          }} />
+                        </div>
+                      </div>
+                    </div>
+                    {isActive && <ArrowRight size={14} color={zone.accent} />}
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            {/* Right: detail */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.2 }}
+                style={{ overflowY: "auto", height: "100%" }}
+              >
+                <ZoneDetail
+                  zone={ZONES[active]}
+                  onLocked={handleLocked}
+                  onClose={onClose}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Toast */}
           <AnimatePresence>
-            {lockedMsg && (
+            {toast && (
               <motion.div
                 initial={{ opacity: 0, y: 12, x: "-50%" }}
                 animate={{ opacity: 1, y: 0, x: "-50%" }}
                 exit={{ opacity: 0, y: 12, x: "-50%" }}
-                className="fixed bottom-8 left-1/2 bg-[#1c1c3a] border border-[#2a2a4a] rounded-xl px-5 py-3 text-slate-300 text-sm font-medium shadow-xl"
+                style={{
+                  position: "fixed", bottom: 32, left: "50%",
+                  padding: "10px 18px",
+                  background: "rgba(7,7,13,0.95)",
+                  border: "1px solid rgba(246,196,83,0.4)",
+                  borderRadius: 8,
+                  fontSize: 12, color: "#ebe9e3",
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+                  zIndex: 200,
+                  display: "flex", alignItems: "center", gap: 8,
+                }}
               >
-                {lockedMsg}
+                <Lock size={12} color="#f6c453" />
+                {toast}
               </motion.div>
             )}
           </AnimatePresence>

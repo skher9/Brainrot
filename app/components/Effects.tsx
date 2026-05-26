@@ -3,12 +3,47 @@
 import { useEffect, useRef, useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* ── AmbientStage: scanlines + grain ─────────────────────── */
+/* ── AmbientStage: scanlines + grain + dust particles ────── */
+const DUST_PARTICLES = Array.from({ length: 26 }, (_, i) => ({
+  id: i,
+  left: Math.round((i / 26) * 100 + Math.random() * 4),
+  top: Math.round(20 + Math.random() * 80),
+  dur: (6 + Math.random() * 6).toFixed(1),
+  delay: (Math.random() * 8).toFixed(1),
+  dx: Math.round((Math.random() - 0.5) * 40),
+  dy: Math.round(-60 - Math.random() * 60),
+  isViolet: i % 5 === 0,
+}));
+
 export function AmbientStage() {
   return (
     <>
-      <div className="ambient-scanlines" aria-hidden />
-      <div className="ambient-grain" aria-hidden />
+      <div className="stage-ambient" aria-hidden />
+      <div className="stage-vignette" aria-hidden />
+      {/* Dust particles */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 3 }} aria-hidden>
+        {DUST_PARTICLES.map((p) => (
+          <div
+            key={p.id}
+            className={`dust${p.isViolet ? " dust-violet" : ""}`}
+            style={{
+              left: `${p.left}%`,
+              top: `${p.top}%`,
+              ["--dur" as string]: `${p.dur}s`,
+              ["--delay" as string]: `${p.delay}s`,
+              ["--dx" as string]: `${p.dx}px`,
+              ["--dy" as string]: `${p.dy}px`,
+            }}
+          />
+        ))}
+        {/* Slow vertical scan beam */}
+        <div style={{
+          position: "absolute", left: 0, right: 0, height: 1,
+          background: "linear-gradient(90deg, transparent, rgba(167,139,250,0.12), transparent)",
+          animation: "scan-vertical 18s linear infinite",
+          top: 0,
+        }} />
+      </div>
     </>
   );
 }
@@ -87,14 +122,11 @@ interface BurstParticle {
 let burstId = 0;
 let burstDispatch: ((p: BurstParticle) => void) | null = null;
 
-export function fireBurst(e: { clientX: number; clientY: number }, amount: number, label?: string) {
+export function fireBurst(e: { clientX: number; clientY: number } | null, amount: number, label?: string) {
   if (!burstDispatch) return;
-  burstDispatch({
-    id: ++burstId,
-    x: e.clientX,
-    y: e.clientY,
-    label: label ?? `+${amount} XP`,
-  });
+  const x = e?.clientX ?? window.innerWidth / 2;
+  const y = e?.clientY ?? window.innerHeight * 0.6;
+  burstDispatch({ id: ++burstId, x, y, label: label ?? `+${amount} XP` });
 }
 
 export function BurstHost() {

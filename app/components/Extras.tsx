@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Check, Flame, Star, Bolt, Crown, Shield, Mountain, Trophy, Sparkle, Lock, Play } from "@/components/Glyphs";
 
 /* ── CursorAurora ────────────────────────────────────────── */
 export function CursorAurora() {
@@ -204,7 +205,7 @@ function Corners({ size = 14, thickness = 1.5, opacity = 0.5 }: { size?: number;
 /* ── LevelUpFlash ────────────────────────────────────────── */
 export function LevelUpFlash({ level, onDone }: { level: string; onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 2400);
+    const t = setTimeout(onDone, 2600);
     return () => clearTimeout(t);
   }, [onDone]);
 
@@ -214,132 +215,472 @@ export function LevelUpFlash({ level, onDone }: { level: string; onDone: () => v
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
     >
-      <div className="absolute inset-0 bg-black/80" />
+      <div className="absolute inset-0 bg-black/85" />
+      {/* Radial rays SVG */}
+      <svg
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+        viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <radialGradient id="ray-grad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#f6c453" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#f6c453" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        {Array.from({ length: 12 }, (_, i) => {
+          const angle = (i / 12) * Math.PI * 2;
+          const x2 = 400 + Math.cos(angle) * 500;
+          const y2 = 300 + Math.sin(angle) * 500;
+          return (
+            <motion.line
+              key={i}
+              x1="400" y1="300"
+              x2={x2} y2={y2}
+              stroke="#f6c453"
+              strokeWidth="1"
+              strokeOpacity="0"
+              initial={{ strokeOpacity: 0 }}
+              animate={{ strokeOpacity: [0, 0.25, 0] }}
+              transition={{ duration: 1.2, delay: i * 0.04, ease: "easeOut" }}
+            />
+          );
+        })}
+        <motion.circle
+          cx="400" cy="300" r="0"
+          fill="url(#ray-grad)"
+          initial={{ r: 0 }}
+          animate={{ r: 320 }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
+        />
+      </svg>
+
       <motion.div
         className="relative text-center px-10"
-        initial={{ scale: 0.7, opacity: 0 }}
+        initial={{ scale: 0.65, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 1.2, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        exit={{ scale: 1.15, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 280, damping: 22 }}
       >
-        <p className="text-[var(--gold)] font-black text-xs tracking-[0.3em] uppercase mb-2 opacity-70">Level Up</p>
-        <p
-          className="text-white text-5xl font-black mb-1"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
+        <p style={{
+          fontFamily: "var(--font-mono)", fontSize: 10,
+          letterSpacing: "0.35em", color: "rgba(246,196,83,0.7)",
+          marginBottom: 10,
+        }}>
+          ◆ ASCENT ◆
+        </p>
+        <p style={{
+          fontFamily: "var(--font-display)", fontSize: 56, lineHeight: 1,
+          background: "linear-gradient(180deg, #fde68a 0%, #f6c453 60%, #e3a93f 100%)",
+          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          marginBottom: 10,
+        }}>
           {level}
         </p>
-        <p className="text-white/30 text-sm">Keep rotting.</p>
+        <p style={{ color: "rgba(235,233,227,0.3)", fontSize: 13 }}>Keep rotting.</p>
       </motion.div>
     </motion.div>
   );
 }
 
 /* ── LiveFeed ────────────────────────────────────────────── */
-const LIVE_ITEMS = [
-  "devboi88 scored 100% on Boss Level",
-  "sortqueen just hit Sorting Padawan",
-  "xX_debugger_Xx found the bug in 2s",
-  "rotmaster just completed Bubble Sort",
-  "anon_coder earned 3-day streak",
-  "algo_nerd passed Beat the Clock",
-  "cs_grind got 30/30 on You Decide",
-  "bytebreaker hit Code Ronin rank",
+const ACTIVITY_NAMES = [
+  "kira_dev", "morsecode", "sapphire", "neon.rune", "obi.k", "wreckless",
+  "vivienne", "hekate", "argent01", "patchwork", "axiom", "nyx",
+];
+type ActivityVerb = { v: string; Icon: typeof Check; c: string };
+const ACTIVITY_VERBS: ActivityVerb[] = [
+  { v: "cleared Bubble Sort",      Icon: Check,    c: "#6ee7b7" },
+  { v: "hit a ×7 combo",           Icon: Flame,    c: "#f6c453" },
+  { v: "unlocked Selection Sort",  Icon: Star,     c: "#a78bfa" },
+  { v: "beat the Daily in 1:12",   Icon: Bolt,     c: "#f6c453" },
+  { v: "reached Level 5",          Icon: Crown,    c: "#f6c453" },
+  { v: "earned the Sorter badge",  Icon: Shield,   c: "#67e8f9" },
+  { v: "started Search Mountains", Icon: Mountain, c: "#67e8f9" },
+  { v: "took down Bubble Boss",    Icon: Trophy,   c: "#fb7185" },
 ];
 
+interface FeedItem { id: string; name: string; action: ActivityVerb; }
+
+function makeFeedItem(): FeedItem {
+  return {
+    id: Math.random().toString(36).slice(2),
+    name: ACTIVITY_NAMES[Math.floor(Math.random() * ACTIVITY_NAMES.length)],
+    action: ACTIVITY_VERBS[Math.floor(Math.random() * ACTIVITY_VERBS.length)],
+  };
+}
+
 export function LiveFeed() {
-  const [idx, setIdx] = useState(0);
+  const [items, setItems] = useState<FeedItem[]>(() =>
+    Array.from({ length: 4 }, makeFeedItem)
+  );
 
   useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % LIVE_ITEMS.length), 3500);
+    const t = setInterval(() => {
+      setItems((p) => [makeFeedItem(), ...p].slice(0, 4));
+    }, 4500);
     return () => clearInterval(t);
   }, []);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-2)] border border-[var(--border)] rounded-lg overflow-hidden">
-      <span className="relative flex-shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-400">
-        <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
-      </span>
-      <div className="overflow-hidden h-4 flex-1">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={idx}
-            initial={{ y: 16, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -16, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="text-[11px] text-white/35 font-mono whitespace-nowrap"
-          >
-            {LIVE_ITEMS[idx]}
-          </motion.p>
-        </AnimatePresence>
+    <div style={{ position: "relative" }}>
+      <div style={{
+        padding: "14px 16px",
+        background: "rgba(12,12,20,0.6)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 12,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: "50%",
+            background: "#fb7185", flexShrink: 0,
+            boxShadow: "0 0 8px #fb7185",
+          }} />
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 9,
+            letterSpacing: "0.22em", color: "rgba(235,233,227,0.55)",
+          }}>LIVE FEED</span>
+          <span style={{ flex: 1 }} />
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 9,
+            color: "rgba(110,231,183,0.7)", letterSpacing: "0.15em",
+          }}>1,247 ONLINE</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <AnimatePresence initial={false}>
+            {items.map((it, i) => {
+              const { Icon } = it.action;
+              return (
+                <motion.div
+                  key={it.id}
+                  initial={i === 0 ? { opacity: 0, y: -8 } : false}
+                  animate={{ opacity: 1 - i * 0.18, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "6px 8px",
+                    background: i === 0 ? "rgba(167,139,250,0.05)" : "transparent",
+                    borderRadius: 6,
+                  }}
+                >
+                  <div style={{
+                    width: 22, height: 22, flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: `${it.action.c}20`,
+                    border: `1px solid ${it.action.c}40`,
+                    borderRadius: 4,
+                  }}>
+                    <Icon size={11} color={it.action.c} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: 10, color: it.action.c,
+                    }}>{it.name}</span>
+                    <span style={{
+                      fontSize: 11, color: "rgba(235,233,227,0.55)", marginLeft: 6,
+                    }}>{it.action.v}</span>
+                  </div>
+                  {i === 0 && (
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: 9,
+                      color: "rgba(235,233,227,0.35)", letterSpacing: "0.12em",
+                    }}>NOW</span>
+                  )}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
 }
 
 /* ── TrendingRail ────────────────────────────────────────── */
-const TRENDING = [
-  { name: "Binary Search",    tag: "O(log n)",  color: "#67e8f9", heat: 94 },
-  { name: "Quick Sort",       tag: "O(n log n)",color: "#a78bfa", heat: 87 },
-  { name: "Graph BFS/DFS",    tag: "O(V+E)",    color: "#34d399", heat: 76 },
-  { name: "Attention (AI)",   tag: "O(n²)",     color: "#f6c453", heat: 71 },
-  { name: "Merge Sort",       tag: "O(n log n)",color: "#f43f5e", heat: 65 },
+interface TrendingItem {
+  id: string; title: string; sub: string; plays: string; delta: string;
+  viz: "binary" | "quick" | "graph" | "attention" | "merge";
+  accent: string; deep: string; hot?: boolean;
+}
+
+const TRENDING_DATA: TrendingItem[] = [
+  { id: "binary-search", title: "Binary Search",  sub: "Search Mountains · Tier I",  plays: "12.4k", delta: "+18%", viz: "binary",    accent: "#67e8f9", deep: "#0e7490" },
+  { id: "quick-sort",    title: "Quick Sort",     sub: "Sorting Village · Tier II",  plays: "8.9k",  delta: "+24%", viz: "quick",     accent: "#a78bfa", deep: "#5b21b6", hot: true },
+  { id: "dijkstra",      title: "Dijkstra",       sub: "Graph Dungeon · Tier II",    plays: "5.2k",  delta: "+9%",  viz: "graph",     accent: "#fb7185", deep: "#9f1239" },
+  { id: "transformers",  title: "Transformers",   sub: "AI Realm · Tier IV",         plays: "3.1k",  delta: "+41%", viz: "attention", accent: "#93c5fd", deep: "#1d4ed8", hot: true },
+  { id: "merge-sort",    title: "Merge Sort",     sub: "Sorting Village · Tier II",  plays: "7.8k",  delta: "+6%",  viz: "merge",     accent: "#f6c453", deep: "#92400e" },
 ];
 
-function MiniViz({ color, heat }: { color: string; heat: number }) {
-  const bars = [heat * 0.6, heat * 0.8, heat * 0.5, heat * 0.95, heat * 0.7, heat * 0.85];
+function BinaryViz({ accent }: { accent: string }) {
+  const [hi, setHi] = useState(7);
+  useEffect(() => {
+    const seq = [7, 3, 5, 4, 7, 11, 9, 10, 7];
+    let i = 0;
+    const t = setInterval(() => { setHi(seq[i % seq.length]); i++; }, 600);
+    return () => clearInterval(t);
+  }, []);
   return (
-    <div className="flex items-end gap-0.5 h-5">
-      {bars.map((h, i) => (
-        <div
-          key={i}
-          style={{
-            width: 4,
-            height: `${(h / 100) * 20}px`,
-            background: color,
-            borderRadius: "1px 1px 0 0",
-            opacity: 0.7,
-          }}
+    <svg viewBox="0 0 200 100" style={{ width: "100%", height: "100%" }}>
+      {Array.from({ length: 16 }, (_, i) => (
+        <rect key={i} x={8 + i * 12} y={40} width="8"
+          height={i === hi ? 32 : 20} rx="1"
+          fill={i === hi ? accent : `${accent}30`}
+          style={{ transition: "all 0.3s" }}
         />
       ))}
-    </div>
+      <polygon
+        points={`${8 + hi * 12 + 4},28 ${8 + hi * 12},22 ${8 + hi * 12 + 8},22`}
+        fill={accent}
+        style={{ transition: "all 0.3s cubic-bezier(.16,1,.3,1)" }}
+      />
+    </svg>
+  );
+}
+
+function QuickViz({ accent }: { accent: string }) {
+  const heights = useMemo(() => Array.from({ length: 12 }, () => 0.2 + Math.random() * 0.8), []);
+  const [pivot, setPivot] = useState(5);
+  useEffect(() => {
+    let i = 0;
+    const t = setInterval(() => { setPivot(i % 12); i++; }, 450);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <svg viewBox="0 0 200 100" style={{ width: "100%", height: "100%" }}>
+      {heights.map((h, i) => {
+        const x = 10 + i * 15;
+        const height = h * 60;
+        const isPivot = i === pivot;
+        const isLeft = i < pivot;
+        return (
+          <rect key={i} x={x} y={100 - height} width="10" height={height} rx="1"
+            fill={isPivot ? accent : isLeft ? `${accent}50` : `${accent}25`}
+            style={{ transition: "fill 0.3s" }}
+          />
+        );
+      })}
+      {/* pivot line */}
+      <line x1={10 + pivot * 15 + 5} y1="5" x2={10 + pivot * 15 + 5} y2="95"
+        stroke={accent} strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+    </svg>
+  );
+}
+
+function GraphViz({ accent }: { accent: string }) {
+  const nodes = useMemo(() => [
+    { x: 100, y: 50 }, { x: 40, y: 20 }, { x: 160, y: 20 },
+    { x: 40, y: 80 }, { x: 160, y: 80 }, { x: 100, y: 90 },
+  ], []);
+  const edges = [[0,1],[0,2],[0,3],[1,3],[2,4],[3,5],[4,5]];
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setActive((a) => (a + 1) % nodes.length), 700);
+    return () => clearInterval(t);
+  }, [nodes.length]);
+  return (
+    <svg viewBox="0 0 200 100" style={{ width: "100%", height: "100%" }}>
+      {edges.map(([a, b], i) => (
+        <line key={i} x1={nodes[a].x} y1={nodes[a].y} x2={nodes[b].x} y2={nodes[b].y}
+          stroke={`${accent}40`} strokeWidth="1" />
+      ))}
+      {nodes.map((n, i) => (
+        <circle key={i} cx={n.x} cy={n.y} r={i === active ? 8 : 5}
+          fill={i === active ? accent : `${accent}40`}
+          style={{ transition: "all 0.3s" }}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function AttentionViz({ accent }: { accent: string }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setStep((s) => (s + 1) % 8), 300);
+    return () => clearInterval(t);
+  }, []);
+  const tokens = 6;
+  return (
+    <svg viewBox="0 0 200 100" style={{ width: "100%", height: "100%" }}>
+      {Array.from({ length: tokens }, (_, i) =>
+        Array.from({ length: tokens }, (_, j) => {
+          const strength = Math.abs(i - j) === step % tokens ? 1 : 0.1;
+          return (
+            <line key={`${i}-${j}`}
+              x1={20 + i * 30} y1={30} x2={20 + j * 30} y2={70}
+              stroke={accent} strokeWidth={strength * 1.5} opacity={strength}
+              style={{ transition: "opacity 0.3s, stroke-width 0.3s" }}
+            />
+          );
+        })
+      )}
+      {Array.from({ length: tokens }, (_, i) => (
+        <g key={i}>
+          <circle cx={20 + i * 30} cy={30} r="5" fill={`${accent}60`} />
+          <circle cx={20 + i * 30} cy={70} r="5" fill={`${accent}60`} />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function MergeViz({ accent }: { accent: string }) {
+  const [phase, setPhase] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setPhase((p) => (p + 1) % 4), 600);
+    return () => clearInterval(t);
+  }, []);
+  const groups = phase === 0 ? [[0],[1],[2],[3],[4],[5],[6],[7]]
+    : phase === 1 ? [[0,1],[2,3],[4,5],[6,7]]
+    : phase === 2 ? [[0,1,2,3],[4,5,6,7]]
+    : [[0,1,2,3,4,5,6,7]];
+  return (
+    <svg viewBox="0 0 200 100" style={{ width: "100%", height: "100%" }}>
+      {groups.map((grp, gi) => {
+        const w = grp.length * 20;
+        const x = gi * (200 / groups.length) + (200 / groups.length - w) / 2;
+        return (
+          <rect key={gi} x={x} y={35} width={w} height="30" rx="3"
+            fill={`${accent}30`} stroke={accent} strokeWidth="1"
+            style={{ transition: "all 0.5s cubic-bezier(.16,1,.3,1)" }}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+function AnimMiniViz({ kind, accent }: { kind: TrendingItem["viz"]; accent: string }) {
+  if (kind === "binary")    return <BinaryViz    accent={accent} />;
+  if (kind === "quick")     return <QuickViz     accent={accent} />;
+  if (kind === "graph")     return <GraphViz     accent={accent} />;
+  if (kind === "attention") return <AttentionViz accent={accent} />;
+  if (kind === "merge")     return <MergeViz     accent={accent} />;
+  return null;
+}
+
+function TrendingCard({ t, index }: { t: TrendingItem; index: number }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <motion.button
+      onHoverStart={() => setHover(true)}
+      onHoverEnd={() => setHover(false)}
+      whileHover={{ y: -3 }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        position: "relative", textAlign: "left", padding: 0,
+        border: `1px solid ${hover ? t.accent + "66" : "rgba(255,255,255,0.06)"}`,
+        borderRadius: 12,
+        background: "rgba(12,12,20,0.5)",
+        cursor: "pointer", overflow: "hidden",
+        boxShadow: hover ? `0 20px 40px -16px ${t.accent}50` : "0 4px 16px rgba(0,0,0,0.3)",
+        transition: "border-color 0.25s, box-shadow 0.25s",
+        width: "100%",
+      }}
+    >
+      <div style={{
+        height: 100, position: "relative",
+        background: `linear-gradient(135deg, ${t.accent}20, ${t.deep}30)`,
+        overflow: "hidden",
+        borderBottom: `1px solid ${t.accent}30`,
+      }}>
+        <AnimMiniViz kind={t.viz} accent={t.accent} />
+        {t.hot && (
+          <span style={{
+            position: "absolute", top: 8, right: 8,
+            display: "flex", alignItems: "center", gap: 4,
+            padding: "2px 6px",
+            background: "rgba(251,113,133,0.15)",
+            border: "1px solid rgba(251,113,133,0.4)",
+            borderRadius: 3,
+            fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.18em",
+            color: "#fb7185",
+          }}>
+            <Flame size={9} color="#fb7185" /> HOT
+          </span>
+        )}
+        <AnimatePresence>
+          {hover && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: "absolute", inset: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "rgba(7,7,13,0.4)",
+              }}
+            >
+              <div style={{
+                width: 36, height: 36,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: `${t.accent}20`,
+                border: `1px solid ${t.accent}`,
+                borderRadius: "50%",
+                boxShadow: `0 0 20px ${t.accent}`,
+              }}>
+                <Play size={14} color={t.accent} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      <div style={{ padding: "12px 14px" }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#ebe9e3", marginBottom: 3 }}>
+          {t.title}
+        </div>
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em",
+          color: "rgba(235,233,227,0.4)", marginBottom: 8,
+        }}>
+          {t.sub.toUpperCase()}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(235,233,227,0.6)",
+          }}>{t.plays} plays</span>
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 10, color: "#6ee7b7",
+            padding: "2px 6px", background: "rgba(110,231,183,0.1)", borderRadius: 3,
+          }}>▲ {t.delta}</span>
+        </div>
+      </div>
+    </motion.button>
   );
 }
 
 export function TrendingRail() {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-4">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-[var(--gold)] text-[10px] font-black tracking-[0.2em] uppercase opacity-60">
-          Trending
-        </span>
-        <div className="flex-1 h-px bg-white/[0.04]" />
+    <section style={{ maxWidth: 1100, margin: "20px auto 0", padding: "0 24px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14 }}>
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.25em", color: "#f6c453",
+          padding: "3px 8px",
+          background: "rgba(246,196,83,0.08)",
+          border: "1px solid rgba(246,196,83,0.25)",
+          borderRadius: 4,
+        }}>◆ TRENDING NOW</span>
+        <h3 style={{
+          fontFamily: "var(--font-display)", fontSize: 22, color: "#ebe9e3", letterSpacing: "-0.01em",
+        }}>
+          What the realm is grinding tonight.
+        </h3>
+        <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, rgba(255,255,255,0.12), transparent)" }} />
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(235,233,227,0.4)", letterSpacing: "0.15em",
+        }}>AUTO · LAST HOUR</span>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-        {TRENDING.map((t, i) => (
-          <div
-            key={t.name}
-            className="relative flex-shrink-0 hud-panel border border-white/[0.06] rounded-xl p-3.5 w-44 cursor-default hover:border-white/[0.12] transition-colors"
-          >
-            <div className="flex items-start justify-between mb-2">
-              <span className="text-[10px] text-white/25 font-black tabular-nums">#{i + 1}</span>
-              <MiniViz color={t.color} heat={t.heat} />
-            </div>
-            <p className="text-white/80 font-bold text-xs leading-tight mb-1">{t.name}</p>
-            <p className="font-mono text-[10px]" style={{ color: t.color, opacity: 0.7 }}>
-              {t.tag}
-            </p>
-            <div className="mt-2 h-0.5 bg-white/[0.06] rounded-full overflow-hidden">
-              <div
-                style={{ width: `${t.heat}%`, background: t.color, opacity: 0.5 }}
-                className="h-full rounded-full"
-              />
-            </div>
-          </div>
-        ))}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: 12,
+      }}>
+        {TRENDING_DATA.map((t, i) => <TrendingCard key={t.id} t={t} index={i} />)}
       </div>
-    </div>
+    </section>
   );
 }

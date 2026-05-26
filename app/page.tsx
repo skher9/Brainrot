@@ -14,7 +14,7 @@ import Section4SpotTheBug from "@/components/Section4SpotTheBug";
 import Section5BossLevel from "@/components/Section5BossLevel";
 import Section6RealWorld from "@/components/Section6RealWorld";
 import { AmbientStage, BurstHost } from "@/components/Effects";
-import { CursorAurora, Constellation, ToastHost, LiveFeed, TrendingRail } from "@/components/Extras";
+import { CursorAurora, Constellation, ToastHost, LiveFeed, TrendingRail, LevelUpFlash } from "@/components/Extras";
 
 const SECTIONS = [
   Section1Visualizer,
@@ -91,7 +91,7 @@ const VENN_HINTS = [
 ];
 
 function BubbleSortModule() {
-  const { currentSection } = useXP();
+  const { currentSection, levelUpEvent, clearLevelUp } = useXP();
   const [showMap, setShowMap] = useState(false);
   const [vennHint, setVennHint] = useState<string | null>(null);
   const [vennIdx, setVennIdx] = useState(0);
@@ -147,6 +147,13 @@ function BubbleSortModule() {
           )}
         </div>
       </div>
+
+      {/* Level-up flash */}
+      <AnimatePresence>
+        {levelUpEvent && (
+          <LevelUpFlash key={levelUpEvent} level={levelUpEvent} onDone={clearLevelUp} />
+        )}
+      </AnimatePresence>
 
       {/* Companion mascot */}
       <Venn hint={vennHint} />

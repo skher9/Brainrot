@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { sound } from "@/lib/sound";
 import { useXP } from "@/lib/xpContext";
+import { fireBurst } from "@/components/Effects";
+import { fireToast } from "@/components/Extras";
 
 interface Step {
   array: number[];
@@ -111,7 +113,7 @@ export default function Section4SpotTheBug() {
   const maxVal = Math.max(...config.array);
 
   const pick = useCallback(
-    (idx: number) => {
+    (idx: number, e?: React.MouseEvent) => {
       if (selected !== null) return;
       setSelected(idx);
       const isRight = round.steps[idx].isWrong;
@@ -120,6 +122,7 @@ export default function Section4SpotTheBug() {
         setScore((s) => s + 1);
         sound.correct();
         addXP(30);
+        fireBurst(e ?? null, 30, "+30 XP");
       } else {
         sound.wrong();
       }
@@ -135,6 +138,7 @@ export default function Section4SpotTheBug() {
       markComplete(3);
       addXP(60);
       sound.win();
+      fireToast("achievement", "Stage 4 complete", "Spot the Bug — all rounds done");
       return;
     }
     setRoundIdx(next);
@@ -267,7 +271,7 @@ export default function Section4SpotTheBug() {
             return (
               <motion.button
                 key={i}
-                onClick={() => !revealed && pick(i)}
+                onClick={(e) => !revealed && pick(i, e)}
                 disabled={revealed}
                 whileHover={!revealed ? { scale: 1.01 } : {}}
                 whileTap={!revealed ? { scale: 0.99 } : {}}

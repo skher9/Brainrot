@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getComparisonQuestions, ComparisonQuestion } from "@/lib/bubbleSort";
 import { sound } from "@/lib/sound";
 import { useXP } from "@/lib/xpContext";
+import { fireBurst } from "@/components/Effects";
+import { fireToast } from "@/components/Extras";
 
 interface TaggedQuestion extends ComparisonQuestion {
   pattern: string | null;
@@ -84,7 +86,7 @@ export default function Section2Interactive() {
   const maxVal = Math.max(...q.array);
   const dc = DIFFICULTY_COLORS[q.difficulty];
 
-  const answer = (userSaysSwap: boolean) => {
+  const answer = (userSaysSwap: boolean, e?: React.MouseEvent) => {
     if (lockRef.current || feedback !== null) return;
     lockRef.current = true;
 
@@ -97,6 +99,7 @@ export default function Section2Interactive() {
       sound.correct();
       addXP(10);
       sound.xp();
+      fireBurst(e ?? null, 10, "+10 XP");
     } else {
       setFeedback("wrong");
       sound.wrong();
@@ -112,6 +115,7 @@ export default function Section2Interactive() {
         markComplete(1);
         addXP(50);
         sound.win();
+        fireToast("achievement", "Stage 2 complete", "You Decide — 30 questions done");
       } else {
         setQIdx((i) => i + 1);
       }
@@ -286,14 +290,14 @@ export default function Section2Interactive() {
         {/* Buttons */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <button
-            onClick={() => answer(true)}
+            onClick={(e) => answer(true, e)}
             disabled={feedback !== null}
             className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-violet-700"
           >
             ↕ Swap
           </button>
           <button
-            onClick={() => answer(false)}
+            onClick={(e) => answer(false, e)}
             disabled={feedback !== null}
             className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-cyan-700"
           >

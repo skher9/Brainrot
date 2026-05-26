@@ -56,6 +56,8 @@ interface XPCtx {
   addXP: (n: number) => void;
   streak: number;
   level: string;
+  levelUpEvent: string | null;
+  clearLevelUp: () => void;
   currentSection: number;
   goToSection: (n: number) => void;
   sectionComplete: boolean[];
@@ -80,6 +82,7 @@ export function XPProvider({ children }: { children: ReactNode }) {
   const [sectionComplete, setSectionComplete] = useState(
     Array(6).fill(false) as boolean[]
   );
+  const [levelUpEvent, setLevelUpEvent] = useState<string | null>(null);
   const [sessionStartTime] = useState(() => Date.now());
   const [totalSessionXP, setTotalSessionXP] = useState(0);
   const [sessionAccuracy, setAccuracy] = useState<number | null>(null);
@@ -98,10 +101,17 @@ export function XPProvider({ children }: { children: ReactNode }) {
     setXP((prev) => {
       const next = prev + n;
       patchStored({ xp: next });
+      const prevLevel = getLevel(prev);
+      const nextLevel = getLevel(next);
+      if (nextLevel !== prevLevel) {
+        setLevelUpEvent(nextLevel);
+      }
       return next;
     });
     setTotalSessionXP((p) => p + n);
   }, []);
+
+  const clearLevelUp = useCallback(() => setLevelUpEvent(null), []);
 
   const goToSection = useCallback((n: number) => setSection(n), []);
 
@@ -146,6 +156,8 @@ export function XPProvider({ children }: { children: ReactNode }) {
         addXP,
         streak,
         level: getLevel(xp),
+        levelUpEvent,
+        clearLevelUp,
         currentSection,
         goToSection,
         sectionComplete,

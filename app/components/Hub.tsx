@@ -57,12 +57,12 @@ const ZONES: Zone[] = [
     bg: "rgba(14,116,144,0.1)",
     border: "rgba(103,232,249,0.15)",
     tagline: "Find anything, in any conditions.",
-    available: false,
+    available: true,
     levels: [
-      { id: "linear-search",       name: "Linear Search",       label: "ENTRY",   xp: 200, live: false },
-      { id: "binary-search",       name: "Binary Search",       label: "TIER I",  xp: 320, live: false },
-      { id: "jump-search",         name: "Jump Search",         label: "TIER I",  xp: 320, live: false },
-      { id: "interpolation-search",name: "Interpolation Search",label: "TIER II", xp: 400, live: false },
+      { id: "linear-search",       name: "Linear Search",       label: "ENTRY",   xp: 200, live: true },
+      { id: "binary-search",       name: "Binary Search",       label: "TIER I",  xp: 320, live: true },
+      { id: "jump-search",         name: "Jump Search",         label: "TIER I",  xp: 320, live: true },
+      { id: "interpolation-search",name: "Interpolation Search",label: "TIER II", xp: 400, live: true },
     ],
   },
   {
@@ -73,13 +73,13 @@ const ZONES: Zone[] = [
     bg: "rgba(6,95,70,0.1)",
     border: "rgba(110,231,183,0.15)",
     tagline: "Branching logic, recursive beauty.",
-    available: false,
+    available: true,
     levels: [
-      { id: "binary-tree", name: "Binary Tree",        label: "ENTRY",    xp: 280, live: false },
-      { id: "bst",         name: "Binary Search Tree", label: "TIER I",   xp: 320, live: false },
-      { id: "avl-tree",    name: "AVL Tree",           label: "TIER II",  xp: 380, live: false },
-      { id: "heap",        name: "Heap",               label: "TIER II",  xp: 380, live: false },
-      { id: "trie",        name: "Trie",               label: "TIER III", xp: 420, live: false },
+      { id: "binary-tree", name: "Binary Tree",        label: "ENTRY",    xp: 280, live: true },
+      { id: "bst",         name: "Binary Search Tree", label: "TIER I",   xp: 320, live: true },
+      { id: "avl-tree",    name: "AVL Tree",           label: "TIER II",  xp: 380, live: true },
+      { id: "heap",        name: "Heap",               label: "TIER II",  xp: 380, live: true },
+      { id: "trie",        name: "Trie",               label: "TIER III", xp: 420, live: true },
     ],
   },
   {
@@ -90,13 +90,13 @@ const ZONES: Zone[] = [
     bg: "rgba(159,18,57,0.1)",
     border: "rgba(251,113,133,0.15)",
     tagline: "Paths, traversals, and dark corners.",
-    available: false,
+    available: true,
     levels: [
-      { id: "graph-basics", name: "Graph Basics",       label: "ENTRY",    xp: 280, live: false },
-      { id: "bfs",          name: "BFS",                label: "TIER I",   xp: 320, live: false },
-      { id: "dfs",          name: "DFS",                label: "TIER I",   xp: 320, live: false },
-      { id: "dijkstra",     name: "Dijkstra's",         label: "TIER II",  xp: 420, live: false },
-      { id: "astar",        name: "A*",                 label: "TIER III", xp: 480, live: false },
+      { id: "graph-basics", name: "Graph Basics",       label: "ENTRY",    xp: 280, live: true },
+      { id: "bfs",          name: "BFS",                label: "TIER I",   xp: 320, live: true },
+      { id: "dfs",          name: "DFS",                label: "TIER I",   xp: 320, live: true },
+      { id: "dijkstra",     name: "Dijkstra's",         label: "TIER II",  xp: 420, live: true },
+      { id: "astar",        name: "A*",                 label: "TIER III", xp: 480, live: true },
     ],
   },
   {
@@ -107,13 +107,13 @@ const ZONES: Zone[] = [
     bg: "rgba(146,64,14,0.1)",
     border: "rgba(246,196,83,0.15)",
     tagline: "Architecture at scale.",
-    available: false,
+    available: true,
     levels: [
-      { id: "caching",        name: "Caching",        label: "TIER I",   xp: 400, live: false },
-      { id: "load-balancing", name: "Load Balancing", label: "TIER I",   xp: 400, live: false },
-      { id: "databases",      name: "Databases",      label: "TIER II",  xp: 480, live: false },
-      { id: "message-queues", name: "Message Queues", label: "TIER II",  xp: 480, live: false },
-      { id: "cdns",           name: "CDNs",           label: "TIER III", xp: 520, live: false },
+      { id: "caching",        name: "Caching",        label: "TIER I",   xp: 400, live: true },
+      { id: "load-balancing", name: "Load Balancing", label: "TIER I",   xp: 400, live: true },
+      { id: "databases",      name: "Databases",      label: "TIER II",  xp: 480, live: true },
+      { id: "message-queues", name: "Message Queues", label: "TIER II",  xp: 480, live: true },
+      { id: "cdns",           name: "CDNs",           label: "TIER III", xp: 520, live: true },
     ],
   },
   {
@@ -124,12 +124,12 @@ const ZONES: Zone[] = [
     bg: "rgba(29,78,216,0.1)",
     border: "rgba(147,197,253,0.15)",
     tagline: "The model that learns to think.",
-    available: false,
+    available: true,
     levels: [
-      { id: "neural-nets",  name: "Neural Networks",  label: "TIER II",  xp: 480, live: false },
-      { id: "backprop",     name: "Backpropagation",  label: "TIER III", xp: 520, live: false },
-      { id: "transformers", name: "Transformers",     label: "TIER IV",  xp: 600, live: false },
-      { id: "embeddings",   name: "Embeddings",       label: "TIER III", xp: 560, live: false },
+      { id: "neural-nets",  name: "Neural Networks",  label: "TIER II",  xp: 480, live: true },
+      { id: "backprop",     name: "Backpropagation",  label: "TIER III", xp: 520, live: true },
+      { id: "transformers", name: "Transformers",     label: "TIER IV",  xp: 600, live: true },
+      { id: "embeddings",   name: "Embeddings",       label: "TIER III", xp: 560, live: true },
     ],
   },
 ];
@@ -209,24 +209,21 @@ function HubNav({
                 background: "none", border: "none", cursor: "pointer",
                 fontFamily: "var(--font-tac)", fontSize: 12, fontWeight: 500,
                 letterSpacing: "0.03em",
-                color: z.available ? "rgba(232,244,255,0.75)" : "rgba(232,244,255,0.35)",
+                color: "rgba(232,244,255,0.75)",
                 padding: "6px 10px", borderRadius: 6,
                 transition: "all 0.15s",
                 whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = `${z.accent}14`;
-                e.currentTarget.style.color = z.available ? z.accent : "rgba(232,244,255,0.5)";
+                e.currentTarget.style.color = z.accent;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = z.available ? "rgba(232,244,255,0.75)" : "rgba(232,244,255,0.35)";
+                e.currentTarget.style.color = "rgba(232,244,255,0.75)";
               }}
             >
               {z.name.split(" ")[0]}
-              {!z.available && (
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, marginLeft: 4, opacity: 0.6 }}>SOON</span>
-              )}
             </button>
           ))}
         </div>
@@ -532,31 +529,19 @@ function ZoneSection({
           }}>
             REGION {zone.region}
           </span>
-          {zone.available ? (
-            <span style={{
+          <span style={{
               fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
               padding: "2px 8px",
               background: `${zone.accent}18`,
               border: `1px solid ${zone.accent}40`,
               borderRadius: 20, color: zone.accent,
             }}>
-              AVAILABLE NOW
+              UNLOCKED
             </span>
-          ) : (
-            <span style={{
-              fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
-              padding: "2px 8px",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 20, color: "rgba(232,244,255,0.35)",
-            }}>
-              COMING SOON
-            </span>
-          )}
         </div>
         <h2 style={{
           fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800,
-          color: zone.available ? "#e8f4ff" : "rgba(232,244,255,0.45)",
+          color: "#e8f4ff",
           letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 8,
         }}>
           {zone.name}

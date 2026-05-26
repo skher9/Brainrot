@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getComparisonQuestions, ComparisonQuestion } from "@/lib/bubbleSort";
 import { sound } from "@/lib/sound";
 import { useXP } from "@/lib/xpContext";
-import { fireBurst } from "@/components/Effects";
+import { Corners, fireBurst } from "@/components/Effects";
 import { fireToast } from "@/components/Extras";
+import { Check, ArrowRight } from "@/components/Glyphs";
 
 interface TaggedQuestion extends ComparisonQuestion {
   pattern: string | null;
@@ -35,42 +36,32 @@ function buildQuestions(): TaggedQuestion[] {
   const result: TaggedQuestion[] = [];
   for (const pool of QUESTION_POOLS) {
     const qs = getComparisonQuestions(pool.array).slice(0, pool.take);
-    for (const q of qs) {
-      result.push({ ...q, pattern: pool.pattern, difficulty: pool.difficulty });
-    }
+    for (const q of qs) result.push({ ...q, pattern: pool.pattern, difficulty: pool.difficulty });
   }
   return result;
 }
 
-const QUESTIONS = buildQuestions(); // 30 total (10 pools × 3)
+const QUESTIONS = buildQuestions();
 const TOTAL_QUESTIONS = QUESTIONS.length;
 
-const DIFFICULTY_COLORS = {
-  easy:   { badge: "bg-emerald-950/60 text-emerald-400 border-emerald-700/30", dot: "bg-emerald-400" },
-  medium: { badge: "bg-amber-950/60 text-amber-400 border-amber-700/30",       dot: "bg-amber-400" },
-  hard:   { badge: "bg-red-950/60 text-red-400 border-red-700/30",             dot: "bg-red-400" },
-};
-
-const BAR_BASE: [string, string][] = [
-  ["#7c3aed", "#c4b5fd"],
-  ["#0e7490", "#67e8f9"],
-  ["#b45309", "#fde68a"],
-  ["#be123c", "#fda4af"],
-  ["#065f46", "#6ee7b7"],
-  ["#1d4ed8", "#93c5fd"],
-  ["#7c2d12", "#fdba74"],
-  ["#4f46e5", "#a78bfa"],
+const VIS_PALETTE = [
+  { top: "#c4b5fd", bot: "#5b21b6", g: "rgba(167,139,250,0.4)" },
+  { top: "#a5f3fc", bot: "#0e7490", g: "rgba(103,232,249,0.35)" },
+  { top: "#fde68a", bot: "#92400e", g: "rgba(246,196,83,0.4)" },
+  { top: "#fda4af", bot: "#9f1239", g: "rgba(251,113,133,0.35)" },
+  { top: "#6ee7b7", bot: "#065f46", g: "rgba(110,231,183,0.35)" },
+  { top: "#93c5fd", bot: "#1d4ed8", g: "rgba(147,197,253,0.3)" },
+  { top: "#fed7aa", bot: "#7c2d12", g: "rgba(254,215,170,0.3)" },
+  { top: "#c4b5fd", bot: "#5b21b6", g: "rgba(167,139,250,0.4)" },
 ];
 
-function getBarBg(i: number, state: string): string {
-  if (state === "comparing") return "linear-gradient(to top,#92400e,#fbbf24)";
-  if (state === "correct")   return "linear-gradient(to top,#065f46,#34d399)";
-  if (state === "wrong")     return "linear-gradient(to top,#9f1239,#f43f5e)";
-  const [from, to] = BAR_BASE[i % BAR_BASE.length];
-  return `linear-gradient(to top,${from},${to})`;
-}
-
 type Feedback = "correct" | "wrong" | null;
+
+const DIFF_STYLE = {
+  easy:   { color: "#6ee7b7", bg: "rgba(110,231,183,0.08)", border: "rgba(110,231,183,0.25)" },
+  medium: { color: "#f6c453", bg: "rgba(246,196,83,0.08)",  border: "rgba(246,196,83,0.25)"  },
+  hard:   { color: "#fb7185", bg: "rgba(251,113,133,0.08)", border: "rgba(251,113,133,0.25)" },
+};
 
 export default function Section2Interactive() {
   const { addXP, markComplete, goToSection } = useXP();
@@ -84,15 +75,13 @@ export default function Section2Interactive() {
 
   const q = QUESTIONS[qIdx];
   const maxVal = Math.max(...q.array);
-  const dc = DIFFICULTY_COLORS[q.difficulty];
+  const diffStyle = DIFF_STYLE[q.difficulty];
 
   const answer = (userSaysSwap: boolean, e?: React.MouseEvent) => {
     if (lockRef.current || feedback !== null) return;
     lockRef.current = true;
-
     const correct = userSaysSwap === q.shouldSwap;
     setExplanation(q.explanation);
-
     if (correct) {
       setFeedback("correct");
       setScore((s) => s + 1);
@@ -106,7 +95,6 @@ export default function Section2Interactive() {
       setShaking(true);
       setTimeout(() => setShaking(false), 400);
     }
-
     setTimeout(() => {
       setFeedback(null);
       lockRef.current = false;
@@ -125,191 +113,206 @@ export default function Section2Interactive() {
   if (done) {
     const pct = Math.round((score / TOTAL_QUESTIONS) * 100);
     return (
-      <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
-        <div className="max-w-lg w-full text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative rounded-3xl p-10 overflow-hidden" style={{ background: "var(--bg-2)", border: "1px solid rgba(255,255,255,0.07)" }}
-          >
-            <div className="text-6xl mb-4">
-              {pct >= 85 ? "🔥" : pct >= 65 ? "⚡" : "💡"}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+        <div style={{ maxWidth: 520, margin: "80px auto 0", textAlign: "center" }}>
+          <div style={{ position: "relative" }}>
+            <Corners color="rgba(167,139,250,0.4)" size={12} thickness={1.2} />
+            <div style={{
+              background: "rgba(12,12,20,0.8)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 18, padding: "40px 32px",
+            }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em", color: "rgba(110,231,183,0.7)", marginBottom: 16 }}>
+                STAGE CLEARED · +50 XP
+              </div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 42, color: "#ebe9e3", marginBottom: 8, lineHeight: 1 }}>
+                {pct >= 85 ? "Instinct locked in." : pct >= 65 ? "Logic is clicking." : "Keep the reps going."}
+              </h2>
+              <p style={{ fontSize: 14, color: "rgba(235,233,227,0.45)", marginBottom: 24 }}>
+                {score}/{TOTAL_QUESTIONS} correct — {pct}%
+              </p>
+              <div style={{ display: "flex", justifyContent: "center", gap: 4, flexWrap: "wrap", marginBottom: 32 }}>
+                {QUESTIONS.map((_, i) => (
+                  <div key={i} style={{
+                    width: 10, height: 10, borderRadius: "50%",
+                    background: i < score ? "#6ee7b7" : "rgba(255,255,255,0.08)",
+                  }} />
+                ))}
+              </div>
+              <button
+                onClick={() => goToSection(2)}
+                className="btn-primary"
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                Next challenge
+                <ArrowRight size={14} color="#fff4d6" />
+              </button>
             </div>
-            <h2 className="text-3xl font-black text-white mb-2">
-              {pct >= 85 ? "Instinct locked in." : pct >= 65 ? "Logic is clicking." : "Keep the reps going."}
-            </h2>
-            <p className="text-slate-400 mb-4 text-sm">
-              {score}/{TOTAL_QUESTIONS} correct — {pct}%
-            </p>
-            <div className="flex items-center justify-center gap-1.5 mb-8 flex-wrap">
-              {QUESTIONS.map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-2.5 h-2.5 rounded-full ${i < score ? "bg-emerald-500" : "bg-[#2a2a4a]"}`}
-                />
-              ))}
-            </div>
-            <button
-              onClick={() => goToSection(2)}
-              className="w-full py-3 font-black rounded-xl transition-all active:scale-95"
-              style={{ background: "var(--gold)", color: "#07070d", boxShadow: "0 0 24px rgba(246,196,83,0.3)" }}
-            >
-              Next challenge →
-            </button>
-          </motion.div>
+          </div>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="min-h-[calc(100dvh-60px)] flex flex-col items-center justify-center px-6 py-10">
-      <div className="max-w-3xl w-full">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-xs font-black tracking-widest text-cyan-400 uppercase bg-cyan-950/60 px-2.5 py-1 rounded" style={{ fontFamily: "var(--font-mono)", border: "1px solid rgba(103,232,249,0.15)" }}>
-              02 / 06
-            </span>
-            <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-mono)" }}>15 min</span>
-          </div>
-          <h2 className="text-4xl font-black text-white mb-2 leading-tight">
-            You decide.
-          </h2>
-          <p className="text-slate-400 text-sm">
-            Two bars highlighted. Should they swap? You tell me. Difficulty increases — watch for patterns.
-          </p>
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+      {/* Section header */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10, letterSpacing: "0.22em", color: "#f6c453",
+            padding: "4px 10px",
+            background: "rgba(246,196,83,0.08)",
+            border: "1px solid rgba(246,196,83,0.25)",
+            borderRadius: 4,
+          }}>STAGE 02 / 06</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(235,233,227,0.35)", letterSpacing: "0.15em" }}>ESTIMATED 15 MIN</span>
+          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, rgba(255,255,255,0.1), transparent)" }} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(235,233,227,0.35)", letterSpacing: "0.15em" }}>REWARD · +60 XP</span>
         </div>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 56, lineHeight: 1, letterSpacing: "-0.025em", color: "#ebe9e3", marginBottom: 10 }}>
+          You decide.
+        </h1>
+        <p style={{ fontSize: 15, color: "rgba(235,233,227,0.5)", maxWidth: 580, lineHeight: 1.55 }}>
+          Two bars highlighted. Should they swap? You tell me. Difficulty increases — watch for patterns.
+        </p>
+      </div>
 
-        {/* Progress bar */}
-        <div className="flex items-center gap-2 mb-5">
-          <div className="flex-1 h-1.5 bg-[#1c1c3a] rounded-full overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-600 to-violet-600"
-              animate={{ width: `${(qIdx / TOTAL_QUESTIONS) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-          <span className="text-slate-500 text-xs tabular-nums shrink-0 ml-1">
-            {qIdx + 1}/{TOTAL_QUESTIONS}
-          </span>
-        </div>
-
-        {/* Difficulty + pattern badge */}
-        <AnimatePresence mode="wait">
+      {/* Progress */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <div style={{ flex: 1, height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
           <motion.div
-            key={qIdx}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center gap-2 mb-4"
-          >
-            <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg border ${dc.badge}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${dc.dot}`} />
-              {q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1)}
-            </span>
-            {q.pattern && (
-              <span className="text-xs text-slate-500 font-semibold px-2.5 py-1 bg-[#1c1c3a] rounded-lg border border-[#2a2a4a]">
-                {q.pattern}
-              </span>
-            )}
-          </motion.div>
-        </AnimatePresence>
+            animate={{ width: `${(qIdx / TOTAL_QUESTIONS) * 100}%` }}
+            transition={{ duration: 0.3 }}
+            style={{ height: "100%", background: "linear-gradient(90deg,#a78bfa,#f6c453)" }}
+          />
+        </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(235,233,227,0.35)", letterSpacing: "0.1em" }}>
+          {qIdx + 1}/{TOTAL_QUESTIONS}
+        </span>
+      </div>
 
-        {/* Bar chart */}
+      {/* Difficulty + pattern badge */}
+      <AnimatePresence mode="wait">
+        <motion.div key={qIdx} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.15em",
+            padding: "3px 8px", borderRadius: 3,
+            color: diffStyle.color, background: diffStyle.bg, border: `1px solid ${diffStyle.border}`,
+          }}>
+            {q.difficulty.toUpperCase()}
+          </span>
+          {q.pattern && (
+            <span style={{
+              fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em",
+              padding: "3px 8px", borderRadius: 3,
+              color: "rgba(235,233,227,0.45)",
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+            }}>{q.pattern}</span>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Bar chart */}
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <Corners color="rgba(167,139,250,0.4)" size={12} thickness={1.2} />
         <div
-          className={`bg-[#12122a] rounded-2xl p-8 mb-5 border border-[#1c1c3a] ${shaking ? "shake" : ""}`}
+          className={shaking ? "shake" : ""}
+          style={{
+            background: "rgba(12,12,20,0.6)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: 14, padding: "28px 24px",
+            position: "relative", overflow: "hidden",
+          }}
         >
-          <div className="flex items-end justify-center gap-3" style={{ height: 200 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 14, height: 200 }}>
             {q.array.map((val, i) => {
               const isComparing = i === q.j || i === q.j + 1;
-              let state = "default";
-              if (feedback && isComparing) state = feedback === "correct" ? "correct" : "wrong";
-              else if (isComparing) state = "comparing";
-              const height = Math.max(12, (val / maxVal) * 178);
+              const palette = VIS_PALETTE[i % VIS_PALETTE.length];
+              const height = Math.max(16, (val / maxVal) * 178);
+
+              let top = palette.top, bot = palette.bot, g = palette.g, glow = 10;
+              if (feedback && isComparing) {
+                if (feedback === "correct") { top = "#6ee7b7"; bot = "#065f46"; g = "rgba(110,231,183,0.55)"; glow = 22; }
+                else { top = "#fda4af"; bot = "#9f1239"; g = "rgba(251,113,133,0.65)"; glow = 22; }
+              } else if (isComparing) { top = "#fde68a"; bot = "#92400e"; g = "rgba(246,196,83,0.7)"; glow = 24; }
 
               return (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <motion.div
-                    animate={{
-                      height,
-                      background: getBarBg(i, state),
-                      boxShadow:
-                        isComparing && !feedback
-                          ? "0 0 18px rgba(251,191,36,0.55)"
-                          : feedback && isComparing
-                          ? feedback === "correct"
-                            ? "0 0 18px rgba(52,211,153,0.55)"
-                            : "0 0 18px rgba(244,63,94,0.6)"
-                          : "none",
+                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <div
+                    className="bar-base"
+                    style={{
+                      width: 48, height,
+                      ["--bc-top" as string]: top,
+                      ["--bc-bot" as string]: bot,
+                      ["--bar-glow" as string]: glow + "px",
+                      ["--bar-glow-c" as string]: g,
+                      transition: "height 0.3s cubic-bezier(.16,1,.3,1), background 0.2s, box-shadow 0.2s",
                     }}
-                    transition={{ duration: 0.22 }}
-                    style={{ width: 40, borderRadius: "6px 6px 3px 3px" }}
                   />
-                  <span
-                    className={`text-xs font-bold tabular-nums ${
-                      isComparing ? "text-yellow-400" : "text-slate-600"
-                    }`}
-                  >
-                    {val}
-                  </span>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: 10,
+                    color: isComparing ? "#f6c453" : "rgba(235,233,227,0.3)",
+                    transition: "color 0.2s",
+                  }}>{val}</span>
                 </div>
               );
             })}
           </div>
-
-          <div className="mt-5 text-center">
-            <p className="text-white text-xl font-black">
-              <span className="text-yellow-400">{q.array[q.j]}</span>
-              <span className="text-slate-500 mx-3 text-base font-normal">vs</span>
-              <span className="text-yellow-400">{q.array[q.j + 1]}</span>
+          <div style={{ marginTop: 20, textAlign: "center" }}>
+            <p style={{ fontFamily: "var(--font-display)", fontSize: 28, color: "#ebe9e3" }}>
+              <span style={{ color: "#f6c453" }}>{q.array[q.j]}</span>
+              <span style={{ color: "rgba(235,233,227,0.25)", margin: "0 16px", fontSize: 16 }}>vs</span>
+              <span style={{ color: "#f6c453" }}>{q.array[q.j + 1]}</span>
             </p>
-            <p className="text-slate-500 text-sm mt-1">Should these two swap?</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(235,233,227,0.35)", letterSpacing: "0.15em", marginTop: 6 }}>
+              SHOULD THESE TWO SWAP?
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Feedback */}
-        <AnimatePresence>
-          {feedback && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`rounded-xl px-5 py-3 mb-4 text-sm font-medium border ${
-                feedback === "correct"
-                  ? "bg-emerald-950/50 border-emerald-700/40 text-emerald-400"
-                  : "bg-red-950/50 border-red-700/40 text-red-400"
-              }`}
-            >
-              {feedback === "correct" ? "✓ " : "✗ "}
-              {explanation}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Buttons */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <button
-            onClick={(e) => answer(true, e)}
-            disabled={feedback !== null}
-            className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-violet-700"
+      {/* Feedback */}
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{
+              padding: "12px 18px", borderRadius: 10, marginBottom: 14, fontSize: 13,
+              background: feedback === "correct" ? "rgba(110,231,183,0.07)" : "rgba(251,113,133,0.07)",
+              border: `1px solid ${feedback === "correct" ? "rgba(110,231,183,0.3)" : "rgba(251,113,133,0.3)"}`,
+              color: feedback === "correct" ? "#6ee7b7" : "#fb7185",
+            }}
           >
-            ↕ Swap
-          </button>
-          <button
-            onClick={(e) => answer(false, e)}
-            disabled={feedback !== null}
-            className="py-4 bg-[#1c1c3a] hover:bg-[#252550] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white font-black text-lg rounded-2xl transition-all border border-[#2a2a4a] hover:border-cyan-700"
-          >
-            → Keep
-          </button>
-        </div>
+            {feedback === "correct" ? "✓ " : "✗ "}{explanation}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        <div className="text-center">
-          <span className="text-slate-600 text-xs">
-            Score: <span className="text-emerald-400 font-bold">{score}</span> / {qIdx}
-          </span>
-        </div>
+      {/* Buttons */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <button
+          onClick={(e) => answer(true, e)}
+          disabled={feedback !== null}
+          className="btn-violet"
+          style={{ padding: "16px", fontSize: 15, justifyContent: "center", opacity: feedback !== null ? 0.4 : 1 }}
+        >
+          ↕ Swap
+        </button>
+        <button
+          onClick={(e) => answer(false, e)}
+          disabled={feedback !== null}
+          className="btn-ghost"
+          style={{ padding: "16px", fontSize: 15, justifyContent: "center", opacity: feedback !== null ? 0.4 : 1 }}
+        >
+          → Keep
+        </button>
+      </div>
+
+      <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(235,233,227,0.25)", letterSpacing: "0.12em" }}>
+        SCORE <span style={{ color: "#6ee7b7" }}>{score}</span> / {qIdx}
       </div>
     </section>
   );

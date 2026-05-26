@@ -165,16 +165,28 @@ function BubbleSortModule() {
         onClick={() => setShowMap(true)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black text-sm transition-all"
         style={{
-          background: "rgba(13,13,20,0.92)",
-          backdropFilter: "blur(8px)",
-          border: "1px solid rgba(167,139,250,0.2)",
-          color: "var(--violet)",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+          position: "fixed", bottom: 20, right: 20, zIndex: 40,
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "10px 16px",
+          background: "rgba(7,7,13,0.9)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(167,139,250,0.25)",
+          borderRadius: 10,
+          color: "#cdb9ff",
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: "0.15em",
+          cursor: "pointer",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
         }}
       >
-        🗺️ <span className="hidden sm:inline">World Map</span>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
+          <path d="M10.5 5.5l-2 4.5-4.5 2 2-4.5 4.5-2Z" fill="currentColor"/>
+          <circle cx="8" cy="8" r="1" fill="rgba(7,7,13,0.9)"/>
+        </svg>
+        WORLD MAP
       </motion.button>
     </>
   );

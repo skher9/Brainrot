@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useXP } from "@/lib/xpContext";
@@ -143,6 +144,7 @@ export default function SettingsModal({ open, onClose, onLogout }: Props) {
   const [confirmPass, setConfirmPass] = useState("");
   const [passLoading, setPassLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const close = useCallback(onClose, [onClose]);
 
@@ -183,7 +185,9 @@ export default function SettingsModal({ open, onClose, onLogout }: Props) {
     onLogout();
   };
 
-  if (!open) return null;
+  useEffect(() => setMounted(true), []);
+
+  if (!open || !mounted) return null;
 
   const isOAuth = provider !== "email";
   const totalXP = xp;
@@ -195,11 +199,11 @@ export default function SettingsModal({ open, onClose, onLogout }: Props) {
     { id: "preferences", label: "Preferences", icon: <Star size={14} /> },
   ];
 
-  return (
+  const modal = (
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, zIndex: 120,
+        position: "fixed", inset: 0, zIndex: 9999,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: "rgba(6,8,20,0.88)", backdropFilter: "blur(20px)",
         padding: 20,
@@ -485,4 +489,6 @@ export default function SettingsModal({ open, onClose, onLogout }: Props) {
       </motion.div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

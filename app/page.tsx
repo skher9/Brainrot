@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { XPProvider, useXP } from "@/lib/xpContext";
+import { createClient } from "@/lib/supabase/client";
 import ColdOpen from "@/components/ColdOpen";
 import Header from "@/components/Header";
 import DailyChallenge from "@/components/DailyChallenge";
-import WorldMap from "@/components/WorldMap";
 import Section1Visualizer from "@/components/Section1Visualizer";
 import Section2Interactive from "@/components/Section2Interactive";
 import Section3BeatTheClock from "@/components/Section3BeatTheClock";
@@ -38,7 +38,6 @@ const VENN_HINTS = [
 
 function BubbleSortModule({ onHub, onLogout }: { onHub: () => void; onLogout: () => void }) {
   const { currentSection, levelUpEvent, clearLevelUp } = useXP();
-  const [showMap, setShowMap] = useState(false);
   const [vennHint, setVennHint] = useState<string | null>(null);
   const [vennIdx, setVennIdx] = useState(0);
   const ActiveSection = SECTIONS[currentSection];
@@ -61,7 +60,7 @@ function BubbleSortModule({ onHub, onLogout }: { onHub: () => void; onLogout: ()
       <Constellation />
 
       <div style={{ background: "var(--bg-0)", position: "relative", zIndex: 1 }}>
-        <Header onMap={() => setShowMap(true)} mode="module" onHub={onHub} onLogout={onLogout} />
+        <Header mode="module" onHub={onHub} onLogout={onLogout} />
         <div style={{ paddingTop: "var(--hud-h)" }}>
           {currentSection === 0 && <DailyChallenge />}
           <AnimatePresence mode="wait">
@@ -97,32 +96,6 @@ function BubbleSortModule({ onHub, onLogout }: { onHub: () => void; onLogout: ()
         )}
       </AnimatePresence>
 
-      <WorldMap open={showMap} onClose={() => setShowMap(false)} />
-
-      <motion.button
-        onClick={() => setShowMap(true)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        style={{
-          position: "fixed", bottom: 20, right: 20, zIndex: 40,
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "10px 16px",
-          background: "rgba(6,8,20,0.9)", backdropFilter: "blur(12px)",
-          border: "1px solid rgba(0,229,255,0.25)", borderRadius: 10,
-          color: "#b8f7ff", fontFamily: "var(--font-mono)",
-          fontSize: 10, letterSpacing: "0.15em", cursor: "pointer",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
-          <path d="M10.5 5.5l-2 4.5-4.5 2 2-4.5 4.5-2Z" fill="currentColor"/>
-          <circle cx="8" cy="8" r="1" fill="rgba(6,8,20,0.9)"/>
-        </svg>
-        WORLD MAP
-      </motion.button>
-
-      {/* Companion mascot hint */}
       {vennHint && (
         <motion.div
           key={vennHint}
@@ -148,6 +121,37 @@ function BubbleSortModule({ onHub, onLogout }: { onHub: () => void; onLogout: ()
 export default function Page() {
   const [phase, setPhase] = useState<"landing" | "cold" | "hub" | "module">("landing");
   const [authOpen, setAuthOpen] = useState<"login" | "signup" | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  // Restore session on mount — prevents logout on reload
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setPhase("hub");
+      setSessionChecked(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") setPhase("landing");
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Don't flash landing page while checking session
+  if (!sessionChecked) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, background: "#060814",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{
+          fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "-0.02em",
+          color: "#00e5ff", opacity: 0.7,
+        }}>
+          <span style={{ color: "#a78bfa" }}>brain</span>rot
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "landing") {
     return (
@@ -195,10 +199,10 @@ export default function Page() {
           <CursorAurora />
           <ToastHost />
           <Constellation />
-          <Header mode="hub" onLogout={() => setPhase("landing")} />
-          <div style={{ paddingTop: "var(--hud-h)" }}>
-            <Hub onEnterBubble={() => setPhase("module")} />
-          </div>
+          <Hub
+            onEnterBubble={() => setPhase("module")}
+            onLogout={() => setPhase("landing")}
+          />
         </>
       </XPProvider>
     );

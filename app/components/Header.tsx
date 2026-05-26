@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useXP } from "@/lib/xpContext";
 import { TickNumber } from "@/components/Effects";
 import { Bolt, Flame, Compass, Speaker, SpeakerOff, Check, Live } from "@/components/Glyphs";
+import UserMenu from "@/components/UserMenu";
+import SettingsModal from "@/components/SettingsModal";
 
 const SECTION_LABELS = [
   { code: "01", name: "Watch",   sub: "Visualizer" },
@@ -230,9 +233,20 @@ function IconButton({ children, title, onClick }: { children: React.ReactNode; t
   );
 }
 
-export default function Header({ onMap }: { onMap?: () => void }) {
+export default function Header({
+  onMap,
+  mode = "module",
+  onHub,
+  onLogout,
+}: {
+  onMap?: () => void;
+  mode?: "hub" | "module";
+  onHub?: () => void;
+  onLogout?: () => void;
+}) {
   const { xp, streak, level, currentSection, goToSection, soundEnabled, toggleSound } = useXP();
   const golden = streak >= 7;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <header style={{
@@ -263,19 +277,75 @@ export default function Header({ onMap }: { onMap?: () => void }) {
       }}>
         <Wordmark golden={golden} />
         <DiagonalDivider />
-        <SectionRail current={currentSection} onJump={goToSection} />
+
+        {mode === "hub" ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{
+              fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em",
+              color: "rgba(0,229,255,0.6)",
+            }}>
+              ◇ LEARNING HUB
+            </span>
+          </div>
+        ) : (
+          <>
+            {onHub && (
+              <button
+                onClick={onHub}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "4px 10px",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.15em",
+                  color: "rgba(232,244,255,0.45)",
+                  flexShrink: 0,
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(0,229,255,0.08)";
+                  e.currentTarget.style.borderColor = "rgba(0,229,255,0.3)";
+                  e.currentTarget.style.color = "rgba(0,229,255,0.9)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                  e.currentTarget.style.color = "rgba(232,244,255,0.45)";
+                }}
+              >
+                ← HUB
+              </button>
+            )}
+            <SectionRail current={currentSection} onJump={goToSection} />
+          </>
+        )}
+
         <DiagonalDivider />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <XPMeter xp={xp} level={level} />
           <StreakBadge streak={streak} />
-          <IconButton title="World Map" onClick={onMap}>
-            <Compass size={15} />
-          </IconButton>
+          {onMap && (
+            <IconButton title="World Map" onClick={onMap}>
+              <Compass size={15} />
+            </IconButton>
+          )}
           <IconButton title={soundEnabled ? "Sound on" : "Sound off"} onClick={toggleSound}>
             {soundEnabled ? <Speaker size={14} /> : <SpeakerOff size={14} />}
           </IconButton>
+          <UserMenu
+            onLogout={onLogout ?? (() => {})}
+            onSettings={() => setSettingsOpen(true)}
+          />
         </div>
       </div>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onLogout={onLogout ?? (() => {})}
+      />
     </header>
   );
 }

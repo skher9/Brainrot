@@ -17,6 +17,7 @@ import { AmbientStage, BurstHost } from "@/components/Effects";
 import { CursorAurora, Constellation, ToastHost, LiveFeed, TrendingRail, LevelUpFlash } from "@/components/Extras";
 import Landing from "@/components/Landing";
 import AuthModal from "@/components/AuthModal";
+import Hub from "@/components/Hub";
 
 const SECTIONS = [
   Section1Visualizer,
@@ -35,7 +36,7 @@ const VENN_HINTS = [
   "Fast mode is great for getting the full picture.",
 ];
 
-function BubbleSortModule() {
+function BubbleSortModule({ onHub, onLogout }: { onHub: () => void; onLogout: () => void }) {
   const { currentSection, levelUpEvent, clearLevelUp } = useXP();
   const [showMap, setShowMap] = useState(false);
   const [vennHint, setVennHint] = useState<string | null>(null);
@@ -60,7 +61,7 @@ function BubbleSortModule() {
       <Constellation />
 
       <div style={{ background: "var(--bg-0)", position: "relative", zIndex: 1 }}>
-        <Header onMap={() => setShowMap(true)} />
+        <Header onMap={() => setShowMap(true)} mode="module" onHub={onHub} onLogout={onLogout} />
         <div style={{ paddingTop: "var(--hud-h)" }}>
           {currentSection === 0 && <DailyChallenge />}
           <AnimatePresence mode="wait">
@@ -145,7 +146,7 @@ function BubbleSortModule() {
 }
 
 export default function Page() {
-  const [phase, setPhase] = useState<"landing" | "cold" | "module">("landing");
+  const [phase, setPhase] = useState<"landing" | "cold" | "hub" | "module">("landing");
   const [authOpen, setAuthOpen] = useState<"login" | "signup" | null>(null);
 
   if (phase === "landing") {
@@ -180,14 +181,32 @@ export default function Page() {
         <BurstHost />
         <CursorAurora />
         <Constellation />
-        <ColdOpen onStart={() => setPhase("module")} />
+        <ColdOpen onStart={() => setPhase("hub")} />
       </>
+    );
+  }
+
+  if (phase === "hub") {
+    return (
+      <XPProvider>
+        <>
+          <AmbientStage />
+          <BurstHost />
+          <CursorAurora />
+          <ToastHost />
+          <Constellation />
+          <Header mode="hub" onLogout={() => setPhase("landing")} />
+          <div style={{ paddingTop: "var(--hud-h)" }}>
+            <Hub onEnterBubble={() => setPhase("module")} />
+          </div>
+        </>
+      </XPProvider>
     );
   }
 
   return (
     <XPProvider>
-      <BubbleSortModule />
+      <BubbleSortModule onHub={() => setPhase("hub")} onLogout={() => setPhase("landing")} />
     </XPProvider>
   );
 }

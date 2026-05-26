@@ -40,10 +40,10 @@ const ZONES: Zone[] = [
     blurb: "Where order first finds its footing.",
     levels: [
       { name: "Bubble Sort",    unlocked: true,  current: true,  xp: 250, label: "ENTRY"  },
-      { name: "Selection Sort", unlocked: false, xp: 280, label: "TIER I"  },
-      { name: "Insertion Sort", unlocked: false, xp: 280, label: "TIER I"  },
-      { name: "Merge Sort",     unlocked: false, xp: 360, label: "TIER II" },
-      { name: "Quick Sort",     unlocked: false, xp: 360, label: "TIER II" },
+      { name: "Selection Sort", unlocked: true, xp: 280, label: "TIER I"  },
+      { name: "Insertion Sort", unlocked: true, xp: 280, label: "TIER I"  },
+      { name: "Merge Sort",     unlocked: true, xp: 360, label: "TIER II" },
+      { name: "Quick Sort",     unlocked: true, xp: 360, label: "TIER II" },
     ],
   },
   {
@@ -51,10 +51,10 @@ const ZONES: Zone[] = [
     glyph: "Mountain", accent: "#67e8f9", deep: "#0e7490",
     blurb: "Find anything, in any conditions.",
     levels: [
-      { name: "Linear Search",  unlocked: false, xp: 200, label: "ENTRY"   },
-      { name: "Binary Search",  unlocked: false, xp: 320, label: "TIER I"  },
-      { name: "Jump Search",    unlocked: false, xp: 320, label: "TIER I"  },
-      { name: "Interpolation",  unlocked: false, xp: 400, label: "TIER II" },
+      { name: "Linear Search",  unlocked: true, xp: 200, label: "ENTRY"   },
+      { name: "Binary Search",  unlocked: true, xp: 320, label: "TIER I"  },
+      { name: "Jump Search",    unlocked: true, xp: 320, label: "TIER I"  },
+      { name: "Interpolation",  unlocked: true, xp: 400, label: "TIER II" },
     ],
   },
   {
@@ -62,11 +62,11 @@ const ZONES: Zone[] = [
     glyph: "Forest", accent: "#6ee7b7", deep: "#065f46",
     blurb: "Branching structure, recursive logic.",
     levels: [
-      { name: "Binary Tree",   unlocked: false, xp: 280, label: "ENTRY"    },
-      { name: "BST",           unlocked: false, xp: 320, label: "TIER I"   },
-      { name: "AVL Tree",      unlocked: false, xp: 380, label: "TIER II"  },
-      { name: "Heap",          unlocked: false, xp: 380, label: "TIER II"  },
-      { name: "Trie",          unlocked: false, xp: 420, label: "TIER III" },
+      { name: "Binary Tree",   unlocked: true, xp: 280, label: "ENTRY"    },
+      { name: "BST",           unlocked: true, xp: 320, label: "TIER I"   },
+      { name: "AVL Tree",      unlocked: true, xp: 380, label: "TIER II"  },
+      { name: "Heap",          unlocked: true, xp: 380, label: "TIER II"  },
+      { name: "Trie",          unlocked: true, xp: 420, label: "TIER III" },
     ],
   },
   {
@@ -74,11 +74,11 @@ const ZONES: Zone[] = [
     glyph: "Web", accent: "#fb7185", deep: "#9f1239",
     blurb: "Pathways, traversals, dark corners.",
     levels: [
-      { name: "Graph Basics", unlocked: false, xp: 280, label: "ENTRY"    },
-      { name: "BFS",          unlocked: false, xp: 320, label: "TIER I"   },
-      { name: "DFS",          unlocked: false, xp: 320, label: "TIER I"   },
-      { name: "Dijkstra",     unlocked: false, xp: 420, label: "TIER II"  },
-      { name: "A*",           unlocked: false, xp: 480, label: "TIER III" },
+      { name: "Graph Basics", unlocked: true, xp: 280, label: "ENTRY"    },
+      { name: "BFS",          unlocked: true, xp: 320, label: "TIER I"   },
+      { name: "DFS",          unlocked: true, xp: 320, label: "TIER I"   },
+      { name: "Dijkstra",     unlocked: true, xp: 420, label: "TIER II"  },
+      { name: "A*",           unlocked: true, xp: 480, label: "TIER III" },
     ],
   },
   {
@@ -86,11 +86,11 @@ const ZONES: Zone[] = [
     glyph: "Castle", accent: "#f6c453", deep: "#92400e",
     blurb: "Architecture, at scale.",
     levels: [
-      { name: "Caching",        unlocked: false, xp: 400, label: "TIER I"   },
-      { name: "Load Balancing", unlocked: false, xp: 400, label: "TIER I"   },
-      { name: "Databases",      unlocked: false, xp: 480, label: "TIER II"  },
-      { name: "Message Queues", unlocked: false, xp: 480, label: "TIER II"  },
-      { name: "CDNs",           unlocked: false, xp: 520, label: "TIER III" },
+      { name: "Caching",        unlocked: true, xp: 400, label: "TIER I"   },
+      { name: "Load Balancing", unlocked: true, xp: 400, label: "TIER I"   },
+      { name: "Databases",      unlocked: true, xp: 480, label: "TIER II"  },
+      { name: "Message Queues", unlocked: true, xp: 480, label: "TIER II"  },
+      { name: "CDNs",           unlocked: true, xp: 520, label: "TIER III" },
     ],
   },
   {
@@ -98,10 +98,10 @@ const ZONES: Zone[] = [
     glyph: "Circuit", accent: "#93c5fd", deep: "#1d4ed8",
     blurb: "The model that learns to think.",
     levels: [
-      { name: "Neural Nets",  unlocked: false, xp: 480, label: "TIER II"  },
-      { name: "Backprop",     unlocked: false, xp: 520, label: "TIER III" },
-      { name: "Transformers", unlocked: false, xp: 600, label: "TIER IV"  },
-      { name: "Embeddings",   unlocked: false, xp: 560, label: "TIER III" },
+      { name: "Neural Nets",  unlocked: true, xp: 480, label: "TIER II"  },
+      { name: "Backprop",     unlocked: true, xp: 520, label: "TIER III" },
+      { name: "Transformers", unlocked: true, xp: 600, label: "TIER IV"  },
+      { name: "Embeddings",   unlocked: true, xp: 560, label: "TIER III" },
     ],
   },
 ];
@@ -397,7 +397,7 @@ export default function WorldMap({
                   fontFamily: "var(--font-mono)", fontSize: 10,
                   letterSpacing: "0.18em", color: "rgba(235,233,227,0.55)",
                 }}>
-                  1 OF 27 UNLOCKED
+                  {ZONES.reduce((s, z) => s + z.levels.filter((l) => l.unlocked).length, 0)} OF {ZONES.reduce((s, z) => s + z.levels.length, 0)} UNLOCKED
                 </span>
               </div>
               <button

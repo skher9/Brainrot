@@ -15,6 +15,8 @@ import Section5BossLevel from "@/components/Section5BossLevel";
 import Section6RealWorld from "@/components/Section6RealWorld";
 import { AmbientStage, BurstHost } from "@/components/Effects";
 import { CursorAurora, Constellation, ToastHost, LiveFeed, TrendingRail, LevelUpFlash } from "@/components/Extras";
+import Landing from "@/components/Landing";
+import AuthModal from "@/components/AuthModal";
 
 const SECTIONS = [
   Section1Visualizer,
@@ -24,63 +26,6 @@ const SECTIONS = [
   Section5BossLevel,
   Section6RealWorld,
 ];
-
-/* ── Venn companion mascot (geometric owl) ───────────────── */
-function Venn({ hint }: { hint: string | null }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (hint) {
-      setVisible(true);
-      const t = setTimeout(() => setVisible(false), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [hint]);
-
-  return (
-    <div className="fixed bottom-20 left-5 z-40 pointer-events-none">
-      <AnimatePresence>
-        {hint && visible && (
-          <motion.div
-            initial={{ opacity: 0, x: -16, y: 8 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="flex items-end gap-2"
-          >
-            {/* Speech bubble */}
-            <div
-              className="max-w-[180px] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed"
-              style={{
-                background: "rgba(13,13,20,0.95)",
-                border: "1px solid rgba(167,139,250,0.25)",
-                color: "rgba(255,255,255,0.55)",
-              }}
-            >
-              {hint}
-            </div>
-
-            {/* Owl SVG */}
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              {/* Body */}
-              <polygon points="18,4 32,28 4,28" fill="rgba(124,58,237,0.2)" stroke="rgba(167,139,250,0.4)" strokeWidth="1" />
-              {/* Eyes */}
-              <circle cx="13" cy="18" r="4" fill="rgba(13,13,20,0.9)" stroke="rgba(167,139,250,0.5)" strokeWidth="1" />
-              <circle cx="23" cy="18" r="4" fill="rgba(13,13,20,0.9)" stroke="rgba(167,139,250,0.5)" strokeWidth="1" />
-              <circle cx="13" cy="18" r="1.8" fill="rgba(167,139,250,0.9)" />
-              <circle cx="23" cy="18" r="1.8" fill="rgba(167,139,250,0.9)" />
-              {/* Beak */}
-              <polygon points="18,20 16,24 20,24" fill="rgba(246,196,83,0.7)" />
-              {/* Ear tufts */}
-              <polygon points="10,8 8,2 14,7" fill="rgba(124,58,237,0.3)" stroke="rgba(167,139,250,0.3)" strokeWidth="0.5" />
-              <polygon points="26,8 22,7 28,2" fill="rgba(124,58,237,0.3)" stroke="rgba(167,139,250,0.3)" strokeWidth="0.5" />
-            </svg>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 const VENN_HINTS = [
   "Hover the bars to see array indices.",
@@ -97,7 +42,6 @@ function BubbleSortModule() {
   const [vennIdx, setVennIdx] = useState(0);
   const ActiveSection = SECTIONS[currentSection];
 
-  // Idle hint system: fire a hint if user is idle on section 0
   useEffect(() => {
     if (currentSection !== 0) return;
     const t = setTimeout(() => {
@@ -109,7 +53,6 @@ function BubbleSortModule() {
 
   return (
     <>
-      {/* Global effects */}
       <AmbientStage />
       <BurstHost />
       <CursorAurora />
@@ -132,7 +75,6 @@ function BubbleSortModule() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Trending + live feed below section 0 */}
           {currentSection === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -148,17 +90,12 @@ function BubbleSortModule() {
         </div>
       </div>
 
-      {/* Level-up flash */}
       <AnimatePresence>
         {levelUpEvent && (
           <LevelUpFlash key={levelUpEvent} level={levelUpEvent} onDone={clearLevelUp} />
         )}
       </AnimatePresence>
 
-      {/* Companion mascot */}
-      <Venn hint={vennHint} />
-
-      {/* World Map */}
       <WorldMap open={showMap} onClose={() => setShowMap(false)} />
 
       <motion.button
@@ -169,31 +106,72 @@ function BubbleSortModule() {
           position: "fixed", bottom: 20, right: 20, zIndex: 40,
           display: "flex", alignItems: "center", gap: 8,
           padding: "10px 16px",
-          background: "rgba(7,7,13,0.9)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(167,139,250,0.25)",
-          borderRadius: 10,
-          color: "#cdb9ff",
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          letterSpacing: "0.15em",
-          cursor: "pointer",
+          background: "rgba(6,8,20,0.9)", backdropFilter: "blur(12px)",
+          border: "1px solid rgba(0,229,255,0.25)", borderRadius: 10,
+          color: "#b8f7ff", fontFamily: "var(--font-mono)",
+          fontSize: 10, letterSpacing: "0.15em", cursor: "pointer",
           boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
         }}
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
           <path d="M10.5 5.5l-2 4.5-4.5 2 2-4.5 4.5-2Z" fill="currentColor"/>
-          <circle cx="8" cy="8" r="1" fill="rgba(7,7,13,0.9)"/>
+          <circle cx="8" cy="8" r="1" fill="rgba(6,8,20,0.9)"/>
         </svg>
         WORLD MAP
       </motion.button>
+
+      {/* Companion mascot hint */}
+      {vennHint && (
+        <motion.div
+          key={vennHint}
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12 }}
+          className="fixed bottom-20 left-5 z-40 pointer-events-none"
+          style={{ display: "flex", alignItems: "flex-end", gap: 8 }}
+        >
+          <div style={{
+            maxWidth: 180, borderRadius: 12, padding: "10px 14px", fontSize: 12,
+            background: "rgba(11,14,31,0.95)", border: "1px solid rgba(0,229,255,0.25)",
+            color: "rgba(232,244,255,0.55)",
+          }}>
+            {vennHint}
+          </div>
+        </motion.div>
+      )}
     </>
   );
 }
 
 export default function Page() {
-  const [phase, setPhase] = useState<"cold" | "module">("cold");
+  const [phase, setPhase] = useState<"landing" | "cold" | "module">("landing");
+  const [authOpen, setAuthOpen] = useState<"login" | "signup" | null>(null);
+
+  if (phase === "landing") {
+    return (
+      <>
+        <AmbientStage />
+        <BurstHost />
+        <CursorAurora />
+        <Constellation />
+        <ToastHost />
+
+        <Landing onOpenAuth={(m) => setAuthOpen(m)} />
+
+        <AuthModal
+          open={authOpen !== null}
+          mode={authOpen ?? "signup"}
+          onClose={() => setAuthOpen(null)}
+          onSwitch={(m) => setAuthOpen(m)}
+          onAuth={() => {
+            setAuthOpen(null);
+            setPhase("cold");
+          }}
+        />
+      </>
+    );
+  }
 
   if (phase === "cold") {
     return (

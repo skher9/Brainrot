@@ -86,3 +86,12 @@ export const Circuit = (p: G) => (
 export const ChevronRight = (p: G) => (
   <I {...p}><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></I>
 );
+export const Wave = (p: G) => (
+  <I {...p}><path d="M1 8c1-2 2-2 3 0s2 2 3 0 2-2 3 0 2 2 3 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/></I>
+);
+export const Info = (p: G) => (
+  <I {...p}><circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/><path d="M8 7v5M8 5.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></I>
+);
+export const Zap = (p: G) => (
+  <I {...p}><path d="M9 1.5L3.5 9H8L7 14.5l5.5-7.5H9L9 1.5Z" fill="currentColor"/></I>
+);

@@ -102,8 +102,8 @@ export function DeathScreen() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55 }}
               onClick={() => {
-                setData(null);
                 EventBus.emit('game:retry', undefined);
+                setTimeout(() => setData(null), 350);
               }}
               style={{
                 padding: '10px 40px',
@@ -125,8 +125,8 @@ export function DeathScreen() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.65 }}
               onClick={() => {
-                setData(null);
                 EventBus.emit('game:continue', undefined);
+                setTimeout(() => setData(null), 350);
               }}
               style={{
                 padding: '10px 40px',

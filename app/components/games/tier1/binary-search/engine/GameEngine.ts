@@ -1,4 +1,5 @@
 import { EventBus } from './EventBus';
+import { GameState } from './GameState';
 
 export interface GameHandle {
   destroy: () => void;
@@ -41,19 +42,30 @@ export async function initGame(container: HTMLElement): Promise<GameHandle> {
 
   // Wire game:startmission → start Cutscene → mission
   const unsubStart = EventBus.on('game:startmission', ({ mission }) => {
-    const scene = game.scene;
-    scene.start('CutsceneScene', { index: 0, nextScene: `Mission${mission}Scene` });
+    GameState.setCurrentMission(mission);
+    game.scene.start('CutsceneScene', { index: 0, nextScene: `Mission${mission}Scene` });
   });
 
-  // Wire scene:worldmap (continue/retry) → return to WorldMapScene
+  // Wire scene:worldmap (continue) → return to WorldMapScene
   const unsubWorld = EventBus.on('scene:worldmap', () => {
     game.scene.start('WorldMapScene');
+  });
+
+  // Wire game:retry → restart current mission (skip cutscene)
+  const unsubRetry = EventBus.on('game:retry', () => {
+    const mission = GameState.getCurrentMission();
+    if (mission > 0) {
+      game.scene.start(`Mission${mission}Scene`);
+    } else {
+      game.scene.start('WorldMapScene');
+    }
   });
 
   handle = {
     destroy: () => {
       unsubStart();
       unsubWorld();
+      unsubRetry();
       game.destroy(true);
       handle = null;
     },

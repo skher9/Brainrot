@@ -44,12 +44,7 @@ export function BinarySearchGame() {
         EventBus.emit('sound:state', { state: 'AMBIENT' });
       });
 
-      // game:retry is handled by WorldMapScene (via scene:worldmap flow)
-      const unsubRetry = EventBus.on('game:retry', () => {
-        EventBus.emit('scene:worldmap', undefined);
-      });
-
-      return () => { unsub(); unsubRetry(); };
+      return () => { unsub(); };
     }
 
     const cleanupPromise = boot();

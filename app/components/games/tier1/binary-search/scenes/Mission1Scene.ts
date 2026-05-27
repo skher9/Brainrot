@@ -498,7 +498,7 @@ export class Mission1Scene extends Phaser.Scene {
           duration: 800,
           ease: 'Power2',
           onComplete: () => {
-            this.cameras.main.fadeOut(600, 255, 255, 255, () => this.showStats());
+            this.cameras.main.fadeOut(600, 0, 0, 0, () => this.showStats());
           },
         });
       });

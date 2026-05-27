@@ -119,8 +119,10 @@ export function StatsScreen() {
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => {
-                  setData(null);
+                  // Trigger Phaser scene transition first, then unmount overlay after brief delay
+                  // so canvas is not revealed bare during the transition
                   EventBus.emit('game:continue', undefined);
+                  setTimeout(() => setData(null), 350);
                 }}
                 style={{
                   flex: 1, padding: '10px 0',

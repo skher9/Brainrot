@@ -50,7 +50,7 @@ export function useProgress(topicSlug: string, totalSteps: number) {
       completed_steps: completedSteps,
       total_steps: totalSteps,
       completed_at: completedAt,
-      last_visited: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,topic_slug" });
     setProgress({ completedSteps, totalSteps, completedAt });
   }, [supabase, topicSlug, totalSteps]);

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProgress } from "@/lib/useProgress";
 import { ArrowRight, Info, Check } from "@/components/Glyphs";
+import { useXP } from "@/lib/xpContext";
 
 interface Props {
   title: string;
@@ -33,6 +34,7 @@ export default function VisualiserLayout({
   onUseHint,
 }: Props) {
   const { upsert } = useProgress(slug, totalSteps);
+  const { soundEnabled, toggleSound } = useXP();
   const [hintOpen, setHintOpen] = useState(false);
   const [displayedHint, setDisplayedHint] = useState("");
   const [displayedHintIndex, setDisplayedHintIndex] = useState(0);
@@ -104,6 +106,22 @@ export default function VisualiserLayout({
             {title}
           </span>
         </div>
+
+        {/* Sound toggle */}
+        <button
+          onClick={toggleSound}
+          title={soundEnabled ? "Mute" : "Unmute"}
+          style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: soundEnabled ? "rgba(232,244,255,0.55)" : "rgba(232,244,255,0.25)",
+            fontSize: 16, lineHeight: 1, padding: "0 8px", flexShrink: 0,
+            transition: "color 0.15s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(232,244,255,0.9)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = soundEnabled ? "rgba(232,244,255,0.55)" : "rgba(232,244,255,0.25)"; }}
+        >
+          {soundEnabled ? "🔊" : "🔇"}
+        </button>
 
         {/* Step counter + progress */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>

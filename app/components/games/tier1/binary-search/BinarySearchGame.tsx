@@ -62,15 +62,7 @@ export function BinarySearchGame() {
     };
   }, []);
 
-  // Wire scene events to Phaser scene transitions
-  useEffect(() => {
-    // When stats screen Continue is clicked: go to world map
-    const unsubContinue = EventBus.on('game:continue', () => {
-      EventBus.emit('scene:worldmap', undefined);
-    });
-    // Retry: handled inside Phaser scenes directly (they restart themselves)
-    return () => { unsubContinue(); };
-  }, []);
+  // Scene transitions are handled in GameEngine (game:continue, game:retry, scene:worldmap)
 
   return (
     <div

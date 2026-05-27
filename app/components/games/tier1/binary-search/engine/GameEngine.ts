@@ -46,7 +46,21 @@ export async function initGame(container: HTMLElement): Promise<GameHandle> {
     game.scene.start('CutsceneScene', { index: 0, nextScene: `Mission${mission}Scene` });
   });
 
-  // Wire scene:worldmap (continue) → return to WorldMapScene
+  const MAX_MISSIONS = 4;
+
+  // Wire game:continue → next mission or world map if all done
+  const unsubContinue = EventBus.on('game:continue', () => {
+    const current = GameState.getCurrentMission();
+    const next = current + 1;
+    if (next <= MAX_MISSIONS) {
+      GameState.setCurrentMission(next);
+      game.scene.start(`Mission${next}Scene`);
+    } else {
+      game.scene.start('WorldMapScene');
+    }
+  });
+
+  // Wire scene:worldmap → return to WorldMapScene (used from WorldMap district click flow)
   const unsubWorld = EventBus.on('scene:worldmap', () => {
     game.scene.start('WorldMapScene');
   });
@@ -64,6 +78,7 @@ export async function initGame(container: HTMLElement): Promise<GameHandle> {
   handle = {
     destroy: () => {
       unsubStart();
+      unsubContinue();
       unsubWorld();
       unsubRetry();
       game.destroy(true);

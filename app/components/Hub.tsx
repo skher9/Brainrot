@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import SettingsModal from "@/components/SettingsModal";
 import { Bolt, Flame, ArrowRight, Check } from "@/components/Glyphs";
 import { TickNumber } from "@/components/Effects";
-import { isModuleUnlocked } from "@/lib/sorting/gameConfigs";
 
 /* ─── Zone / level data ─────────────────────────────────── */
 interface Level {
@@ -43,7 +42,7 @@ const ZONES: Zone[] = [
     tagline: "Where order first finds its footing.",
     available: true,
     levels: [
-      { id: "bubble-sort",    name: "Bubble Sort",    label: "ENTRY",    xp: 250, live: true,  internal: true  },
+      { id: "bubble-sort",    name: "Bubble Sort",    label: "ENTRY",    xp: 250, live: true,  internal: false },
       { id: "selection-sort", name: "Selection Sort", label: "TIER I",   xp: 280, live: true,  internal: false },
       { id: "insertion-sort", name: "Insertion Sort", label: "TIER I",   xp: 280, live: true,  internal: false },
       { id: "merge-sort",     name: "Merge Sort",     label: "TIER II",  xp: 360, live: true,  internal: false },
@@ -385,12 +384,11 @@ function DropItem({ icon, label, onClick, danger = false }: { icon: React.ReactN
 
 /* ─── Level card ─────────────────────────────────────────── */
 function LevelCard({
-  level, zone, onEnterBubble, completedSlugs,
+  level, zone, onEnterBubble,
 }: {
   level: Level;
   zone: Zone;
   onEnterBubble: () => void;
-  completedSlugs: string[];
 }) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
@@ -398,7 +396,7 @@ function LevelCard({
   const isLive = level.live;
   const isInternal = "internal" in level && level.internal;
   const isSortZone = zone.id === "sort";
-  const isLocked = isSortZone && !isModuleUnlocked(level.id, completedSlugs);
+  const isLocked = false;
 
   const handleClick = () => {
     if (!isLive || isLocked) {
@@ -532,11 +530,10 @@ function LevelCard({
 
 /* ─── Zone section ───────────────────────────────────────── */
 function ZoneSection({
-  zone, onEnterBubble, completedSlugs,
+  zone, onEnterBubble,
 }: {
   zone: Zone;
   onEnterBubble: () => void;
-  completedSlugs: string[];
 }) {
   return (
     <section
@@ -595,7 +592,7 @@ function ZoneSection({
             viewport={{ once: true, margin: "-40px" }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
           >
-            <LevelCard level={level} zone={zone} onEnterBubble={onEnterBubble} completedSlugs={completedSlugs} />
+            <LevelCard level={level} zone={zone} onEnterBubble={onEnterBubble} />
           </motion.div>
         ))}
       </div>
@@ -615,27 +612,18 @@ export default function Hub({
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [completedSortSlugs, setCompletedSortSlugs] = useState<string[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return;
-      setEmail(data.user.email ?? "");
-      setDisplayName(
-        data.user.user_metadata?.display_name ||
-        data.user.user_metadata?.full_name ||
-        data.user.email?.split("@")[0] || ""
-      );
-      // Fetch completed sort modules
-      const sortSlugs = ZONES.find((z) => z.id === "sort")?.levels.map((l) => l.id) ?? [];
-      const { data: rows } = await supabase
-        .from("user_progress")
-        .select("topic_slug")
-        .eq("user_id", data.user.id)
-        .in("topic_slug", sortSlugs)
-        .not("completed_at", "is", null);
-      if (rows) setCompletedSortSlugs(rows.map((r) => r.topic_slug));
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setEmail(data.user.email ?? "");
+        setDisplayName(
+          data.user.user_metadata?.display_name ||
+          data.user.user_metadata?.full_name ||
+          data.user.email?.split("@")[0] || ""
+        );
+      }
     });
   }, []);
 
@@ -715,7 +703,7 @@ export default function Hub({
 
         {/* Zone sections */}
         {ZONES.map((zone) => (
-          <ZoneSection key={zone.id} zone={zone} onEnterBubble={onEnterBubble} completedSlugs={completedSortSlugs} />
+          <ZoneSection key={zone.id} zone={zone} onEnterBubble={onEnterBubble} />
         ))}
 
         {/* Footer */}

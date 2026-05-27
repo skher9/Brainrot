@@ -4,45 +4,26 @@ import { useState, useEffect, useRef } from "react";
 import { Corners, Magnetic } from "@/components/Effects";
 import * as Glyphs from "@/components/Glyphs";
 
-/* ── Bubble sort steps for hero animation ────────────────── */
+/* ── Binary search steps for hero animation ─────────────── */
 interface HeroStep {
   array: number[];
-  comparing: [number, number] | null;
-  sortedIndices: number[];
-  swapped: boolean;
+  target: number;
+  left: number;
+  right: number;
+  mid: number | null;
+  eliminated: number[];
   description: string;
+  found: boolean;
 }
 
-function generateHeroBubbleSortSteps(arr: number[]): HeroStep[] {
-  const steps: HeroStep[] = [];
-  const a = [...arr];
-  const sorted: number[] = [];
+const HERO_ARR = [11, 22, 34, 45, 57, 64, 78, 90];
+const HERO_TARGET = 64;
 
-  steps.push({ array: [...a], comparing: null, sortedIndices: [], swapped: false, description: "Array ready to sort." });
-
-  for (let i = 0; i < a.length - 1; i++) {
-    for (let j = 0; j < a.length - 1 - i; j++) {
-      const curSorted = [...sorted];
-      steps.push({
-        array: [...a], comparing: [j, j + 1],
-        sortedIndices: curSorted, swapped: false,
-        description: `Comparing ${a[j]} and ${a[j + 1]} — is ${a[j]} > ${a[j + 1]}?`,
-      });
-      if (a[j] > a[j + 1]) {
-        [a[j], a[j + 1]] = [a[j + 1], a[j]];
-        steps.push({
-          array: [...a], comparing: [j, j + 1],
-          sortedIndices: curSorted, swapped: true,
-          description: `Swap! ${a[j + 1]} bubbles past ${a[j]}.`,
-        });
-      }
-    }
-    sorted.unshift(a.length - 1 - i);
-  }
-  sorted.unshift(0);
-  steps.push({ array: [...a], comparing: null, sortedIndices: [...sorted], swapped: false, description: "Sorted! Every element in place." });
-  return steps;
-}
+const HERO_STEPS: HeroStep[] = [
+  { array: HERO_ARR, target: HERO_TARGET, left: 0, right: 7, mid: null, eliminated: [], description: "Searching for 64 in a sorted array of 8 elements.", found: false },
+  { array: HERO_ARR, target: HERO_TARGET, left: 0, right: 7, mid: 3, eliminated: [], description: "mid=3, arr[3]=45. Target 64 > 45 — eliminate left half.", found: false },
+  { array: HERO_ARR, target: HERO_TARGET, left: 4, right: 7, mid: 5, eliminated: [0,1,2,3], description: "mid=5, arr[5]=64 = target. Found in 2 steps, not 6.", found: true },
+];
 
 /* ── Brand mark ──────────────────────────────────────────── */
 function BrandMark() {
@@ -135,16 +116,14 @@ function LandingNav({ onOpenAuth }: { onOpenAuth: (mode: "login" | "signup") => 
 
 /* ── Hero ─────────────────────────────────────────────────── */
 function Hero({ onOpenAuth }: { onOpenAuth: (mode: "login" | "signup") => void }) {
-  const [steps] = useState(() => generateHeroBubbleSortSteps([64, 34, 25, 12, 22, 11, 90]));
-  const [idx, setIdx] = useState(4);
-  const maxVal = 90;
+  const [idx, setIdx] = useState(0);
 
   useEffect(() => {
-    const t = setInterval(() => setIdx((p) => (p + 1 >= steps.length ? 0 : p + 1)), 780);
+    const t = setInterval(() => setIdx((p) => (p + 1 >= HERO_STEPS.length ? 0 : p + 1)), 1400);
     return () => clearInterval(t);
-  }, [steps.length]);
+  }, []);
 
-  const step = steps[idx];
+  const step = HERO_STEPS[idx];
 
   return (
     <section style={{
@@ -207,7 +186,7 @@ function Hero({ onOpenAuth }: { onOpenAuth: (mode: "login" | "signup") => void }
         <div className="tac" style={{ display: "flex", alignItems: "center", gap: 22, color: "rgba(232,244,255,0.55)", fontSize: 13 }}>
           {[
             "No card, no email tax",
-            "~3 min to first sort",
+            "~3 min to first search",
             "9 disciplines, 80+ topics",
           ].map((text, i, arr) => (
             <span key={text} style={{ display: "flex", alignItems: "center", gap: 22 }}>
@@ -244,34 +223,49 @@ function Hero({ onOpenAuth }: { onOpenAuth: (mode: "login" | "signup") => void }
               {["#ff3d3d", "#ffd60a", "#b6ff3c"].map((c) => (
                 <span key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}80` }} />
               ))}
-              <span className="mono" style={{ marginLeft: 8, fontSize: 10, letterSpacing: "0.18em", color: "#00e5ff" }}>BUBBLE.SORT(7)</span>
+              <span className="mono" style={{ marginLeft: 8, fontSize: 10, letterSpacing: "0.18em", color: "#00e5ff" }}>BINARY.SEARCH(8)</span>
             </div>
             <span className="mono" style={{ fontSize: 9, letterSpacing: "0.18em", color: "rgba(232,244,255,0.4)" }}>STAGE 01 · WATCH</span>
           </div>
 
-          {/* Bars */}
-          <div style={{ position: "relative", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 12, height: 220, marginBottom: 14 }}>
-            {step.array.map((val, i) => {
-              const isComparing = step.comparing !== null && (i === step.comparing[0] || i === step.comparing[1]);
-              const isSorted = step.sortedIndices.includes(i);
-              const isSwap = step.swapped && isComparing;
-              const height = Math.max(28, (val / maxVal) * 200);
-              let top = "#00e5ff", bot = "#00566a", glowC = "rgba(0,229,255,0.45)";
-              if (isSorted) { top = "#b6ff3c"; bot = "#3a5500"; glowC = "rgba(182,255,60,0.55)"; }
-              if (isComparing) { top = "#fff5b0"; bot = "#7a5a00"; glowC = "rgba(255,214,10,0.65)"; }
-              if (isSwap) { top = "#ff5fae"; bot = "#7a0048"; glowC = "rgba(255,46,147,0.6)"; }
-              return (
-                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <div className="bar-base" style={{
-                    width: 42, height,
-                    "--bc-top": top, "--bc-bot": bot,
-                    "--bar-glow": "16px", "--bar-glow-c": glowC,
-                    transition: "height 0.45s cubic-bezier(.16,1,.3,1), background 0.3s, box-shadow 0.3s",
-                  } as React.CSSProperties} />
-                  <span className="mono" style={{ fontSize: 10, color: isComparing ? "#ffd60a" : isSorted ? "#b6ff3c" : "rgba(232,244,255,0.4)" }}>{val}</span>
-                </div>
-              );
-            })}
+          {/* Binary search blocks */}
+          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 12, height: 220, justifyContent: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+              {step.array.map((val, i) => {
+                const isElim = step.eliminated.includes(i);
+                const isMid = step.mid === i;
+                const isFound = isMid && step.found;
+                const inRange = i >= step.left && i <= step.right && !isElim;
+                return (
+                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <div style={{
+                      width: 42, height: 44,
+                      background: isFound ? "rgba(182,255,60,0.18)"
+                        : isMid ? "rgba(255,214,10,0.15)"
+                        : inRange ? "rgba(0,229,255,0.08)"
+                        : "rgba(255,255,255,0.02)",
+                      border: `1.5px solid ${isFound ? "#b6ff3c" : isMid ? "#ffd60a" : inRange ? "rgba(0,229,255,0.35)" : "rgba(255,255,255,0.06)"}`,
+                      borderRadius: 6,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      opacity: isElim ? 0.2 : 1,
+                      transition: "all 0.4s",
+                      boxShadow: isFound ? "0 0 14px rgba(182,255,60,0.4)" : isMid ? "0 0 14px rgba(255,214,10,0.3)" : "none",
+                    }}>
+                      <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: isFound ? "#b6ff3c" : isMid ? "#ffd60a" : "rgba(232,244,255,0.7)" }}>{val}</span>
+                    </div>
+                    <span className="mono" style={{ fontSize: 8, color: isFound ? "#b6ff3c" : isMid ? "#ffd60a" : i === step.left && inRange ? "#67e8f9" : i === step.right && inRange ? "#67e8f9" : "transparent" }}>
+                      {isFound ? "✓" : isMid ? "M" : i === step.left && inRange ? "L" : i === step.right && inRange ? "R" : "."}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mono" style={{ textAlign: "center", fontSize: 10, color: "rgba(232,244,255,0.3)", letterSpacing: "0.1em" }}>
+              TARGET: <span style={{ color: "#ffd60a" }}>{step.target}</span>
+              {step.mid !== null && (
+                <> &nbsp;·&nbsp; arr[{step.mid}] = <span style={{ color: step.found ? "#b6ff3c" : "#ffd60a" }}>{step.array[step.mid]}</span></>
+              )}
+            </div>
           </div>
 
           {/* Caption */}
@@ -438,7 +432,7 @@ function DisciplinesGrid() {
 
 /* ── Testimonials ────────────────────────────────────────── */
 const TESTIMONIALS = [
-  { quote: "I never thought I'd feel a sort algorithm. Now I dream in passes.", handle: "OBI.K", level: "LEVEL 12", accent: "#00e5ff" },
+  { quote: "I never thought I'd feel binary search. Now I see the midpoint in everything.", handle: "OBI.K", level: "LEVEL 12", accent: "#00e5ff" },
   { quote: "Three minutes in I was already running debug on my own instincts.", handle: "LYRA.V", level: "LEVEL 8", accent: "#ffd60a" },
   { quote: "The boss fight for trees nearly broke me. I came back. I won. I'm different now.", handle: "DAYO.W", level: "LEVEL 15", accent: "#ff2e93" },
 ];

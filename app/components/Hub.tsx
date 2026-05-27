@@ -12,6 +12,7 @@ import { TickNumber } from "@/components/Effects";
 /* ─── Zone / level data ─────────────────────────────────── */
 interface Level {
   id: string;
+  href?: string;
   name: string;
   label: string;
   xp: number;
@@ -34,84 +35,84 @@ const ZONES: Zone[] = [
   {
     id: "search",
     name: "Search Algorithms",
-    region: "II",
+    region: "I",
     accent: "#67e8f9",
     bg: "rgba(14,116,144,0.1)",
     border: "rgba(103,232,249,0.15)",
     tagline: "Find anything, in any conditions.",
     available: true,
     levels: [
-      { id: "linear-search",       name: "Linear Search",       label: "ENTRY",   xp: 200, live: true },
-      { id: "binary-search",       name: "Binary Search",       label: "TIER I",  xp: 320, live: true },
-      { id: "jump-search",         name: "Jump Search",         label: "TIER I",  xp: 320, live: true },
-      { id: "interpolation-search",name: "Interpolation Search",label: "TIER II", xp: 400, live: true },
+      { id: "binary-search",        href: "/learn/tier1/binary-search", name: "Binary Search",        label: "TIER I",  xp: 320, live: true  },
+      { id: "linear-search",        name: "Linear Search",              label: "ENTRY",               xp: 200, live: false },
+      { id: "jump-search",          name: "Jump Search",                label: "TIER I",              xp: 320, live: false },
+      { id: "interpolation-search", name: "Interpolation Search",       label: "TIER II",             xp: 400, live: false },
     ],
   },
   {
     id: "trees",
     name: "Tree Structures",
-    region: "III",
+    region: "II",
     accent: "#6ee7b7",
     bg: "rgba(6,95,70,0.1)",
     border: "rgba(110,231,183,0.15)",
     tagline: "Branching logic, recursive beauty.",
-    available: true,
+    available: false,
     levels: [
-      { id: "binary-tree", name: "Binary Tree",        label: "ENTRY",    xp: 280, live: true },
-      { id: "bst",         name: "Binary Search Tree", label: "TIER I",   xp: 320, live: true },
-      { id: "avl-tree",    name: "AVL Tree",           label: "TIER II",  xp: 380, live: true },
-      { id: "heap",        name: "Heap",               label: "TIER II",  xp: 380, live: true },
-      { id: "trie",        name: "Trie",               label: "TIER III", xp: 420, live: true },
+      { id: "binary-tree", name: "Binary Tree",        label: "ENTRY",    xp: 280, live: false },
+      { id: "bst",         name: "Binary Search Tree", label: "TIER I",   xp: 320, live: false },
+      { id: "avl-tree",    name: "AVL Tree",           label: "TIER II",  xp: 380, live: false },
+      { id: "heap",        name: "Heap",               label: "TIER II",  xp: 380, live: false },
+      { id: "trie",        name: "Trie",               label: "TIER III", xp: 420, live: false },
     ],
   },
   {
     id: "graphs",
     name: "Graph Theory",
-    region: "IV",
+    region: "III",
     accent: "#fb7185",
     bg: "rgba(159,18,57,0.1)",
     border: "rgba(251,113,133,0.15)",
     tagline: "Paths, traversals, and dark corners.",
-    available: true,
+    available: false,
     levels: [
-      { id: "graph-basics", name: "Graph Basics",       label: "ENTRY",    xp: 280, live: true },
-      { id: "bfs",          name: "BFS",                label: "TIER I",   xp: 320, live: true },
-      { id: "dfs",          name: "DFS",                label: "TIER I",   xp: 320, live: true },
-      { id: "dijkstra",     name: "Dijkstra's",         label: "TIER II",  xp: 420, live: true },
-      { id: "astar",        name: "A*",                 label: "TIER III", xp: 480, live: true },
+      { id: "graph-basics", name: "Graph Basics", label: "ENTRY",    xp: 280, live: false },
+      { id: "bfs",          name: "BFS",          label: "TIER I",   xp: 320, live: false },
+      { id: "dfs",          name: "DFS",          label: "TIER I",   xp: 320, live: false },
+      { id: "dijkstra",     name: "Dijkstra's",   label: "TIER II",  xp: 420, live: false },
+      { id: "astar",        name: "A*",           label: "TIER III", xp: 480, live: false },
     ],
   },
   {
     id: "system-design",
     name: "System Design",
-    region: "V",
+    region: "IV",
     accent: "#f6c453",
     bg: "rgba(146,64,14,0.1)",
     border: "rgba(246,196,83,0.15)",
     tagline: "Architecture at scale.",
-    available: true,
+    available: false,
     levels: [
-      { id: "caching",        name: "Caching",        label: "TIER I",   xp: 400, live: true },
-      { id: "load-balancing", name: "Load Balancing", label: "TIER I",   xp: 400, live: true },
-      { id: "databases",      name: "Databases",      label: "TIER II",  xp: 480, live: true },
-      { id: "message-queues", name: "Message Queues", label: "TIER II",  xp: 480, live: true },
-      { id: "cdns",           name: "CDNs",           label: "TIER III", xp: 520, live: true },
+      { id: "caching",        name: "Caching",        label: "TIER I",   xp: 400, live: false },
+      { id: "load-balancing", name: "Load Balancing", label: "TIER I",   xp: 400, live: false },
+      { id: "databases",      name: "Databases",      label: "TIER II",  xp: 480, live: false },
+      { id: "message-queues", name: "Message Queues", label: "TIER II",  xp: 480, live: false },
+      { id: "cdns",           name: "CDNs",           label: "TIER III", xp: 520, live: false },
     ],
   },
   {
     id: "ai-ml",
     name: "AI & Machine Learning",
-    region: "VI",
+    region: "V",
     accent: "#93c5fd",
     bg: "rgba(29,78,216,0.1)",
     border: "rgba(147,197,253,0.15)",
     tagline: "The model that learns to think.",
-    available: true,
+    available: false,
     levels: [
-      { id: "neural-nets",  name: "Neural Networks",  label: "TIER II",  xp: 480, live: true },
-      { id: "backprop",     name: "Backpropagation",  label: "TIER III", xp: 520, live: true },
-      { id: "transformers", name: "Transformers",     label: "TIER IV",  xp: 600, live: true },
-      { id: "embeddings",   name: "Embeddings",       label: "TIER III", xp: 560, live: true },
+      { id: "neural-nets",  name: "Neural Networks", label: "TIER II",  xp: 480, live: false },
+      { id: "backprop",     name: "Backpropagation", label: "TIER III", xp: 520, live: false },
+      { id: "transformers", name: "Transformers",    label: "TIER IV",  xp: 600, live: false },
+      { id: "embeddings",   name: "Embeddings",      label: "TIER III", xp: 560, live: false },
     ],
   },
 ];
@@ -375,7 +376,7 @@ function LevelCard({
       setTimeout(() => setToast(false), 2000);
       return;
     }
-    router.push(`/learn/${level.id}`);
+    router.push(level.href ?? `/learn/${level.id}`);
   };
 
   return (
@@ -497,19 +498,20 @@ function ZoneSection({ zone }: { zone: Zone }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
           <span style={{
             fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.28em",
-            color: zone.accent, opacity: 0.8,
+            color: zone.available ? zone.accent : "rgba(232,244,255,0.2)", opacity: 0.8,
           }}>
             REGION {zone.region}
           </span>
           <span style={{
-              fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
-              padding: "2px 8px",
-              background: `${zone.accent}18`,
-              border: `1px solid ${zone.accent}40`,
-              borderRadius: 20, color: zone.accent,
-            }}>
-              UNLOCKED
-            </span>
+            fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
+            padding: "2px 8px",
+            background: zone.available ? `${zone.accent}18` : "rgba(255,255,255,0.04)",
+            border: `1px solid ${zone.available ? zone.accent + "40" : "rgba(255,255,255,0.08)"}`,
+            borderRadius: 20,
+            color: zone.available ? zone.accent : "rgba(232,244,255,0.25)",
+          }}>
+            {zone.available ? "UNLOCKED" : "COMING SOON"}
+          </span>
         </div>
         <h2 style={{
           fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800,

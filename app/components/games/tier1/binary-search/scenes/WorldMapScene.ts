@@ -25,6 +25,14 @@ export class WorldMapScene extends Phaser.Scene {
     this.W = this.scale.width;
     this.H = this.scale.height;
 
+    // Reset state from any previous run
+    this.buildings = [];
+    this.dataStreams = [];
+    this.rainParticles = [];
+    this.unsubs.forEach(u => u());
+    this.unsubs = [];
+    this.bsPulse = 0;
+
     this.buildCity();
     this.buildDistricts();
     this.buildKai();

@@ -92,7 +92,7 @@ export async function initAudio(): Promise<void> {
 
   Tone.Transport.bpm.value = 60;
   Tone.Transport.start();
-  padPattern.start(0);
+  try { padPattern.start(); } catch { /* ignore */ }
 
   setState('AMBIENT');
 }
@@ -105,7 +105,7 @@ export function setState(state: SoundState): void {
   switch (state) {
     case 'AMBIENT':
       Tone.Transport.bpm.rampTo(60, 2);
-      padPattern?.start(0);
+      try { padPattern?.start(); } catch { /* already running */ }
       drumSeq?.stop();
       leadSeq?.stop();
       masterVol.volume.rampTo(-6, 1);
@@ -113,23 +113,23 @@ export function setState(state: SoundState): void {
 
     case 'SCANNING':
       Tone.Transport.bpm.rampTo(80, 1.5);
-      padPattern?.start(0);
-      leadSeq?.start(0);
+      try { padPattern?.start(); } catch { /* already running */ }
+      try { leadSeq?.start(); } catch { /* already running */ }
       drumSeq?.stop();
       masterVol.volume.rampTo(-4, 0.5);
       break;
 
     case 'TENSION':
       Tone.Transport.bpm.rampTo(110, 1);
-      drumSeq?.start(0);
-      leadSeq?.start(0);
+      try { drumSeq?.start(); } catch { /* already running */ }
+      try { leadSeq?.start(); } catch { /* already running */ }
       masterVol.volume.rampTo(-2, 0.3);
       break;
 
     case 'CRITICAL':
       Tone.Transport.bpm.rampTo(140, 0.5);
-      drumSeq?.start(0);
-      leadSeq?.start(0);
+      try { drumSeq?.start(); } catch { /* already running */ }
+      try { leadSeq?.start(); } catch { /* already running */ }
       masterVol.volume.rampTo(0, 0.2);
       break;
 
@@ -154,7 +154,8 @@ export function setState(state: SoundState): void {
         if (Tone && initialized) {
           masterVol.volume.rampTo(-12, 0.5);
           Tone.Transport.bpm.value = 60;
-          padPattern?.start(0);
+          try { padPattern?.start(); } catch { /* ignore */ }
+          currentState = 'IDLE'; // allow setState to run
           setState('AMBIENT');
         }
       }, 2000);

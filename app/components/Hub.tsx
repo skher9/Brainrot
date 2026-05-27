@@ -16,7 +16,6 @@ interface Level {
   label: string;
   xp: number;
   live: boolean;
-  internal?: boolean;
 }
 
 interface Zone {
@@ -32,30 +31,6 @@ interface Zone {
 }
 
 const ZONES: Zone[] = [
-  {
-    id: "sort",
-    name: "Sorting Algorithms",
-    region: "I",
-    accent: "#a78bfa",
-    bg: "rgba(91,33,182,0.12)",
-    border: "rgba(167,139,250,0.2)",
-    tagline: "Where order first finds its footing.",
-    available: true,
-    levels: [
-      { id: "bubble-sort",    name: "Bubble Sort",    label: "ENTRY",    xp: 250, live: true,  internal: false },
-      { id: "selection-sort", name: "Selection Sort", label: "TIER I",   xp: 280, live: true,  internal: false },
-      { id: "insertion-sort", name: "Insertion Sort", label: "TIER I",   xp: 280, live: true,  internal: false },
-      { id: "merge-sort",     name: "Merge Sort",     label: "TIER II",  xp: 360, live: true,  internal: false },
-      { id: "quick-sort",     name: "Quick Sort",     label: "TIER II",  xp: 360, live: true,  internal: false },
-      { id: "heap-sort",      name: "Heap Sort",      label: "TIER III", xp: 380, live: true,  internal: false },
-      { id: "counting-sort",  name: "Counting Sort",  label: "TIER III", xp: 380, live: true,  internal: false },
-      { id: "radix-sort",     name: "Radix Sort",     label: "TIER III", xp: 400, live: true,  internal: false },
-      { id: "shell-sort",     name: "Shell Sort",     label: "TIER IV",  xp: 420, live: true,  internal: false },
-      { id: "tim-sort",       name: "TimSort",        label: "TIER IV",  xp: 440, live: true,  internal: false },
-      { id: "cycle-sort",     name: "Cycle Sort",     label: "TIER IV",  xp: 420, live: true,  internal: false },
-      { id: "bucket-sort",    name: "Bucket Sort",    label: "TIER V",   xp: 460, live: true,  internal: false },
-    ],
-  },
   {
     id: "search",
     name: "Search Algorithms",
@@ -384,33 +359,23 @@ function DropItem({ icon, label, onClick, danger = false }: { icon: React.ReactN
 
 /* ─── Level card ─────────────────────────────────────────── */
 function LevelCard({
-  level, zone, onEnterBubble,
+  level, zone,
 }: {
   level: Level;
   zone: Zone;
-  onEnterBubble: () => void;
 }) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const [toast, setToast] = useState(false);
   const isLive = level.live;
-  const isInternal = "internal" in level && level.internal;
-  const isSortZone = zone.id === "sort";
-  const isLocked = false;
 
   const handleClick = () => {
-    if (!isLive || isLocked) {
+    if (!isLive) {
       setToast(true);
       setTimeout(() => setToast(false), 2000);
       return;
     }
-    if (isInternal) {
-      onEnterBubble();
-    } else if (isSortZone) {
-      router.push(`/learn/sorting/${level.id}`);
-    } else {
-      router.push(`/learn/${level.id}`);
-    }
+    router.push(`/learn/${level.id}`);
   };
 
   return (
@@ -419,29 +384,25 @@ function LevelCard({
         onClick={handleClick}
         onHoverStart={() => setHovered(true)}
         onHoverEnd={() => setHovered(false)}
-        whileHover={isLive && !isLocked ? { y: -3 } : undefined}
-        whileTap={isLive && !isLocked ? { scale: 0.98 } : undefined}
+        whileHover={isLive ? { y: -3 } : undefined}
+        whileTap={isLive ? { scale: 0.98 } : undefined}
         style={{
           width: "100%", textAlign: "left",
           padding: "18px 20px",
-          background: isLocked
-            ? "rgba(255,255,255,0.015)"
-            : isLive
-              ? hovered
-                ? `linear-gradient(135deg, ${zone.accent}16, ${zone.accent}06)`
-                : `linear-gradient(135deg, ${zone.accent}08, transparent)`
-              : "rgba(255,255,255,0.02)",
-          border: `1px solid ${isLocked
-            ? "rgba(255,255,255,0.04)"
-            : isLive
-              ? hovered ? zone.accent + "55" : zone.accent + "22"
-              : "rgba(255,255,255,0.05)"}`,
-          borderRadius: 12, cursor: isLive && !isLocked ? "pointer" : "default",
+          background: isLive
+            ? hovered
+              ? `linear-gradient(135deg, ${zone.accent}16, ${zone.accent}06)`
+              : `linear-gradient(135deg, ${zone.accent}08, transparent)`
+            : "rgba(255,255,255,0.02)",
+          border: `1px solid ${isLive
+            ? hovered ? zone.accent + "55" : zone.accent + "22"
+            : "rgba(255,255,255,0.05)"}`,
+          borderRadius: 12, cursor: isLive ? "pointer" : "default",
           position: "relative", overflow: "hidden",
           transition: "background 0.2s, border-color 0.2s",
         }}
       >
-        {(!isLive || isLocked) && (
+        {!isLive && (
           <div style={{
             position: "absolute", inset: 0, opacity: 0.025,
             backgroundImage: "repeating-linear-gradient(45deg, white 0 1px, transparent 1px 10px)",
@@ -453,35 +414,27 @@ function LevelCard({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
-              color: isLocked ? "rgba(232,244,255,0.2)" : isLive ? zone.accent : "rgba(232,244,255,0.25)",
+              color: isLive ? zone.accent : "rgba(232,244,255,0.25)",
               marginBottom: 6,
             }}>
               {level.label}
             </div>
             <div style={{
               fontSize: 15, fontWeight: 600,
-              color: isLocked ? "rgba(232,244,255,0.25)" : isLive ? "#e8f4ff" : "rgba(232,244,255,0.35)",
+              color: isLive ? "#e8f4ff" : "rgba(232,244,255,0.35)",
               lineHeight: 1.2, marginBottom: 10,
             }}>
               {level.name}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Bolt size={10} color={isLocked ? "rgba(232,244,255,0.15)" : isLive ? zone.accent : "rgba(232,244,255,0.2)"} />
+              <Bolt size={10} color={isLive ? zone.accent : "rgba(232,244,255,0.2)"} />
               <span style={{
                 fontFamily: "var(--font-mono)", fontSize: 10,
-                color: isLocked ? "rgba(232,244,255,0.2)" : isLive ? "rgba(232,244,255,0.5)" : "rgba(232,244,255,0.2)",
+                color: isLive ? "rgba(232,244,255,0.5)" : "rgba(232,244,255,0.2)",
               }}>
                 +{level.xp} XP
               </span>
-              {isLocked && (
-                <span style={{
-                  fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.15em",
-                  color: "rgba(232,244,255,0.2)", marginLeft: 4,
-                }}>
-                  🔒 LOCKED
-                </span>
-              )}
-              {!isLive && !isLocked && (
+              {!isLive && (
                 <span style={{
                   fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.15em",
                   color: "rgba(232,244,255,0.25)", marginLeft: 4,
@@ -491,7 +444,7 @@ function LevelCard({
               )}
             </div>
           </div>
-          {isLive && !isLocked && (
+          {isLive && (
             <motion.div
               animate={{ x: hovered ? 4 : 0 }}
               transition={{ duration: 0.15 }}
@@ -520,7 +473,7 @@ function LevelCard({
               pointerEvents: "none",
             }}
           >
-            {isLocked ? "Complete previous module to unlock" : "Content coming soon"}
+            Content coming soon
           </motion.div>
         )}
       </AnimatePresence>
@@ -529,12 +482,7 @@ function LevelCard({
 }
 
 /* ─── Zone section ───────────────────────────────────────── */
-function ZoneSection({
-  zone, onEnterBubble,
-}: {
-  zone: Zone;
-  onEnterBubble: () => void;
-}) {
+function ZoneSection({ zone }: { zone: Zone }) {
   return (
     <section
       id={zone.id}
@@ -592,7 +540,7 @@ function ZoneSection({
             viewport={{ once: true, margin: "-40px" }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
           >
-            <LevelCard level={level} zone={zone} onEnterBubble={onEnterBubble} />
+            <LevelCard level={level} zone={zone} />
           </motion.div>
         ))}
       </div>
@@ -601,13 +549,7 @@ function ZoneSection({
 }
 
 /* ─── Main Hub ───────────────────────────────────────────── */
-export default function Hub({
-  onEnterBubble,
-  onLogout,
-}: {
-  onEnterBubble: () => void;
-  onLogout: () => void;
-}) {
+export default function Hub({ onLogout }: { onLogout: () => void }) {
   const { xp, level } = useXP();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -703,7 +645,7 @@ export default function Hub({
 
         {/* Zone sections */}
         {ZONES.map((zone) => (
-          <ZoneSection key={zone.id} zone={zone} onEnterBubble={onEnterBubble} />
+          <ZoneSection key={zone.id} zone={zone} />
         ))}
 
         {/* Footer */}

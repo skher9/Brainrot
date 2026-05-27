@@ -130,7 +130,7 @@ export default function P7_CargoShip({ onSolve, onAttempt }: GameProps) {
       state.busy = true;
       onAttempt();
 
-      const mid = Math.floor((state.left + state.right) / 2);
+      const mid = cap;
       state.lastCap = mid;
       const days = daysFor(mid);
       state.lastDays = days;

@@ -107,7 +107,7 @@ export default function P5_RotatingSafe({ onSolve, onAttempt }: GameProps) {
         busy = true;
         onAttempt();
 
-        const mid = Math.floor((left + right) / 2);
+        const mid = clicked;
         const midVal = ARR[mid];
         const leftVal = ARR[left];
         const rightVal = ARR[right];

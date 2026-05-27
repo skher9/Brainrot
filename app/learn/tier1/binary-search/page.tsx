@@ -1,15 +1,15 @@
-import BinarySearchHub from "@/components/games/tier1/binary-search/BinarySearchHub";
+'use client';
+import dynamic from 'next/dynamic';
+
+const BinarySearchGame = dynamic(
+  () => import('@/components/games/tier1/binary-search/BinarySearchGame').then(m => m.BinarySearchGame),
+  { ssr: false },
+);
 
 export default function BinarySearchPage() {
   return (
-    <main style={{
-      minHeight: "100vh",
-      background: "#0a0a0a",
-      padding: "0 24px 64px",
-      maxWidth: 680,
-      margin: "0 auto",
-    }}>
-      <BinarySearchHub />
-    </main>
+    <div style={{ position: 'fixed', inset: 0, background: '#050810' }}>
+      <BinarySearchGame />
+    </div>
   );
 }

@@ -111,28 +111,27 @@ export default function P3_NightclubQueue({ onSolve, onAttempt }: GameProps) {
           busy = true;
           onAttempt();
 
-          const mid = Math.floor((left + right) / 2);
-          insertPos = mid;
+          insertPos = gapIdx;
 
-          if (mid === gapIdx) {
-            // Correct position found
+          const leftOk = gapIdx === 0 || QUEUE[gapIdx - 1] < VIP;
+          const rightOk = gapIdx === N || QUEUE[gapIdx] >= VIP;
+
+          if (leftOk && rightOk) {
             solvedRef.current = true;
-            msgText.text = `inserted at position ${mid}`;
+            msgText.text = `correct — VIP slots in at position ${gapIdx}`;
             msgText.style.fill = 0x22c55e;
-            highlightInsert(mid, gx);
+            highlightInsert(gapIdx, gx);
             setTimeout(() => onSolve(), 700);
-            busy = false;
-          } else if (VIP < QUEUE[mid] || mid === N) {
-            // VIP goes left of mid
-            right = mid;
-            msgText.text = `${VIP} < ${QUEUE[Math.min(mid, N - 1)]} — look LEFT`;
-            busy = false;
+          } else if (!rightOk) {
+            // QUEUE[gapIdx] < VIP — need to go right
+            left = gapIdx + 1;
+            msgText.text = `${VIP} > ${QUEUE[gapIdx]} — look RIGHT`;
           } else {
-            // VIP goes right of mid
-            left = mid + 1;
-            msgText.text = `${VIP} > ${QUEUE[mid - 1] ?? 0} — look RIGHT`;
-            busy = false;
+            // QUEUE[gapIdx-1] >= VIP — need to go left
+            right = gapIdx - 1;
+            msgText.text = `${VIP} < ${QUEUE[gapIdx - 1]} — look LEFT`;
           }
+          busy = false;
         });
       }
 

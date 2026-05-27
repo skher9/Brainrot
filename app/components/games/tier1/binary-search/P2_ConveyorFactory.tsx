@@ -137,7 +137,7 @@ export default function P2_ConveyorFactory({ onSolve, onAttempt }: GameProps) {
       state.charges--;
       onAttempt();
 
-      const mid = Math.floor((state.left + state.right) / 2);
+      const mid = clicked;
       state.scanIdx = mid;
       state.phase = "scanning";
       state.message = `scanning box ${mid + 1}...`;

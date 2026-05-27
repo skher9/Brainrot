@@ -90,7 +90,7 @@ export default function P1_RecordStore({ onSolve, onAttempt }: GameProps) {
           if (this.eliminated.has(clickedIdx)) return;
 
           this.busy = true;
-          this.mid = Math.floor((this.left + this.right) / 2);
+          this.mid = clickedIdx;
           const snappedX = this.getSlotX(this.mid);
 
           if (!solvedRef.current) onAttempt();

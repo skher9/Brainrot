@@ -109,9 +109,9 @@ export default function P6_DeliveryRace({ onSolve, onAttempt }: GameProps) {
           this.trySpeed(s);
         }
 
-        trySpeed(_clicked: number) {
+        trySpeed(clicked: number) {
           this.busy = true;
-          this.mid = Math.floor((this.left + this.right) / 2);
+          this.mid = clicked;
           onAttempt();
 
           const hours = PILES.reduce((acc, p) => acc + Math.ceil(p / this.mid), 0);

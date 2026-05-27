@@ -113,7 +113,7 @@ export default function P4_DroneMission({ onSolve, onAttempt }: GameProps) {
 
         tryBattery(clicked: number) {
           this.busy = true;
-          this.mid = Math.floor((this.left + this.right) / 2);
+          this.mid = clicked;
           onAttempt();
 
           const midX = this.getBarX(this.mid);

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import SettingsModal from "@/components/SettingsModal";
 import { Bolt, Flame, ArrowRight, Check } from "@/components/Glyphs";
 import { TickNumber } from "@/components/Effects";
+import { isModuleUnlocked } from "@/lib/sorting/gameConfigs";
 
 /* ─── Zone / level data ─────────────────────────────────── */
 interface Level {
@@ -42,11 +43,18 @@ const ZONES: Zone[] = [
     tagline: "Where order first finds its footing.",
     available: true,
     levels: [
-      { id: "bubble-sort",    name: "Bubble Sort",    label: "ENTRY",   xp: 250, live: true,  internal: true  },
-      { id: "selection-sort", name: "Selection Sort", label: "TIER I",  xp: 280, live: true,  internal: false },
-      { id: "insertion-sort", name: "Insertion Sort", label: "TIER I",  xp: 280, live: true,  internal: false },
-      { id: "merge-sort",     name: "Merge Sort",     label: "TIER II", xp: 360, live: true,  internal: false },
-      { id: "quick-sort",     name: "Quick Sort",     label: "TIER II", xp: 360, live: true,  internal: false },
+      { id: "bubble-sort",    name: "Bubble Sort",    label: "ENTRY",    xp: 250, live: true,  internal: true  },
+      { id: "selection-sort", name: "Selection Sort", label: "TIER I",   xp: 280, live: true,  internal: false },
+      { id: "insertion-sort", name: "Insertion Sort", label: "TIER I",   xp: 280, live: true,  internal: false },
+      { id: "merge-sort",     name: "Merge Sort",     label: "TIER II",  xp: 360, live: true,  internal: false },
+      { id: "quick-sort",     name: "Quick Sort",     label: "TIER II",  xp: 360, live: true,  internal: false },
+      { id: "heap-sort",      name: "Heap Sort",      label: "TIER III", xp: 380, live: true,  internal: false },
+      { id: "counting-sort",  name: "Counting Sort",  label: "TIER III", xp: 380, live: true,  internal: false },
+      { id: "radix-sort",     name: "Radix Sort",     label: "TIER III", xp: 400, live: true,  internal: false },
+      { id: "shell-sort",     name: "Shell Sort",     label: "TIER IV",  xp: 420, live: true,  internal: false },
+      { id: "tim-sort",       name: "TimSort",        label: "TIER IV",  xp: 440, live: true,  internal: false },
+      { id: "cycle-sort",     name: "Cycle Sort",     label: "TIER IV",  xp: 420, live: true,  internal: false },
+      { id: "bucket-sort",    name: "Bucket Sort",    label: "TIER V",   xp: 460, live: true,  internal: false },
     ],
   },
   {
@@ -377,26 +385,31 @@ function DropItem({ icon, label, onClick, danger = false }: { icon: React.ReactN
 
 /* ─── Level card ─────────────────────────────────────────── */
 function LevelCard({
-  level, zone, onEnterBubble,
+  level, zone, onEnterBubble, completedSlugs,
 }: {
   level: Level;
   zone: Zone;
   onEnterBubble: () => void;
+  completedSlugs: string[];
 }) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const [toast, setToast] = useState(false);
   const isLive = level.live;
   const isInternal = "internal" in level && level.internal;
+  const isSortZone = zone.id === "sort";
+  const isLocked = isSortZone && !isModuleUnlocked(level.id, completedSlugs);
 
   const handleClick = () => {
-    if (!isLive) {
+    if (!isLive || isLocked) {
       setToast(true);
       setTimeout(() => setToast(false), 2000);
       return;
     }
     if (isInternal) {
       onEnterBubble();
+    } else if (isSortZone) {
+      router.push(`/learn/sorting/${level.id}`);
     } else {
       router.push(`/learn/${level.id}`);
     }
@@ -408,25 +421,29 @@ function LevelCard({
         onClick={handleClick}
         onHoverStart={() => setHovered(true)}
         onHoverEnd={() => setHovered(false)}
-        whileHover={isLive ? { y: -3 } : undefined}
-        whileTap={isLive ? { scale: 0.98 } : undefined}
+        whileHover={isLive && !isLocked ? { y: -3 } : undefined}
+        whileTap={isLive && !isLocked ? { scale: 0.98 } : undefined}
         style={{
           width: "100%", textAlign: "left",
           padding: "18px 20px",
-          background: isLive
-            ? hovered
-              ? `linear-gradient(135deg, ${zone.accent}16, ${zone.accent}06)`
-              : `linear-gradient(135deg, ${zone.accent}08, transparent)`
-            : "rgba(255,255,255,0.02)",
-          border: `1px solid ${isLive
-            ? hovered ? zone.accent + "55" : zone.accent + "22"
-            : "rgba(255,255,255,0.05)"}`,
-          borderRadius: 12, cursor: isLive ? "pointer" : "default",
+          background: isLocked
+            ? "rgba(255,255,255,0.015)"
+            : isLive
+              ? hovered
+                ? `linear-gradient(135deg, ${zone.accent}16, ${zone.accent}06)`
+                : `linear-gradient(135deg, ${zone.accent}08, transparent)`
+              : "rgba(255,255,255,0.02)",
+          border: `1px solid ${isLocked
+            ? "rgba(255,255,255,0.04)"
+            : isLive
+              ? hovered ? zone.accent + "55" : zone.accent + "22"
+              : "rgba(255,255,255,0.05)"}`,
+          borderRadius: 12, cursor: isLive && !isLocked ? "pointer" : "default",
           position: "relative", overflow: "hidden",
           transition: "background 0.2s, border-color 0.2s",
         }}
       >
-        {!isLive && (
+        {(!isLive || isLocked) && (
           <div style={{
             position: "absolute", inset: 0, opacity: 0.025,
             backgroundImage: "repeating-linear-gradient(45deg, white 0 1px, transparent 1px 10px)",
@@ -438,26 +455,35 @@ function LevelCard({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
-              color: isLive ? zone.accent : "rgba(232,244,255,0.25)",
-              marginBottom: 6, opacity: isLive ? 0.8 : 1,
+              color: isLocked ? "rgba(232,244,255,0.2)" : isLive ? zone.accent : "rgba(232,244,255,0.25)",
+              marginBottom: 6,
             }}>
               {level.label}
             </div>
             <div style={{
-              fontSize: 15, fontWeight: 600, color: isLive ? "#e8f4ff" : "rgba(232,244,255,0.35)",
+              fontSize: 15, fontWeight: 600,
+              color: isLocked ? "rgba(232,244,255,0.25)" : isLive ? "#e8f4ff" : "rgba(232,244,255,0.35)",
               lineHeight: 1.2, marginBottom: 10,
             }}>
               {level.name}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Bolt size={10} color={isLive ? zone.accent : "rgba(232,244,255,0.2)"} />
+              <Bolt size={10} color={isLocked ? "rgba(232,244,255,0.15)" : isLive ? zone.accent : "rgba(232,244,255,0.2)"} />
               <span style={{
                 fontFamily: "var(--font-mono)", fontSize: 10,
-                color: isLive ? "rgba(232,244,255,0.5)" : "rgba(232,244,255,0.2)",
+                color: isLocked ? "rgba(232,244,255,0.2)" : isLive ? "rgba(232,244,255,0.5)" : "rgba(232,244,255,0.2)",
               }}>
                 +{level.xp} XP
               </span>
-              {!isLive && (
+              {isLocked && (
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.15em",
+                  color: "rgba(232,244,255,0.2)", marginLeft: 4,
+                }}>
+                  🔒 LOCKED
+                </span>
+              )}
+              {!isLive && !isLocked && (
                 <span style={{
                   fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.15em",
                   color: "rgba(232,244,255,0.25)", marginLeft: 4,
@@ -467,7 +493,7 @@ function LevelCard({
               )}
             </div>
           </div>
-          {isLive && (
+          {isLive && !isLocked && (
             <motion.div
               animate={{ x: hovered ? 4 : 0 }}
               transition={{ duration: 0.15 }}
@@ -479,7 +505,7 @@ function LevelCard({
         </div>
       </motion.button>
 
-      {/* Coming soon toast */}
+      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -496,7 +522,7 @@ function LevelCard({
               pointerEvents: "none",
             }}
           >
-            Content coming soon
+            {isLocked ? "Complete previous module to unlock" : "Content coming soon"}
           </motion.div>
         )}
       </AnimatePresence>
@@ -506,10 +532,11 @@ function LevelCard({
 
 /* ─── Zone section ───────────────────────────────────────── */
 function ZoneSection({
-  zone, onEnterBubble,
+  zone, onEnterBubble, completedSlugs,
 }: {
   zone: Zone;
   onEnterBubble: () => void;
+  completedSlugs: string[];
 }) {
   return (
     <section
@@ -568,7 +595,7 @@ function ZoneSection({
             viewport={{ once: true, margin: "-40px" }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
           >
-            <LevelCard level={level} zone={zone} onEnterBubble={onEnterBubble} />
+            <LevelCard level={level} zone={zone} onEnterBubble={onEnterBubble} completedSlugs={completedSlugs} />
           </motion.div>
         ))}
       </div>
@@ -588,18 +615,27 @@ export default function Hub({
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [completedSortSlugs, setCompletedSortSlugs] = useState<string[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setEmail(data.user.email ?? "");
-        setDisplayName(
-          data.user.user_metadata?.display_name ||
-          data.user.user_metadata?.full_name ||
-          data.user.email?.split("@")[0] || ""
-        );
-      }
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      setEmail(data.user.email ?? "");
+      setDisplayName(
+        data.user.user_metadata?.display_name ||
+        data.user.user_metadata?.full_name ||
+        data.user.email?.split("@")[0] || ""
+      );
+      // Fetch completed sort modules
+      const sortSlugs = ZONES.find((z) => z.id === "sort")?.levels.map((l) => l.id) ?? [];
+      const { data: rows } = await supabase
+        .from("user_progress")
+        .select("topic_slug")
+        .eq("user_id", data.user.id)
+        .in("topic_slug", sortSlugs)
+        .not("completed_at", "is", null);
+      if (rows) setCompletedSortSlugs(rows.map((r) => r.topic_slug));
     });
   }, []);
 

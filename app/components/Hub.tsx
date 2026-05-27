@@ -715,7 +715,7 @@ export default function Hub({
 
         {/* Zone sections */}
         {ZONES.map((zone) => (
-          <ZoneSection key={zone.id} zone={zone} onEnterBubble={onEnterBubble} />
+          <ZoneSection key={zone.id} zone={zone} onEnterBubble={onEnterBubble} completedSlugs={completedSortSlugs} />
         ))}
 
         {/* Footer */}

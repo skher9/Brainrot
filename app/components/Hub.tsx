@@ -6,114 +6,31 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useXP } from "@/lib/xpContext";
 import { createClient } from "@/lib/supabase/client";
 import SettingsModal from "@/components/SettingsModal";
-import { Bolt, Flame, ArrowRight, Check } from "@/components/Glyphs";
+import { Bolt, Flame, ArrowRight } from "@/components/Glyphs";
 import { TickNumber } from "@/components/Effects";
 
-/* ─── Zone / level data ─────────────────────────────────── */
-interface Level {
+/* ─── Module data ───────────────────────────────────────── */
+interface Module {
   id: string;
-  href?: string;
+  href: string;
   name: string;
-  label: string;
+  tag: string;
   xp: number;
-  live: boolean;
-}
-
-interface Zone {
-  id: string;
-  name: string;
-  region: string;
   accent: string;
-  bg: string;
-  border: string;
-  tagline: string;
-  available: boolean;
-  levels: Level[];
+  description: string;
+  problems: number;
 }
 
-const ZONES: Zone[] = [
+const LIVE_MODULES: Module[] = [
   {
-    id: "search",
-    name: "Search Algorithms",
-    region: "I",
+    id: "binary-search",
+    href: "/learn/tier1/binary-search",
+    name: "Binary Search",
+    tag: "TIER I · SEARCH",
+    xp: 320,
     accent: "#67e8f9",
-    bg: "rgba(14,116,144,0.1)",
-    border: "rgba(103,232,249,0.15)",
-    tagline: "Find anything, in any conditions.",
-    available: true,
-    levels: [
-      { id: "binary-search",        href: "/learn/tier1/binary-search", name: "Binary Search",        label: "TIER I",  xp: 320, live: true  },
-      { id: "linear-search",        name: "Linear Search",              label: "ENTRY",               xp: 200, live: false },
-      { id: "jump-search",          name: "Jump Search",                label: "TIER I",              xp: 320, live: false },
-      { id: "interpolation-search", name: "Interpolation Search",       label: "TIER II",             xp: 400, live: false },
-    ],
-  },
-  {
-    id: "trees",
-    name: "Tree Structures",
-    region: "II",
-    accent: "#6ee7b7",
-    bg: "rgba(6,95,70,0.1)",
-    border: "rgba(110,231,183,0.15)",
-    tagline: "Branching logic, recursive beauty.",
-    available: false,
-    levels: [
-      { id: "binary-tree", name: "Binary Tree",        label: "ENTRY",    xp: 280, live: false },
-      { id: "bst",         name: "Binary Search Tree", label: "TIER I",   xp: 320, live: false },
-      { id: "avl-tree",    name: "AVL Tree",           label: "TIER II",  xp: 380, live: false },
-      { id: "heap",        name: "Heap",               label: "TIER II",  xp: 380, live: false },
-      { id: "trie",        name: "Trie",               label: "TIER III", xp: 420, live: false },
-    ],
-  },
-  {
-    id: "graphs",
-    name: "Graph Theory",
-    region: "III",
-    accent: "#fb7185",
-    bg: "rgba(159,18,57,0.1)",
-    border: "rgba(251,113,133,0.15)",
-    tagline: "Paths, traversals, and dark corners.",
-    available: false,
-    levels: [
-      { id: "graph-basics", name: "Graph Basics", label: "ENTRY",    xp: 280, live: false },
-      { id: "bfs",          name: "BFS",          label: "TIER I",   xp: 320, live: false },
-      { id: "dfs",          name: "DFS",          label: "TIER I",   xp: 320, live: false },
-      { id: "dijkstra",     name: "Dijkstra's",   label: "TIER II",  xp: 420, live: false },
-      { id: "astar",        name: "A*",           label: "TIER III", xp: 480, live: false },
-    ],
-  },
-  {
-    id: "system-design",
-    name: "System Design",
-    region: "IV",
-    accent: "#f6c453",
-    bg: "rgba(146,64,14,0.1)",
-    border: "rgba(246,196,83,0.15)",
-    tagline: "Architecture at scale.",
-    available: false,
-    levels: [
-      { id: "caching",        name: "Caching",        label: "TIER I",   xp: 400, live: false },
-      { id: "load-balancing", name: "Load Balancing", label: "TIER I",   xp: 400, live: false },
-      { id: "databases",      name: "Databases",      label: "TIER II",  xp: 480, live: false },
-      { id: "message-queues", name: "Message Queues", label: "TIER II",  xp: 480, live: false },
-      { id: "cdns",           name: "CDNs",           label: "TIER III", xp: 520, live: false },
-    ],
-  },
-  {
-    id: "ai-ml",
-    name: "AI & Machine Learning",
-    region: "V",
-    accent: "#93c5fd",
-    bg: "rgba(29,78,216,0.1)",
-    border: "rgba(147,197,253,0.15)",
-    tagline: "The model that learns to think.",
-    available: false,
-    levels: [
-      { id: "neural-nets",  name: "Neural Networks", label: "TIER II",  xp: 480, live: false },
-      { id: "backprop",     name: "Backpropagation", label: "TIER III", xp: 520, live: false },
-      { id: "transformers", name: "Transformers",    label: "TIER IV",  xp: 600, live: false },
-      { id: "embeddings",   name: "Embeddings",      label: "TIER III", xp: 560, live: false },
-    ],
+    description: "Halve the search space every step. 8 problems from classic arrays to median of two sorted arrays.",
+    problems: 8,
   },
 ];
 
@@ -149,10 +66,6 @@ function HubNav({
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
@@ -168,52 +81,17 @@ function HubNav({
         display: "flex", alignItems: "center", gap: 0,
       }}>
         {/* Logo */}
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          style={{
-            background: "none", border: "none", cursor: "pointer",
-            fontFamily: "var(--font-display)", fontSize: 20,
-            letterSpacing: "-0.02em", fontWeight: 500,
-            marginRight: 40, flexShrink: 0,
-            padding: 0,
-          }}
-        >
+        <div style={{
+          fontFamily: "var(--font-display)", fontSize: 20,
+          letterSpacing: "-0.02em", fontWeight: 500,
+          marginRight: "auto", flexShrink: 0,
+        }}>
           <span style={{ color: golden ? "#f6c453" : "#a78bfa", textShadow: `0 0 14px ${golden ? "rgba(246,196,83,0.4)" : "rgba(167,139,250,0.4)"}` }}>brain</span>
           <span style={{ color: "rgba(232,244,255,0.9)" }}>rot</span>
-        </button>
-
-        {/* Zone links */}
-        <div style={{ display: "flex", gap: 4, flex: 1 }}>
-          {ZONES.map((z) => (
-            <button
-              key={z.id}
-              onClick={() => scrollTo(z.id)}
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                fontFamily: "var(--font-tac)", fontSize: 12, fontWeight: 500,
-                letterSpacing: "0.03em",
-                color: "rgba(232,244,255,0.75)",
-                padding: "6px 10px", borderRadius: 6,
-                transition: "all 0.15s",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = `${z.accent}14`;
-                e.currentTarget.style.color = z.accent;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "rgba(232,244,255,0.75)";
-              }}
-            >
-              {z.name.split(" ")[0]}
-            </button>
-          ))}
         </div>
 
         {/* Right: XP + avatar */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          {/* XP chip */}
           <div style={{
             display: "flex", alignItems: "center", gap: 6,
             padding: "5px 10px",
@@ -228,7 +106,6 @@ function HubNav({
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "rgba(255,214,10,0.5)", letterSpacing: "0.1em" }}>XP</span>
           </div>
 
-          {/* Streak */}
           {streak > 0 && (
             <div style={{
               display: "flex", alignItems: "center", gap: 5,
@@ -244,7 +121,6 @@ function HubNav({
             </div>
           )}
 
-          {/* Avatar dropdown */}
           <div ref={menuRef} style={{ position: "relative" }}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
@@ -282,7 +158,6 @@ function HubNav({
                     zIndex: 200,
                   }}
                 >
-                  {/* Email header */}
                   <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{
@@ -299,14 +174,10 @@ function HubNav({
                         </div>
                       </div>
                     </div>
-                    <div style={{
-                      marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em",
-                      color: "#a78bfa",
-                    }}>
+                    <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", color: "#a78bfa" }}>
                       {level}
                     </div>
                   </div>
-
                   <div style={{ padding: "6px" }}>
                     <DropItem
                       icon={<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M2 13.5c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>}
@@ -358,195 +229,82 @@ function DropItem({ icon, label, onClick, danger = false }: { icon: React.ReactN
   );
 }
 
-/* ─── Level card ─────────────────────────────────────────── */
-function LevelCard({
-  level, zone,
-}: {
-  level: Level;
-  zone: Zone;
-}) {
+/* ─── Module card ────────────────────────────────────────── */
+function ModuleCard({ mod }: { mod: Module }) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
-  const [toast, setToast] = useState(false);
-  const isLive = level.live;
-
-  const handleClick = () => {
-    if (!isLive) {
-      setToast(true);
-      setTimeout(() => setToast(false), 2000);
-      return;
-    }
-    router.push(level.href ?? `/learn/${level.id}`);
-  };
 
   return (
-    <div style={{ position: "relative" }}>
-      <motion.button
-        onClick={handleClick}
-        onHoverStart={() => setHovered(true)}
-        onHoverEnd={() => setHovered(false)}
-        whileHover={isLive ? { y: -3 } : undefined}
-        whileTap={isLive ? { scale: 0.98 } : undefined}
-        style={{
-          width: "100%", textAlign: "left",
-          padding: "18px 20px",
-          background: isLive
-            ? hovered
-              ? `linear-gradient(135deg, ${zone.accent}16, ${zone.accent}06)`
-              : `linear-gradient(135deg, ${zone.accent}08, transparent)`
-            : "rgba(255,255,255,0.02)",
-          border: `1px solid ${isLive
-            ? hovered ? zone.accent + "55" : zone.accent + "22"
-            : "rgba(255,255,255,0.05)"}`,
-          borderRadius: 12, cursor: isLive ? "pointer" : "default",
-          position: "relative", overflow: "hidden",
-          transition: "background 0.2s, border-color 0.2s",
-        }}
-      >
-        {!isLive && (
-          <div style={{
-            position: "absolute", inset: 0, opacity: 0.025,
-            backgroundImage: "repeating-linear-gradient(45deg, white 0 1px, transparent 1px 10px)",
-            pointerEvents: "none",
-          }} />
-        )}
-
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
-              color: isLive ? zone.accent : "rgba(232,244,255,0.25)",
-              marginBottom: 6,
-            }}>
-              {level.label}
-            </div>
-            <div style={{
-              fontSize: 15, fontWeight: 600,
-              color: isLive ? "#e8f4ff" : "rgba(232,244,255,0.35)",
-              lineHeight: 1.2, marginBottom: 10,
-            }}>
-              {level.name}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Bolt size={10} color={isLive ? zone.accent : "rgba(232,244,255,0.2)"} />
-              <span style={{
-                fontFamily: "var(--font-mono)", fontSize: 10,
-                color: isLive ? "rgba(232,244,255,0.5)" : "rgba(232,244,255,0.2)",
-              }}>
-                +{level.xp} XP
-              </span>
-              {!isLive && (
-                <span style={{
-                  fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.15em",
-                  color: "rgba(232,244,255,0.25)", marginLeft: 4,
-                }}>
-                  COMING SOON
-                </span>
-              )}
-            </div>
-          </div>
-          {isLive && (
-            <motion.div
-              animate={{ x: hovered ? 4 : 0 }}
-              transition={{ duration: 0.15 }}
-              style={{ flexShrink: 0, marginTop: 4 }}
-            >
-              <ArrowRight size={16} color={zone.accent} />
-            </motion.div>
-          )}
-        </div>
-      </motion.button>
-
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            style={{
-              position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-              padding: "6px 12px",
-              background: "rgba(11,14,31,0.98)", border: "1px solid rgba(255,214,10,0.3)",
-              borderRadius: 8, fontSize: 11, color: "#ffd60a",
-              fontFamily: "var(--font-mono)", letterSpacing: "0.12em",
-              whiteSpace: "nowrap", zIndex: 10,
-              pointerEvents: "none",
-            }}
-          >
-            Content coming soon
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ─── Zone section ───────────────────────────────────────── */
-function ZoneSection({ zone }: { zone: Zone }) {
-  return (
-    <section
-      id={zone.id}
+    <motion.button
+      onClick={() => router.push(mod.href)}
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
       style={{
-        paddingTop: 80, paddingBottom: 64,
-        borderTop: `1px solid ${zone.border}`,
-        scrollMarginTop: 80,
+        width: "100%", maxWidth: 480, textAlign: "left",
+        padding: "28px 32px",
+        background: hovered
+          ? `linear-gradient(135deg, ${mod.accent}18, ${mod.accent}08)`
+          : `linear-gradient(135deg, ${mod.accent}0c, transparent)`,
+        border: `1px solid ${hovered ? mod.accent + "60" : mod.accent + "28"}`,
+        borderRadius: 16, cursor: "pointer",
+        transition: "background 0.2s, border-color 0.2s",
+        boxShadow: hovered ? `0 20px 60px -10px ${mod.accent}20` : "none",
       }}
     >
-      {/* Section header */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.28em",
-            color: zone.available ? zone.accent : "rgba(232,244,255,0.2)", opacity: 0.8,
-          }}>
-            REGION {zone.region}
-          </span>
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.2em",
-            padding: "2px 8px",
-            background: zone.available ? `${zone.accent}18` : "rgba(255,255,255,0.04)",
-            border: `1px solid ${zone.available ? zone.accent + "40" : "rgba(255,255,255,0.08)"}`,
-            borderRadius: 20,
-            color: zone.available ? zone.accent : "rgba(232,244,255,0.25)",
-          }}>
-            {zone.available ? "UNLOCKED" : "COMING SOON"}
-          </span>
-        </div>
-        <h2 style={{
-          fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800,
-          color: "#e8f4ff",
-          letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 8,
+      {/* Live badge + tag */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          padding: "3px 8px",
+          background: "rgba(182,255,60,0.1)", border: "1px solid rgba(182,255,60,0.3)",
+          borderRadius: 999,
+          fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.15em", color: "#b6ff3c",
         }}>
-          {zone.name}
-        </h2>
-        <p style={{
-          fontSize: 14, color: "rgba(232,244,255,0.45)",
-          fontStyle: "italic", lineHeight: 1.5,
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#b6ff3c", boxShadow: "0 0 6px #b6ff3c" }} />
+          LIVE NOW
+        </span>
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em",
+          color: mod.accent, opacity: 0.7,
         }}>
-          {zone.tagline}
-        </p>
+          {mod.tag}
+        </span>
       </div>
 
-      {/* Level cards grid */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-        gap: 12,
+      {/* Name */}
+      <h2 style={{
+        fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800,
+        color: "#e8f4ff", letterSpacing: "-0.02em", lineHeight: 1,
+        marginBottom: 12,
       }}>
-        {zone.levels.map((level, i) => (
-          <motion.div
-            key={level.id}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ delay: i * 0.04, duration: 0.3 }}
-          >
-            <LevelCard level={level} zone={zone} />
-          </motion.div>
-        ))}
+        {mod.name}
+      </h2>
+
+      {/* Description */}
+      <p style={{
+        fontSize: 14, color: "rgba(232,244,255,0.55)",
+        lineHeight: 1.6, marginBottom: 20,
+      }}>
+        {mod.description}
+      </p>
+
+      {/* Footer row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 16 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(232,244,255,0.4)" }}>
+            {mod.problems} problems
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(255,214,10,0.6)" }}>
+            <Bolt size={9} color="#ffd60a" /> +{mod.xp} XP
+          </span>
+        </div>
+        <motion.div animate={{ x: hovered ? 6 : 0 }} transition={{ duration: 0.15 }}>
+          <ArrowRight size={18} color={mod.accent} />
+        </motion.div>
       </div>
-    </section>
+    </motion.button>
   );
 }
 
@@ -571,29 +329,18 @@ export default function Hub({ onLogout }: { onLogout: () => void }) {
     });
   }, []);
 
-  const totalTopics = ZONES.reduce((s, z) => s + z.levels.length, 0);
-  const liveTopics = ZONES.flatMap((z) => z.levels).filter((l) => l.live).length;
-
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-0)" }}>
-      {/* Nav */}
-      <HubNav
-        onLogout={onLogout}
-        onSettings={() => setSettingsOpen(true)}
-        email={email}
-      />
+      <HubNav onLogout={onLogout} onSettings={() => setSettingsOpen(true)} email={email} />
 
-      {/* Settings modal — rendered here, NOT inside fixed header */}
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onLogout={onLogout}
       />
 
-      {/* Main content */}
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }}>
-
-        {/* Hero / greeting */}
+        {/* Greeting */}
         <div style={{ paddingTop: 120, paddingBottom: 64 }}>
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -618,18 +365,16 @@ export default function Hub({ onLogout }: { onLogout: () => void }) {
             </h1>
             <p style={{
               fontSize: 16, color: "rgba(232,244,255,0.5)",
-              lineHeight: 1.6, maxWidth: 560, marginBottom: 40,
+              lineHeight: 1.6, maxWidth: 520, marginBottom: 40,
             }}>
-              Pick an algorithm. Watch it. Drive it. Debug it. Every module is a complete descent — not a lecture.
+              Pick a pattern. Drive it. Every module is a complete descent — not a lecture.
             </p>
 
-            {/* Stats row */}
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               {[
                 { label: "YOUR LEVEL", value: level, accent: "#a78bfa" },
-                { label: "TOTAL XP", value: xp.toLocaleString(), accent: "#ffd60a" },
-                { label: "LIVE MODULES", value: liveTopics, accent: "#00e5ff" },
-                { label: "TOTAL MODULES", value: totalTopics, accent: "rgba(232,244,255,0.4)" },
+                { label: "TOTAL XP",   value: xp.toLocaleString(), accent: "#ffd60a" },
+                { label: "LIVE NOW",   value: LIVE_MODULES.length, accent: "#00e5ff" },
               ].map((s) => (
                 <div key={s.label} style={{
                   padding: "12px 18px",
@@ -645,10 +390,27 @@ export default function Hub({ onLogout }: { onLogout: () => void }) {
           </motion.div>
         </div>
 
-        {/* Zone sections */}
-        {ZONES.map((zone) => (
-          <ZoneSection key={zone.id} zone={zone} />
-        ))}
+        {/* Modules */}
+        <div style={{ paddingBottom: 80 }}>
+          <div style={{
+            fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.28em",
+            color: "rgba(255,255,255,0.3)", marginBottom: 24,
+          }}>
+            AVAILABLE NOW
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            {LIVE_MODULES.map((mod, i) => (
+              <motion.div
+                key={mod.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, duration: 0.35 }}
+              >
+                <ModuleCard mod={mod} />
+              </motion.div>
+            ))}
+          </div>
+        </div>
 
         {/* Footer */}
         <footer style={{
@@ -657,10 +419,7 @@ export default function Hub({ onLogout }: { onLogout: () => void }) {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexWrap: "wrap", gap: 12,
         }}>
-          <div style={{
-            fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700,
-            color: "rgba(232,244,255,0.4)",
-          }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "rgba(232,244,255,0.4)" }}>
             <span style={{ color: "#a78bfa" }}>brain</span>rot
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", color: "rgba(232,244,255,0.25)" }}>

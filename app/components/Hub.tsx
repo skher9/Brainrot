@@ -32,6 +32,26 @@ const LIVE_MODULES: Module[] = [
     description: "Halve the search space every step. 8 problems from classic arrays to median of two sorted arrays.",
     problems: 8,
   },
+  {
+    id: "backtracking",
+    href: "/learn/tier1/backtracking",
+    name: "Backtracking",
+    tag: "TIER I · RECURSION",
+    xp: 360,
+    accent: "#fbbf24",
+    description: "Place, conflict, retreat. 8 problems — N-Queens to Sudoku — where the wrong move sends you back.",
+    problems: 8,
+  },
+  {
+    id: "graphs",
+    href: "/learn/tier1/graphs",
+    name: "Graphs & BFS/DFS",
+    tag: "TIER I · TRAVERSAL",
+    xp: 380,
+    accent: "#a78bfa",
+    description: "Flood fill, shortest path, island count. 8 problems — Minesweeper to Tarjan bridges.",
+    problems: 8,
+  },
 ];
 
 /* ─── Nav ───────────────────────────────────────────────── */

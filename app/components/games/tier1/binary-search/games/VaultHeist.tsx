@@ -109,7 +109,6 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
         }
 
         spawnDoors(animate: boolean) {
-          // destroy old
           for (const d of this.doors) d.container.destroy();
           this.doors = [];
 
@@ -119,45 +118,43 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
           const dw = Math.floor(totalW / count);
           const dh = Math.min(130, H * 0.46);
           const dy = H * 0.56;
-          const midI = Math.floor((this.left + this.right) / 2);
 
           for (let i = 0; i < count; i++) {
             const realIdx = this.left + i;
             const targetX = padX + i * dw + dw / 2;
-            const isMid = realIdx === midI;
 
             const c = this.add.container(animate ? (i < count / 2 ? -60 : W + 60) : targetX, dy);
             const bg = this.add.graphics();
-            const isTarget = VALUES[realIdx] === TARGET_VAL;
-            this.drawDoor(bg, dw, dh, isMid, false);
+            this.drawDoor(bg, dw, dh, false, false);
 
-            const fontSize = count <= 2 ? 28 : count <= 4 ? 22 : count <= 8 ? 16 : count <= 16 ? 12 : 9;
-            const txt = this.add.text(0, 0, VALUES[realIdx].toString(), {
-              fontFamily: "monospace",
-              fontSize: `${fontSize}px`,
-              color: isMid ? "#4a90c0" : "#1e4060",
+            // Values are HIDDEN — lock symbol until cracked
+            const lockSize = Math.max(10, Math.min(20, dw - 6));
+            const lock = this.add.text(0, 0, "🔒", {
+              fontSize: `${lockSize}px`,
             }).setOrigin(0.5);
 
-            c.add([bg, txt]);
+            // Revealed text (hidden initially)
+            const txt = this.add.text(0, 0, "?", {
+              fontFamily: "monospace", fontSize: "9px", color: "#1e4060",
+            }).setOrigin(0.5).setVisible(false);
+
+            c.add([bg, lock, txt]);
             c.setSize(dw - 2, dh);
             c.setInteractive({ cursor: "pointer" });
-            c.setData("idx", realIdx);
 
             const door: DoorRef = { container: c, bg, txt, idx: realIdx };
 
-            ((door, dw, dh, isMid) => {
+            ((door, dw, dh) => {
               door.container.on("pointerover", () => {
                 if (this.busy) return;
-                this.drawDoor(door.bg, dw, dh, isMid, true);
-                door.txt.setStyle({ color: "#60b0e8" });
+                this.drawDoor(door.bg, dw, dh, false, true);
               });
               door.container.on("pointerout", () => {
                 if (this.busy) return;
-                this.drawDoor(door.bg, dw, dh, isMid, false);
-                door.txt.setStyle({ color: isMid ? "#4a90c0" : "#1e4060" });
+                this.drawDoor(door.bg, dw, dh, false, false);
               });
               door.container.on("pointerdown", () => this.crack(door, dw, dh));
-            })(door, dw, dh, isMid);
+            })(door, dw, dh);
 
             this.doors.push(door);
 
@@ -171,33 +168,42 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
 
           const remaining = this.right - this.left + 1;
           this.remainText.setText(`${remaining} VAULT${remaining !== 1 ? "S" : ""} REMAINING`);
-
           this.midHint.setText("");
         }
 
-        drawDoor(g: Phaser.GameObjects.Graphics, dw: number, dh: number, isMid: boolean, hover: boolean) {
+        drawDoor(g: Phaser.GameObjects.Graphics, dw: number, dh: number, _isMid: boolean, hover: boolean) {
           g.clear();
           if (hover) {
             g.fillStyle(0x0d2a42, 1);
             g.fillRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
             g.lineStyle(1, 0x3b82f6, 0.8);
             g.strokeRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
-          } else if (isMid) {
-            g.fillStyle(0x0a1e30, 1);
-            g.fillRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
-            g.lineStyle(1, 0x1e4a6a, 1);
-            g.strokeRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
           } else {
-            g.fillStyle(0x080e16, 1);
+            g.fillStyle(0x060c14, 1);
             g.fillRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
-            g.lineStyle(1, 0x0d1e2e, 1);
+            g.lineStyle(1, 0x0d1e30, 1);
             g.strokeRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
           }
-          // handle dot
           if (dw > 14) {
-            g.fillStyle(isMid ? 0x1e4a6a : 0x0d1e2e, 1);
+            g.fillStyle(0x0d1e30, 1);
             g.fillCircle(dw / 4, dh / 4, Math.max(2, dw / 10));
           }
+        }
+
+        revealDoor(door: DoorRef, dw: number, dh: number, color: number, borderColor: number) {
+          const val = VALUES[door.idx];
+          const lock = door.container.list[1] as Phaser.GameObjects.Text;
+          lock.setVisible(false);
+          door.bg.clear();
+          door.bg.fillStyle(color, 1);
+          door.bg.fillRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
+          door.bg.lineStyle(2, borderColor, 1);
+          door.bg.strokeRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
+          const fontSize = dw >= 80 ? 22 : dw >= 40 ? 16 : dw >= 24 ? 12 : 9;
+          door.txt.setText(val.toString()).setStyle({
+            fontSize: `${fontSize}px`,
+            color: `#${borderColor.toString(16).padStart(6, "0")}`,
+          }).setVisible(true);
         }
 
         crack(door: DoorRef, dw: number, dh: number) {
@@ -213,18 +219,11 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
 
           if (val === TARGET_VAL) {
             solvedRef.current = true;
-            door.bg.clear();
-            door.bg.fillStyle(0x001a08, 1);
-            door.bg.fillRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
-            door.bg.lineStyle(2, 0x22c55e, 1);
-            door.bg.strokeRoundedRect(-dw / 2 + 1, -dh / 2, dw - 2, dh, 4);
-            door.txt.setStyle({ color: "#22c55e", fontSize: "24px" });
-
-            this.statusText.setText(`VAULT ${TARGET_VAL} CRACKED — ${this.moves} MOVE${this.moves !== 1 ? "S" : ""}`).setStyle({ color: "#22c55e" });
+            this.revealDoor(door, dw, dh, 0x001a08, 0x22c55e);
+            this.statusText.setText(`SERIAL ${TARGET_VAL} FOUND — ${this.moves} MOVE${this.moves !== 1 ? "S" : ""}`).setStyle({ color: "#22c55e" });
             this.remainText.setText(this.moves <= 5 ? "OPTIMAL ✓" : "").setStyle({ color: "#22c55e" });
             emitReaction("BURST", "🎯 CRACKED", door.container.x, door.container.y);
             playSound("solve");
-
             this.tweens.add({
               targets: door.container, scaleX: 1.25, scaleY: 1.25,
               duration: 160, yoyo: true, repeat: 2,
@@ -235,49 +234,38 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
 
           const tooLow = val < TARGET_VAL;
 
+          // Flash the cracked door with its value before it flies off
+          this.revealDoor(door, dw, dh, tooLow ? 0x1a0800 : 0x120018, tooLow ? 0xf97316 : 0xa855f7);
+
           if (tooLow) {
-            this.statusText.setText(`[${val}] TOO LOW — TARGET IS TO THE RIGHT →`).setStyle({ color: "#f97316" });
+            this.statusText.setText(`SERIAL ${val} — TOO LOW. TARGET IS TO THE RIGHT →`).setStyle({ color: "#f97316" });
             emitReaction("SLIDE_RIGHT", "TOO LOW →", door.container.x, door.container.y - 30);
-            playSound("wrong");
-
-            const toFly = this.doors.filter(d => d.idx <= door.idx);
-            const keep = this.doors.filter(d => d.idx > door.idx);
-
-            let done = 0;
-            for (const d of toFly) {
-              this.tweens.add({
-                targets: d.container, x: -120, alpha: 0,
-                duration: 280, ease: "Cubic.In",
-                onComplete: () => {
-                  d.container.destroy();
-                  done++;
-                  if (done === toFly.length) {
-                    this.left = door.idx + 1;
-                    this.doors = keep;
-                    this.afterEliminate();
-                  }
-                },
-              });
-            }
-            if (toFly.length === 0) this.afterEliminate();
           } else {
-            this.statusText.setText(`[${val}] TOO HIGH — TARGET IS TO THE LEFT ←`).setStyle({ color: "#a855f7" });
+            this.statusText.setText(`SERIAL ${val} — TOO HIGH. TARGET IS TO THE LEFT ←`).setStyle({ color: "#a855f7" });
             emitReaction("SLIDE_LEFT", "← TOO HIGH", door.container.x, door.container.y - 30);
-            playSound("wrong");
+          }
+          playSound("wrong");
 
-            const toFly = this.doors.filter(d => d.idx >= door.idx);
-            const keep = this.doors.filter(d => d.idx < door.idx);
+          // Brief pause so player reads the revealed value, then fly off
+          this.time.delayedCall(350, () => {
+            const toFly = tooLow
+              ? this.doors.filter(d => d.idx <= door.idx)
+              : this.doors.filter(d => d.idx >= door.idx);
+            const keep = tooLow
+              ? this.doors.filter(d => d.idx > door.idx)
+              : this.doors.filter(d => d.idx < door.idx);
 
             let done = 0;
             for (const d of toFly) {
               this.tweens.add({
-                targets: d.container, x: W + 120, alpha: 0,
-                duration: 280, ease: "Cubic.In",
+                targets: d.container, x: tooLow ? -120 : W + 120, alpha: 0,
+                duration: 260, ease: "Cubic.In",
                 onComplete: () => {
                   d.container.destroy();
                   done++;
                   if (done === toFly.length) {
-                    this.right = door.idx - 1;
+                    if (tooLow) this.left = door.idx + 1;
+                    else this.right = door.idx - 1;
                     this.doors = keep;
                     this.afterEliminate();
                   }
@@ -285,18 +273,16 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
               });
             }
             if (toFly.length === 0) this.afterEliminate();
-          }
+          });
         }
 
         afterEliminate() {
           if (this.left > this.right) {
-            this.statusText.setText("SEARCH FAILED — this shouldn't happen").setStyle({ color: "#ef4444" });
+            this.statusText.setText("SEARCH FAILED").setStyle({ color: "#ef4444" });
             this.busy = false;
             return;
           }
-          this.time.delayedCall(80, () => {
-            this.repositionDoors();
-          });
+          this.time.delayedCall(80, () => this.repositionDoors());
         }
 
         repositionDoors() {
@@ -306,23 +292,20 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
           const dw = Math.floor(totalW / count);
           const dh = Math.min(130, H * 0.46);
           const dy = H * 0.56;
-          const midI = Math.floor((this.left + this.right) / 2);
-          const fontSize = count <= 2 ? 28 : count <= 4 ? 22 : count <= 8 ? 16 : count <= 16 ? 12 : 9;
+          const lockSize = Math.max(10, Math.min(20, dw - 6));
 
           let pending = count;
 
           for (let i = 0; i < count; i++) {
             const door = this.doors[i];
-            const realIdx = door.idx;
-            const isMid = realIdx === midI;
             const targetX = padX + i * dw + dw / 2;
 
+            // Reset to locked state
             door.bg.clear();
-            this.drawDoor(door.bg, dw, dh, isMid, false);
-            door.txt.setStyle({
-              fontSize: `${fontSize}px`,
-              color: isMid ? "#4a90c0" : "#1e4060",
-            });
+            this.drawDoor(door.bg, dw, dh, false, false);
+            const lock = door.container.list[1] as Phaser.GameObjects.Text;
+            lock.setFontSize(lockSize).setVisible(true);
+            door.txt.setVisible(false);
             door.container.setSize(dw - 2, dh);
             door.container.y = dy;
 
@@ -332,7 +315,7 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
               onComplete: () => {
                 pending--;
                 if (pending === 0) {
-                  this.rewireListeners(dw, dh, midI);
+                  this.rewireListeners(dw, dh);
                   this.busy = false;
                   const remaining = this.right - this.left + 1;
                   this.remainText.setText(`${remaining} VAULT${remaining !== 1 ? "S" : ""} REMAINING`).setStyle({ color: "#0a1820" });
@@ -347,24 +330,21 @@ export default function VaultHeist({ onSolve, onAttempt }: GameProps) {
           if (count === 0) { this.busy = false; }
         }
 
-        rewireListeners(dw: number, dh: number, midI: number) {
+        rewireListeners(dw: number, dh: number) {
           for (const door of this.doors) {
             door.container.removeAllListeners();
             door.container.setInteractive({ cursor: "pointer" });
-            const isMid = door.idx === midI;
-            ((d, dw, dh, isMid) => {
+            ((d, dw, dh) => {
               d.container.on("pointerover", () => {
                 if (this.busy) return;
-                this.drawDoor(d.bg, dw, dh, isMid, true);
-                d.txt.setStyle({ color: "#60b0e8" });
+                this.drawDoor(d.bg, dw, dh, false, true);
               });
               d.container.on("pointerout", () => {
                 if (this.busy) return;
-                this.drawDoor(d.bg, dw, dh, isMid, false);
-                d.txt.setStyle({ color: isMid ? "#4a90c0" : "#1e4060" });
+                this.drawDoor(d.bg, dw, dh, false, false);
               });
               d.container.on("pointerdown", () => this.crack(d, dw, dh));
-            })(door, dw, dh, isMid);
+            })(door, dw, dh);
           }
         }
       }

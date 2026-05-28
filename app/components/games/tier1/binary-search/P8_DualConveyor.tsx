@@ -140,10 +140,14 @@ export default function P8_DualConveyor({ onSolve, onAttempt }: GameProps) {
 
       // Partition line on A — draggable
       let partLine: PixiGraphics;
+      let splitHint: InstanceType<typeof Text> | null = null;
       let isDragging = false;
 
       function drawPartitionLine() {
         if (partLine) app.stage.removeChild(partLine);
+        if (splitHint) app.stage.removeChild(splitHint);
+
+        const pB = HALF - partitionA;
         partLine = new Graphics();
         const lineX = startAX + partitionA * (SLOT_W + GAP) - GAP / 2;
         partLine.moveTo(lineX, rowA_Y - 12);
@@ -160,6 +164,17 @@ export default function P8_DualConveyor({ onSolve, onAttempt }: GameProps) {
 
         partLine.on("pointerdown", () => { isDragging = true; });
         app.stage.addChild(partLine);
+
+        // Split hint below handle
+        splitHint = new Text({
+          text: `A: ${partitionA}/${M}  B: ${Math.max(0, Math.min(N, pB))}/${N}`,
+          style: new TextStyle({ fontFamily: "monospace", fontSize: 9, fill: 0xeab308 }),
+        });
+        splitHint.alpha = 0.7;
+        splitHint.anchor.set(0.5, 0);
+        splitHint.x = lineX;
+        splitHint.y = rowA_Y + SLOT_H + 12;
+        app.stage.addChild(splitHint);
       }
 
       app.canvas.addEventListener("pointermove", (e: PointerEvent) => {
@@ -200,7 +215,7 @@ export default function P8_DualConveyor({ onSolve, onAttempt }: GameProps) {
           resultText.text = `median = ${med}`;
           resultText.style.fill = 0x22c55e;
         } else {
-          resultText.text = maxLeftA > minRightB ? "A left too big →" : "← B left too big";
+          resultText.text = maxLeftA > minRightB ? "A LEFT TOO BIG — DRAG PARTITION LEFT ←" : "B LEFT TOO BIG — DRAG PARTITION RIGHT →";
           resultText.style.fill = 0xef4444;
         }
       }
@@ -232,5 +247,23 @@ export default function P8_DualConveyor({ onSolve, onAttempt }: GameProps) {
     };
   }, []);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Instruction header — plain HTML overlay, not Pixi */}
+      <div style={{
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#475569",
+        background: "#0a0a0a",
+        padding: "6px 12px",
+        borderBottom: "1px solid #1e1e1e",
+        lineHeight: "1.6",
+        flexShrink: 0,
+      }}>
+        <div>FIND THE MEDIAN PARTITION: DRAG THE LINE ON ARRAY A LEFT/RIGHT</div>
+        <div>VALID PARTITION: ALL LEFT ELEMENTS &le; ALL RIGHT ELEMENTS &nbsp;·&nbsp; BOTH ARRAYS MUST SPLIT CONSISTENTLY</div>
+      </div>
+      <div ref={containerRef} style={{ flex: 1 }} />
+    </div>
+  );
 }

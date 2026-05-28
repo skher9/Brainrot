@@ -1,8 +1,7 @@
 "use client";
 // LC #162 — Find Peak Element. 14 mountains, 5 power cells.
-// Scan Peak (O(1)/scan, 1 cell): exact height only.
-// Scan + Neighbors (O(1)/scan, 2 cells): mountain + both neighbors.
-// Thermal Overview (O(n), 3 cells, once): rough heat gradient, no exact values.
+// Click any mountain: costs 1 cell, reveals exact height + slope direction.
+// Binary search the peak using slope: go toward ascending side.
 import { useEffect, useRef } from "react";
 import type { GameProps } from "../types";
 import { playSound } from "../SoundEngine";
@@ -64,9 +63,6 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
         private left = 0;
         private right = N - 1;
         private probed: Set<number> = new Set();
-        private toolMode = "Scan Peak";
-        private thermalUsed = false;
-        private toolSelectHandler!: (e: Event) => void;
 
         constructor() { super({ key: "DeadSignalScene" }); }
 
@@ -75,16 +71,6 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
           this.drawSky();
           this.buildMountains();
           this.buildHUD();
-
-          this.toolSelectHandler = (e: Event) => {
-            this.toolMode = (e as CustomEvent).detail.tool as string;
-            this.updateToolHints();
-          };
-          window.addEventListener("bs-tool-select", this.toolSelectHandler);
-          this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
-            window.removeEventListener("bs-tool-select", this.toolSelectHandler);
-          });
-
           this.input.on("pointerdown", this.onClick, this);
         }
 
@@ -105,8 +91,8 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
         buildMountains() {
           const pad = 20;
           const mw = Math.floor((W - pad * 2) / N);
-          const groundY = H * 0.72;
-          const maxMH = H * 0.45;
+          const groundY = H * 0.78;
+          const maxMH = H * 0.38;
 
           for (let i = 0; i < N; i++) {
             const cx = pad + i * mw + mw / 2;
@@ -120,19 +106,21 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
             body.lineStyle(1, 0x1a3050, 1);
             body.strokeTriangle(-hw, 0, hw, 0, 0, -mh);
 
-            const heightLabel = this.add.text(0, -mh - 12, "", {
+            const heightLabel = this.add.text(0, -mh - 14, "", {
               fontFamily: "monospace", fontSize: "8px", color: "#0a2040",
             }).setOrigin(0.5).setName("hlabel");
 
-            const ring = this.add.graphics().setName("ring").setVisible(false);
+            const slopeLabel = this.add.text(0, -mh - 24, "", {
+              fontFamily: "monospace", fontSize: "9px", color: "#4a8aaa",
+            }).setOrigin(0.5).setName("slabel");
 
-            const heatBar = this.add.graphics().setName("heatbar").setVisible(false);
+            const ring = this.add.graphics().setName("ring").setVisible(false);
 
             const idxLabel = this.add.text(0, 8, String(i), {
               fontFamily: "monospace", fontSize: "7px", color: "#0a1828",
             }).setOrigin(0.5);
 
-            container.add([body, ring, heightLabel, heatBar, idxLabel]);
+            container.add([body, ring, heightLabel, slopeLabel, idxLabel]);
             container.setSize(mw - 2, mh + 20);
             container.setInteractive({ cursor: "pointer" });
             container.setData("index", i);
@@ -166,24 +154,40 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
         }
 
         buildHUD() {
+          // Top instruction bar — 68px tall
           const bar = this.add.graphics();
           bar.fillStyle(0x020406, 1);
-          bar.fillRect(0, 0, W, 44);
+          bar.fillRect(0, 0, W, 68);
           bar.lineStyle(1, 0x0a2040, 1);
-          bar.lineBetween(0, 44, W, 44);
+          bar.lineBetween(0, 68, W, 68);
 
-          this.add.text(16, 12, "// DEAD SIGNAL", {
-            fontFamily: "monospace", fontSize: "10px", color: "#0a2040",
-          });
-          this.add.text(W / 2, 10, "FIND THE PEAK SIGNAL", {
-            fontFamily: "monospace", fontSize: "10px", color: "#1a4060",
+          // Line 1: game name + primary instruction
+          this.add.text(W / 2, 8, "FIND THE PEAK — SIGNAL STRONGER THAN BOTH NEIGHBORS", {
+            fontFamily: "monospace", fontSize: "9px", color: "#1a4060",
           }).setOrigin(0.5, 0);
 
-          this.cellText = this.add.text(W - 16, 12, `CELLS: ${MAX_CELLS}`, {
+          // Line 2: mountains + probe hint
+          this.add.text(W / 2, 24, `${N} MOUNTAINS · HEIGHTS HIDDEN · CLICK ANY MOUNTAIN TO PROBE (COSTS 1 CELL)`, {
+            fontFamily: "monospace", fontSize: "8px", color: "#0c1e2e",
+          }).setOrigin(0.5, 0);
+
+          // Line 3: slope reading tip
+          this.add.text(W / 2, 40, "AFTER PROBE: IF RIGHT NEIGHBOR IS STRONGER → PEAK IS RIGHT  ·  IF LEFT IS STRONGER → PEAK IS LEFT", {
+            fontFamily: "monospace", fontSize: "7px", color: "#091520",
+          }).setOrigin(0.5, 0);
+
+          // Game label top-left
+          this.add.text(8, 8, "// DEAD SIGNAL", {
+            fontFamily: "monospace", fontSize: "8px", color: "#061018",
+          });
+
+          // Cell counter top-right
+          this.cellText = this.add.text(W - 10, 8, `CELLS: ${MAX_CELLS}`, {
             fontFamily: "monospace", fontSize: "10px", color: "#22c55e",
           }).setOrigin(1, 0);
 
-          this.statusText = this.add.text(W / 2, H - 36, "CLICK A MOUNTAIN TO PROBE", {
+          // Status bar at bottom
+          this.statusText = this.add.text(W / 2, H - 36, "PROBE THE MIDPOINT FIRST", {
             fontFamily: "monospace", fontSize: "10px", color: "#0a2040",
           }).setOrigin(0.5);
 
@@ -192,39 +196,19 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
           }).setOrigin(0.5);
         }
 
-        updateToolHints() {
-          if (this.toolMode === "Thermal Overview") {
-            if (this.thermalUsed) {
-              this.statusText.setText("THERMAL USED — click mountain to scan").setStyle({ color: "#374151" });
-            } else {
-              this.statusText.setText("THERMAL: costs 3 cells — click any mountain to activate").setStyle({ color: "#f97316" });
-            }
-          } else if (this.toolMode === "Scan + Neighbors") {
-            this.statusText.setText("SCAN + NEIGHBORS: costs 2 cells — reveals mountain + both neighbors").setStyle({ color: "#3b82f6" });
-          } else {
-            this.statusText.setText("SCAN PEAK: costs 1 cell — reveals exact height only").setStyle({ color: "#0a2040" });
-          }
-        }
-
         onClick(pointer: Phaser.Input.Pointer) {
           if (this.busy || solvedRef.current) return;
 
           const pad = 20;
           const mw = Math.floor((W - pad * 2) / N);
-          const groundY = H * 0.72;
-          const maxMH = H * 0.45;
+          const groundY = H * 0.78;
+          const maxMH = H * 0.38;
 
           for (let i = 0; i < N; i++) {
             const cx = pad + i * mw + mw / 2;
             const mh = (HEIGHTS[i] / 110) * maxMH;
             if (Math.abs(pointer.x - cx) < mw / 2 && pointer.y > groundY - mh - 15 && pointer.y < groundY + 10) {
-              if (this.toolMode === "Thermal Overview") {
-                this.doThermal(pointer.x, pointer.y);
-              } else if (this.toolMode === "Scan + Neighbors") {
-                this.doScanNeighbors(i, pointer.x, pointer.y);
-              } else {
-                this.doScanPeak(i, pointer.x, pointer.y);
-              }
+              this.doProbe(i, pointer.x, pointer.y);
               return;
             }
           }
@@ -242,17 +226,17 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
           return true;
         }
 
-        doScanPeak(i: number, px: number, py: number) {
+        doProbe(i: number, px: number, py: number) {
           if (this.probed.has(i)) return;
           if (!this.spendCells(1)) return;
           this.busy = true;
           onAttempt();
-          emitToolUsed("Scan Peak", "O(1)/scan");
+          emitToolUsed("Binary Search", "O(log n)");
           playSound("beep");
 
           this.probed.add(i);
           const peak = isPeak(HEIGHTS, i);
-          this.revealMountain(i, peak, false);
+          this.revealMountain(i, peak);
 
           const leftStr = i > 0 ? (HEIGHTS[i] > HEIGHTS[i - 1] ? "↑" : "↓") : "⊣";
           const rightStr = i < N - 1 ? (HEIGHTS[i] > HEIGHTS[i + 1] ? "↑" : "↓") : "⊢";
@@ -262,7 +246,9 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
           } else {
             const goRight = i < N - 1 && HEIGHTS[i + 1] > HEIGHTS[i];
             if (goRight) this.left = i + 1; else this.right = i;
-            this.statusText.setText(`[${i}]:${HEIGHTS[i]}  ${leftStr}L ${rightStr}R — go ${goRight ? "RIGHT" : "LEFT"}`).setStyle({ color: "#4a8aaa" });
+            this.statusText
+              .setText(`[${i}]:${HEIGHTS[i]}  L${leftStr} R${rightStr} — go ${goRight ? "RIGHT ▶" : "◀ LEFT"}`)
+              .setStyle({ color: "#4a8aaa" });
             this.rangeText.setText(`SEARCH: [${this.left}..${this.right}]`);
             emitReaction(goRight ? "SLIDE_RIGHT" : "SLIDE_LEFT", goRight ? "→ STRONGER" : "← STRONGER", px, py);
             playSound("correct");
@@ -274,131 +260,10 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
           }
         }
 
-        doScanNeighbors(i: number, px: number, py: number) {
-          if (!this.spendCells(2)) return;
-          this.busy = true;
-          onAttempt();
-          emitToolUsed("Scan + Neighbors", "O(1)/scan");
-          playSound("beep");
-
-          // reveal i, i-1, i+1
-          const toReveal = [i - 1, i, i + 1].filter(idx => idx >= 0 && idx < N);
-          for (const idx of toReveal) {
-            if (!this.probed.has(idx)) {
-              this.probed.add(idx);
-              this.revealMountain(idx, isPeak(HEIGHTS, idx), false);
-            }
-          }
-
-          const peak = isPeak(HEIGHTS, i);
-          if (peak) {
-            this.onPeakFound(i, px, py);
-            return;
-          }
-
-          // also check if any neighbor is peak
-          for (const idx of [i - 1, i + 1]) {
-            if (idx >= 0 && idx < N && isPeak(HEIGHTS, idx)) {
-              this.onPeakFound(idx, px, py);
-              return;
-            }
-          }
-
-          const goRight = i < N - 1 && HEIGHTS[i + 1] > HEIGHTS[i];
-          if (goRight) this.left = Math.max(this.left, i + 1);
-          else this.right = Math.min(this.right, i);
-
-          this.statusText.setText(`SCANNED [${Math.max(0, i - 1)}..${Math.min(N - 1, i + 1)}] — go ${goRight ? "RIGHT" : "LEFT"}`).setStyle({ color: "#3b82f6" });
-          this.rangeText.setText(`SEARCH: [${this.left}..${this.right}]`);
-          emitReaction(goRight ? "SLIDE_RIGHT" : "SLIDE_LEFT", goRight ? "→ STRONGER" : "← STRONGER", px, py);
-          playSound("correct");
-
-          if (this.cellsLeft <= 0) {
-            this.time.delayedCall(400, () => this.showRetry());
-          } else {
-            this.busy = false;
-          }
-        }
-
-        doThermal(px: number, py: number) {
-          if (this.thermalUsed) {
-            this.statusText.setText("THERMAL ALREADY USED — choose Scan Peak or Scan + Neighbors").setStyle({ color: "#374151" });
-            return;
-          }
-          if (!this.spendCells(3)) return;
-          this.busy = true;
-          onAttempt();
-          emitToolUsed("Thermal Overview", "O(n)");
-          playSound("beep");
-
-          this.thermalUsed = true;
-          emitReaction("INSIGHT", "🌡 THERMAL", px, py);
-
+        revealMountain(i: number, peak: boolean) {
           const pad = 20;
           const mw = Math.floor((W - pad * 2) / N);
-          const maxMH = H * 0.45;
-          const maxH = Math.max(...HEIGHTS);
-
-          // show heat gradient briefly on all mountains — rough only (no exact values)
-          for (let i = 0; i < N; i++) {
-            const ratio = HEIGHTS[i] / maxH; // 0..1
-            const container = this.mountains[i];
-            const mh = (HEIGHTS[i] / 110) * maxMH;
-            const hw = Math.max(mw * 0.38, 10);
-
-            // heat color: cold=dark blue, warm=orange, hot=red
-            let col: number;
-            if (ratio > 0.8) col = 0xef4444;
-            else if (ratio > 0.6) col = 0xf97316;
-            else if (ratio > 0.4) col = 0xeab308;
-            else if (ratio > 0.2) col = 0x22d3ee;
-            else col = 0x1e40af;
-
-            const body = container.list[0] as Phaser.GameObjects.Graphics;
-            body.clear();
-            body.fillStyle(col, 0.35);
-            body.fillTriangle(-hw, 0, hw, 0, 0, -mh);
-            body.lineStyle(1, col, 0.6);
-            body.strokeTriangle(-hw, 0, hw, 0, 0, -mh);
-
-            // rough tier label (not exact height)
-            const tier = ratio > 0.75 ? "███" : ratio > 0.5 ? "██" : ratio > 0.25 ? "█" : "▒";
-            const hlabel = container.getByName("hlabel") as Phaser.GameObjects.Text;
-            hlabel.setText(tier).setStyle({ color: `#${col.toString(16).padStart(6, "0")}`, fontSize: "7px" });
-          }
-
-          this.statusText.setText("THERMAL: rough gradient shown — exact values hidden. Act fast.").setStyle({ color: "#f97316" });
-
-          // fade thermal after 2.5s, restore original mountain colors
-          this.time.delayedCall(2500, () => {
-            for (let i = 0; i < N; i++) {
-              if (this.probed.has(i)) continue;
-              const container = this.mountains[i];
-              const mh = (HEIGHTS[i] / 110) * maxMH;
-              const hw = Math.max(mw * 0.38, 10);
-              const body = container.list[0] as Phaser.GameObjects.Graphics;
-              body.clear();
-              body.fillStyle(0x0a1828, 1);
-              body.fillTriangle(-hw, 0, hw, 0, 0, -mh);
-              body.lineStyle(1, 0x1a3050, 1);
-              body.strokeTriangle(-hw, 0, hw, 0, 0, -mh);
-              const hlabel = container.getByName("hlabel") as Phaser.GameObjects.Text;
-              hlabel.setText("").setStyle({ color: "#0a2040" });
-            }
-            this.statusText.setText("THERMAL FADED — use Scan to narrow down").setStyle({ color: "#374151" });
-          });
-
-          if (this.cellsLeft <= 0) {
-            this.time.delayedCall(400, () => this.showRetry());
-          } else {
-            this.busy = false;
-          }
-        }
-
-        revealMountain(i: number, peak: boolean, skipStatusUpdate: boolean) {
-          const pad = 20;
-          const mw = Math.floor((W - pad * 2) / N);
-          const maxMH = H * 0.45;
+          const maxMH = H * 0.38;
           const mh = (HEIGHTS[i] / 110) * maxMH;
           const hw = Math.max(mw * 0.38, 10);
           const container = this.mountains[i];
@@ -415,8 +280,16 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
           ring.lineStyle(1, peak ? 0x22c55e : 0x3a6090, 0.6);
           ring.strokeCircle(0, -mh, 12);
 
+          // Height number above mountain
           const hlabel = container.getByName("hlabel") as Phaser.GameObjects.Text;
           hlabel.setText(String(HEIGHTS[i])).setStyle({ color: peak ? "#22c55e" : "#4a8aaa", fontSize: "9px" });
+
+          // Slope arrows: left neighbor direction | right neighbor direction
+          const leftArrow = i > 0 ? (HEIGHTS[i] > HEIGHTS[i - 1] ? "↑" : "↓") : "";
+          const rightArrow = i < N - 1 ? (HEIGHTS[i] > HEIGHTS[i + 1] ? "↑" : "↓") : "";
+          const slopeStr = peak ? "PEAK" : `${leftArrow} ${rightArrow}`;
+          const slabel = container.getByName("slabel") as Phaser.GameObjects.Text;
+          slabel.setText(slopeStr).setStyle({ color: peak ? "#22c55e" : "#2a6080", fontSize: "9px" });
         }
 
         onPeakFound(i: number, px: number, py: number) {
@@ -441,7 +314,7 @@ export default function DeadSignal({ onSolve, onAttempt }: GameProps) {
           this.add.text(W / 2, H / 2 - 24, "POWER CELLS DEPLETED", {
             fontFamily: "monospace", fontSize: "12px", color: "#4a8aaa",
           }).setOrigin(0.5).setDepth(21);
-          this.add.text(W / 2, H / 2 - 6, "Thermal Overview wastes cells — Scan Peak + binary logic uses only 4", {
+          this.add.text(W / 2, H / 2 - 6, "Probe the midpoint each time — binary search finds peak in ≤4 probes", {
             fontFamily: "monospace", fontSize: "9px", color: "#1a3a5a",
           }).setOrigin(0.5).setDepth(21);
 

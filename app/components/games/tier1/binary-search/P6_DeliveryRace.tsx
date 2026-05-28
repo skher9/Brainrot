@@ -1,15 +1,18 @@
 "use client";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import type { GameProps } from "./types";
 
 // Delivery piles: how many km each delivery takes
 const PILES = [3, 6, 7, 11];
 const HOURS = 8; // must deliver all within HOURS hours
-// Minimum speed: ceil(11/1)=11 but need total <= 8 → min speed where sum(ceil(p/s)) <= H
+
+function hoursFor(s: number): number {
+  return PILES.reduce((acc, p) => acc + Math.ceil(p / s), 0);
+}
+
 function minSpeed(): number {
   for (let s = 1; s <= 15; s++) {
-    const hours = PILES.reduce((acc, p) => acc + Math.ceil(p / s), 0);
-    if (hours <= HOURS) return s;
+    if (hoursFor(s) <= HOURS) return s;
   }
   return 15;
 }
@@ -19,6 +22,8 @@ export default function P6_DeliveryRace({ onSolve, onAttempt }: GameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<unknown>(null);
   const solvedRef = useRef(false);
+  const [attempts, setAttempts] = useState(0);
+  const [statusMsg, setStatusMsg] = useState("CLICK ANY SPEED TO BEGIN");
 
   const destroy = useCallback(() => {
     if (gameRef.current) {
@@ -40,61 +45,54 @@ export default function P6_DeliveryRace({ onSolve, onAttempt }: GameProps) {
       class DeliveryScene extends Phaser.Scene {
         private left = 1;
         private right = 15;
-        private mid = -1;
-        private bars: Phaser.GameObjects.Container[] = [];
         private busy = false;
-        private msgText?: Phaser.GameObjects.Text;
-        private pilesText?: Phaser.GameObjects.Text;
+        private bars: Phaser.GameObjects.Container[] = [];
+        // Track revealed state per bar
+        private revealed: boolean[] = new Array(15).fill(false);
 
         constructor() { super({ key: "DeliveryScene" }); }
 
         create() {
           this.cameras.main.setBackgroundColor("#0a0a0a");
-
-          this.pilesText = this.add.text(W / 2, 28, `deliveries: [${PILES.join(", ")}] km  |  ${HOURS}h deadline`, {
-            fontFamily: "monospace", fontSize: 11, color: "#475569",
-          }).setOrigin(0.5);
-
           this.buildSpeedBars();
-
-          this.msgText = this.add.text(W / 2, H - 28, "select a speed", {
-            fontFamily: "monospace", fontSize: 11, color: "#374151",
-          }).setOrigin(0.5, 1);
-
           this.input.on("pointerdown", this.onClick, this);
         }
 
         buildSpeedBars() {
           const speeds = 15;
           const barW = Math.floor((W - 60) / speeds);
-          const barMaxH = 120;
-          const baseY = H / 2 + 40;
+          const BAR_H = 80;
+          const baseY = H / 2 + 60;
 
           for (let s = 1; s <= speeds; s++) {
-            const hours = PILES.reduce((acc, p) => acc + Math.ceil(p / s), 0);
-            const barH = Math.max(10, Math.floor((hours / 20) * barMaxH));
             const x = 30 + (s - 1) * barW + barW / 2;
-
             const c = this.add.container(x, baseY);
 
+            // Locked bar appearance
             const bar = this.add.graphics();
             bar.fillStyle(0x1a1a2e, 1);
-            bar.fillRect(-barW / 2 + 1, -barH, barW - 2, barH);
-            bar.lineStyle(1, 0x1e1e1e, 1);
-            bar.strokeRect(-barW / 2 + 1, -barH, barW - 2, barH);
+            bar.fillRect(-barW / 2 + 1, -BAR_H, barW - 2, BAR_H);
+            bar.lineStyle(1, 0x2a2a3e, 1);
+            bar.strokeRect(-barW / 2 + 1, -BAR_H, barW - 2, BAR_H);
 
+            // Speed label below bar
             const lbl = this.add.text(0, 8, `s${s}`, {
-              fontFamily: "monospace", fontSize: "9px", color: "#374151",
+              fontFamily: "monospace", fontSize: "9px", color: "#475569",
             }).setOrigin(0.5, 0);
 
-            const hoursLbl = this.add.text(0, -barH - 6, `${hours}h`, {
-              fontFamily: "monospace", fontSize: "8px", color: "#1e1e1e",
+            // Hours label above bar — hidden initially
+            const hoursLbl = this.add.text(0, -BAR_H - 6, "", {
+              fontFamily: "monospace", fontSize: "9px", color: "#1e1e1e",
             }).setOrigin(0.5, 1);
 
-            c.add([bar, lbl, hoursLbl]);
+            // Lock icon text (small padlock-ish)
+            const lockLbl = this.add.text(0, -BAR_H / 2, "?", {
+              fontFamily: "monospace", fontSize: "10px", color: "#374151",
+            }).setOrigin(0.5, 0.5);
+
+            c.add([bar, lbl, hoursLbl, lockLbl]);
             c.setData("speed", s);
-            c.setData("hours", hours);
-            c.setSize(barW, barMaxH + 30);
+            c.setSize(barW, BAR_H + 30);
             c.setInteractive();
             this.bars.push(c);
           }
@@ -106,72 +104,76 @@ export default function P6_DeliveryRace({ onSolve, onAttempt }: GameProps) {
           const barW = Math.floor((W - 60) / speeds);
           const s = Math.floor((pointer.x - 30) / barW) + 1;
           if (s < 1 || s > speeds) return;
+          // Don't re-click eliminated bars
+          const c = this.bars[s - 1];
+          if (c.alpha < 0.5) return;
           this.trySpeed(s);
         }
 
         trySpeed(clicked: number) {
           this.busy = true;
-          this.mid = clicked;
           onAttempt();
+          setAttempts(a => a + 1);
 
-          const hours = PILES.reduce((acc, p) => acc + Math.ceil(p / this.mid), 0);
+          const BAR_H = 80;
+          const hours = hoursFor(clicked);
           const canFinish = hours <= HOURS;
+          const barW = Math.floor((W - 60) / 15);
 
-          this.highlightBar(this.mid, canFinish ? 0x22c55e : 0xef4444);
+          // Reveal this bar
+          this.revealed[clicked - 1] = true;
+          const c = this.bars[clicked - 1];
+          const bar = c.list[0] as Phaser.GameObjects.Graphics;
+          const hoursLbl = c.list[2] as Phaser.GameObjects.Text;
+          const lockLbl = c.list[3] as Phaser.GameObjects.Text;
 
-          const hoursLbl = this.bars[this.mid - 1].list[2] as Phaser.GameObjects.Text;
-          hoursLbl.setStyle({ color: canFinish ? "#22c55e" : "#ef4444" });
+          // Redraw bar with color
+          bar.clear();
+          const color = canFinish ? 0x22c55e : 0xef4444;
+          bar.fillStyle(color, 0.15);
+          bar.fillRect(-barW / 2 + 1, -BAR_H, barW - 2, BAR_H);
+          bar.lineStyle(1, color, 0.5);
+          bar.strokeRect(-barW / 2 + 1, -BAR_H, barW - 2, BAR_H);
+
+          // Show hours label
+          hoursLbl.setText(`${hours}h`).setStyle({ color: canFinish ? "#22c55e" : "#ef4444" });
+          lockLbl.setText("").setVisible(false);
+
+          const direction = canFinish ? "WORKS, TRY SLOWER" : "TOO SLOW, NEED FASTER";
+          setStatusMsg(`SPEED ${clicked}: ${hours}h — ${direction}`);
 
           setTimeout(() => {
             if (canFinish) {
-              if (this.mid === this.left || !this.canFinishAt(this.mid - 1)) {
-                // Minimum found
-                this.msgText!.setText(`minimum speed: ${this.mid} km/h`).setStyle({ color: "#22c55e" });
+              // Check if this is the minimum: left neighbor doesn't work
+              if (clicked === this.left || !this.canFinishAt(clicked - 1)) {
                 solvedRef.current = true;
+                setStatusMsg(`MINIMUM SPEED: ${clicked} km/h`);
                 this.time.delayedCall(700, () => onSolve());
               } else {
-                this.right = this.mid;
-                this.dimBarsRight(this.mid + 1);
-                this.msgText!.setText(`speed ${this.mid} works (${hours}h) — try slower`);
+                this.right = clicked;
+                // Dim bars to the right of clicked (they all work or are above)
+                this.dimBars(clicked + 1, 15);
               }
             } else {
-              this.left = this.mid + 1;
-              this.dimBarsLeft(this.mid);
-              this.msgText!.setText(`speed ${this.mid} too slow (${hours}h > ${HOURS}h) — go faster`);
+              this.left = clicked + 1;
+              // Dim bars at and to the left of clicked (too slow)
+              this.dimBars(1, clicked);
             }
             this.busy = false;
-          }, 500);
+          }, 400);
         }
 
         canFinishAt(s: number): boolean {
-          return PILES.reduce((acc, p) => acc + Math.ceil(p / s), 0) <= HOURS;
+          return hoursFor(s) <= HOURS;
         }
 
-        highlightBar(s: number, color: number) {
-          const c = this.bars[s - 1];
-          const hours = PILES.reduce((acc, p) => acc + Math.ceil(p / s), 0);
-          const barW = Math.floor((W - 60) / 15);
-          const barMaxH = 120;
-          const barH = Math.max(10, Math.floor((hours / 20) * barMaxH));
-          const bar = c.list[0] as Phaser.GameObjects.Graphics;
-          bar.clear();
-          bar.fillStyle(color, 0.15);
-          bar.fillRect(-barW / 2 + 1, -barH, barW - 2, barH);
-          bar.lineStyle(1, color, 0.5);
-          bar.strokeRect(-barW / 2 + 1, -barH, barW - 2, barH);
-        }
-
-        dimBarsLeft(upTo: number) {
-          for (let s = 1; s < upTo; s++) {
-            const lbl = this.bars[s - 1].list[1] as Phaser.GameObjects.Text;
-            lbl.setStyle({ color: "#1e1e1e" });
-          }
-        }
-
-        dimBarsRight(from: number) {
-          for (let s = from; s <= 15; s++) {
-            const lbl = this.bars[s - 1].list[1] as Phaser.GameObjects.Text;
-            lbl.setStyle({ color: "#1e1e1e" });
+        dimBars(from: number, to: number) {
+          for (let s = from; s <= to; s++) {
+            const c = this.bars[s - 1];
+            // Only dim if not already revealed with a result color
+            if (!this.revealed[s - 1]) {
+              c.setAlpha(0.2);
+            }
           }
         }
       }
@@ -191,5 +193,30 @@ export default function P6_DeliveryRace({ onSolve, onAttempt }: GameProps) {
     return () => { cancelled = true; destroy(); };
   }, []);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "100%", cursor: "pointer" }} />;
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Instruction header — plain HTML, not Phaser */}
+      <div style={{
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#475569",
+        background: "#0a0a0a",
+        padding: "8px 12px",
+        borderBottom: "1px solid #1e1e1e",
+        lineHeight: "1.6",
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+          <span style={{ color: "#94a3b8", fontWeight: "bold" }}>// DELIVERY RACE</span>
+          <span>ATTEMPTS: {attempts}</span>
+        </div>
+        <div>FIND MINIMUM SPEED: CAN FINISH [{PILES.join(",")}] km IN {HOURS}h?</div>
+        <div>CLICK ANY SPEED → REVEALS TOTAL HOURS → <span style={{ color: "#22c55e" }}>GREEN=WORKS</span> / <span style={{ color: "#ef4444" }}>RED=TOO SLOW</span></div>
+        <div>TOO SLOW = NEED FASTER SPEED (go right) &nbsp;·&nbsp; WORKS = TRY SLOWER (go left)</div>
+        <div style={{ marginTop: "4px", color: solvedRef.current ? "#22c55e" : "#374151" }}>{statusMsg}</div>
+      </div>
+      {/* Phaser canvas fills remaining space */}
+      <div ref={containerRef} style={{ flex: 1, cursor: "pointer" }} />
+    </div>
+  );
 }

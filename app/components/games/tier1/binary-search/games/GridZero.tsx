@@ -435,16 +435,18 @@ function GridZeroGame({ onSolve, onAttempt, onRestart }: InnerProps) {
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", padding: "7px 16px", background: "rgba(0,0,0,0.72)", borderBottom: "1px solid #080818", flexShrink: 0 }}>
-          <span style={{ fontSize: 9, color: "#141430", letterSpacing: 2 }}>RANGE [{MAX_D}…{SUM}]</span>
+          <span style={{ fontSize: 9, color: "#252545", letterSpacing: 2 }}>RANGE [{MAX_D}…{SUM}]</span>
           <div style={{ flex: 1, textAlign: "center" }}>
             <span style={{ fontSize: 9, color: "#2a2a4a", marginRight: 6 }}>STORM IN</span>
             <span style={{ fontSize: 18, fontWeight: "bold", color: timerColor }}>{timeLeft}s</span>
+            <div style={{ fontSize: 8, color: "#1a1a3a", marginTop: 1 }}>FIND MIN CAPACITY: GUESS A NUMBER. GRID STABLE = TRY LOWER. BLACKOUT = TRY HIGHER.</div>
           </div>
           <span style={{ fontSize: 9, color: "#1e1e3e" }}>{attempts} attempt{attempts !== 1 ? "s" : ""}</span>
         </div>
 
         {/* District strip */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "6px 0", background: "rgba(0,0,0,0.5)", flexShrink: 0, gap: 2 }}>
+          <span style={{ fontSize: 7, color: "#0a0a20", marginRight: 4, letterSpacing: 1 }}>DISTRICTS:</span>
           {DIST.map((d, i) => (
             <div key={i} style={{ width: 48, height: 44, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(6,6,18,0.7)", border: "1px solid #0c0c24" }}>
               <span style={{ fontSize: 18, fontWeight: "bold", color: "#9090c0", lineHeight: 1 }}>{d}</span>

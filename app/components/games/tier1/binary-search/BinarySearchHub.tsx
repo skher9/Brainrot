@@ -30,7 +30,7 @@ export default function BinarySearchHub() {
   const [dbProblems, setDbProblems] = useState<DBProblem[]>([]);
   const [attempts, setAttempts] = useState<Map<string, AttemptRow>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [isPaid, setIsPaid] = useState(false);
+  const [isPaid, setIsPaid] = useState(true);
 
   useEffect(() => {
     async function load() {

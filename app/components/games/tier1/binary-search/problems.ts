@@ -56,20 +56,20 @@ export const BS_PROBLEMS: BSProblem[] = [
   },
   {
     index: 5,
-    title: "The Glitched Vault",
-    difficulty: "Medium",
-    free: false,
-    leetcodeRef: "33",
-    insightTitle: "Rotated Array Search",
+    title: "Heist Coordinator",
+    difficulty: "Hard",
+    free: true,
+    leetcodeRef: "410",
+    insightTitle: "Binary Search on Answer Space",
     insight:
-      "The rotation creates two sorted halves. At any midpoint, one half is always sorted — compare mid with the bounds to know which half, then binary search that half. Still O(log n).",
-    mechanic: "pointer_trace",
+      "You weren't searching the array — you were searching the answer space [max_room, sum_all]. 'Can 3 teams handle max heat ≤ X?' flips from false to true exactly once. That boundary is your minimum. Binary search on any monotonic predicate: O(n log(sum)).",
+    mechanic: "drag_split",
   },
   {
     index: 6,
     title: "The Delivery Driver",
     difficulty: "Medium",
-    free: false,
+    free: true,
     leetcodeRef: "875",
     insightTitle: "Binary Search on Answer (Min Speed)",
     insight:
@@ -80,7 +80,7 @@ export const BS_PROBLEMS: BSProblem[] = [
     index: 7,
     title: "The Cargo Ship",
     difficulty: "Hard",
-    free: false,
+    free: true,
     leetcodeRef: "1011",
     insightTitle: "Binary Search on Capacity",
     insight:
@@ -91,7 +91,7 @@ export const BS_PROBLEMS: BSProblem[] = [
     index: 8,
     title: "The Two Archives",
     difficulty: "Hard",
-    free: false,
+    free: true,
     leetcodeRef: "4",
     insightTitle: "Median of Two Sorted Arrays",
     insight:

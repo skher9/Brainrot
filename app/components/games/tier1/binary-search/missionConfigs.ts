@@ -59,6 +59,21 @@ export function complexityScore(used: string, optimal: string): number {
 }
 
 const MISSIONS: Record<number, MissionDef> = {
+  5: {
+    missionName: 'HEIST COORDINATOR',
+    situation: 'Bank corridor. 8 security rooms. Each has a heat level. 3 teams.',
+    objective: 'Assign consecutive rooms to teams. Minimize the maximum heat any single team faces.',
+    constraint: 'Crew anxiety rises with each failed attempt. Too many and they walk.',
+    tools: [
+      { name: 'Manual Split', complexity: 'O(n·k)', icon: '⇥', cost: '+8% anxiety' },
+      { name: 'Feasibility Check', complexity: 'O(n)', icon: '✓', cost: '+5% anxiety' },
+      { name: 'Binary Search', complexity: 'O(n log(sum))', icon: '⌀', cost: '+3% anxiety' },
+    ],
+    difficulty: 'Hard',
+    lcRef: '410',
+    optimalComplexity: 'O(n log(sum))',
+    defaultTool: 'Manual Split',
+  },
   1: {
     missionName: 'THE VAULT HEIST',
     situation: 'Spotify vault. 10,000 songs sorted by duration.',

@@ -24,14 +24,14 @@ const VaultHeist = dynamic(() => import("@/components/games/tier1/binary-search/
 const Outbreak = dynamic(() => import("@/components/games/tier1/binary-search/games/Outbreak"), { ssr: false, loading: () => <GameLoader /> });
 const Tournament = dynamic(() => import("@/components/games/tier1/binary-search/games/Tournament"), { ssr: false, loading: () => <GameLoader /> });
 const DeadSignal = dynamic(() => import("@/components/games/tier1/binary-search/games/DeadSignal"), { ssr: false, loading: () => <GameLoader /> });
-const P5 = dynamic(() => import("@/components/games/tier1/binary-search/P5_RotatingSafe"), { ssr: false, loading: () => <GameLoader /> });
+const HeistCoordinator = dynamic(() => import("@/components/games/tier1/binary-search/games/HeistCoordinator"), { ssr: false, loading: () => <GameLoader /> });
 const P6 = dynamic(() => import("@/components/games/tier1/binary-search/P6_DeliveryRace"), { ssr: false, loading: () => <GameLoader /> });
 const P7 = dynamic(() => import("@/components/games/tier1/binary-search/P7_CargoShip"), { ssr: false, loading: () => <GameLoader /> });
 const P8 = dynamic(() => import("@/components/games/tier1/binary-search/P8_DualConveyor"), { ssr: false, loading: () => <GameLoader /> });
 
 const GAME_MAP: Record<number, React.ComponentType<GameProps>> = {
   1: VaultHeist, 2: Outbreak, 3: Tournament, 4: DeadSignal,
-  5: P5, 6: P6, 7: P7, 8: P8,
+  5: HeistCoordinator, 6: P6, 7: P7, 8: P8,
 };
 
 const DIFF_COLOR: Record<string, string> = {
@@ -42,14 +42,12 @@ const S: React.CSSProperties = {
   fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
 };
 
-const FREE_TIER_COUNT = 4;
-
 export default function ProblemPage({ params }: { params: Promise<{ index: string }> }) {
   const { index } = use(params);
   const idx = parseInt(index, 10);
   const problem = BS_PROBLEMS.find(p => p.index === idx) ?? null;
   const mission = MISSIONS[idx] ?? null;
-  const isMissionGame = idx >= 1 && idx <= FREE_TIER_COUNT;
+  const isMissionGame = mission !== null;
 
   const supabase = createClient();
   const [dbId, setDbId] = useState<string | null>(null);

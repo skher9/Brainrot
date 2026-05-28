@@ -56,14 +56,14 @@ export const BS_PROBLEMS: BSProblem[] = [
   },
   {
     index: 5,
-    title: "Heist Coordinator",
+    title: "Grid Zero",
     difficulty: "Hard",
     free: true,
     leetcodeRef: "410",
     insightTitle: "Binary Search on Answer Space",
     insight:
-      "You weren't searching the array — you were searching the answer space [max_room, sum_all]. 'Can 3 teams handle max heat ≤ X?' flips from false to true exactly once. That boundary is your minimum. Binary search on any monotonic predicate: O(n log(sum)).",
-    mechanic: "drag_split",
+      "You weren't searching the array — you were searching the answer space [max_district, total_demand]. 'Can 3 trucks handle capacity ≤ X?' flips false→true exactly once. Binary search that boundary: each test eliminates half the remaining range. O(n log(sum)).",
+    mechanic: "simulation_guess",
   },
   {
     index: 6,

@@ -108,7 +108,7 @@ export default function BinarySearchHub() {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.1em" }}>FREE · P1–P4</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {BS_PROBLEMS.filter(p => p.free).map(prob => {
+          {BS_PROBLEMS.filter(p => p.index <= 4).map(prob => {
             const dbId = idByIndex.get(prob.index);
             const att = dbId ? attempts.get(dbId) : undefined;
             const isSolved = att?.solved ?? false;
@@ -140,7 +140,7 @@ export default function BinarySearchHub() {
           )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {BS_PROBLEMS.filter(p => !p.free).map(prob => {
+          {BS_PROBLEMS.filter(p => p.index > 4).map(prob => {
             const dbId = idByIndex.get(prob.index);
             const att = dbId ? attempts.get(dbId) : undefined;
             const isSolved = att?.solved ?? false;

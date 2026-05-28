@@ -1,521 +1,554 @@
 "use client";
-// LC #410 — GRID ZERO: find minimum truck capacity via binary search on answer space
-import { useEffect, useRef } from "react";
+// LC #410 — GRID ZERO: 3D city. Set truck capacity. Binary search the minimum.
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { GameProps } from "../types";
 import { playSound } from "../SoundEngine";
 import { emitReaction } from "../FloatingReactions";
 
 const N = 8;
 const K = 3;
-const TRUCK_COLORS = [0x3b82f6, 0xf97316, 0xa855f7];
 const TIMER_TOTAL = 90;
+const TEAM_HEX3 = [0x3b82f6, 0xf97316, 0xa855f7] as const;
+const TEAM_CSS = ["#3b82f6", "#f97316", "#a855f7"] as const;
 
-function generateDistricts(): number[] {
-  let arr: number[];
-  do {
-    arr = Array.from({ length: N }, () => 3 + Math.floor(Math.random() * 13));
-  } while (Math.max(...arr) > arr.reduce((a, b) => a + b, 0) * 0.6);
-  return arr;
+function genDistricts(): number[] {
+  let a: number[];
+  do { a = Array.from({ length: N }, () => 3 + Math.floor(Math.random() * 13)); }
+  while (Math.max(...a) > a.reduce((s, v) => s + v, 0) * 0.6);
+  return a;
 }
-
-function canLoad(districts: number[], cap: number, k: number): boolean {
-  let trucks = 1, cur = 0;
-  for (const d of districts) {
-    if (d > cap) return false;
-    if (cur + d > cap) { if (++trucks > k) return false; cur = d; }
-    else cur += d;
-  }
+function canLoad(d: number[], cap: number, k: number): boolean {
+  let t = 1, c = 0;
+  for (const v of d) { if (v > cap) return false; if (c + v > cap) { if (++t > k) return false; c = v; } else c += v; }
   return true;
 }
-
-function optimalCap(districts: number[], k: number): number {
-  let lo = Math.max(...districts), hi = districts.reduce((a, b) => a + b, 0);
-  while (lo < hi) { const mid = (lo + hi) >> 1; if (canLoad(districts, mid, k)) hi = mid; else lo = mid + 1; }
+function findOptimal(d: number[], k: number): number {
+  let lo = Math.max(...d), hi = d.reduce((a, b) => a + b, 0);
+  while (lo < hi) { const m = (lo + hi) >> 1; if (canLoad(d, m, k)) hi = m; else lo = m + 1; }
   return lo;
 }
-
-function trucksNeeded(districts: number[], cap: number): { count: number; overflowAt: number } {
-  let trucks = 1, cur = 0, overflowAt = -1;
-  for (let i = 0; i < N; i++) {
-    const d = districts[i];
-    if (cur + d > cap) {
-      trucks++;
-      cur = d;
-      if (trucks > K && overflowAt === -1) overflowAt = i;
-    } else {
-      cur += d;
-    }
-  }
-  return { count: trucks, overflowAt };
+function getAssignments(d: number[], cap: number): number[] {
+  let t = 0, c = 0;
+  return d.map(v => { if (c + v > cap) { t = Math.min(t + 1, K - 1); c = v; } else c += v; return t; });
+}
+function trucksFor(d: number[], cap: number): number {
+  let t = 1, c = 0;
+  for (const v of d) { if (c + v > cap) { t++; c = v; } else c += v; }
+  return t;
 }
 
-export default function GridZero({ onSolve, onAttempt }: GameProps) {
+// -- inner game --
+interface InnerProps extends GameProps { onRestart: () => void; }
+
+function GridZeroGame({ onSolve, onAttempt, onRestart }: InnerProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const gameRef = useRef<{ destroy: () => void } | null>(null);
   const solvedRef = useRef(false);
+  const phaseRef = useRef<string>("idle");
 
+  const [gd] = useState(() => {
+    const d = genDistricts();
+    const opt = findOptimal(d, K);
+    const sum = d.reduce((a, b) => a + b, 0);
+    const maxD = Math.max(...d);
+    return { d, opt, sum, maxD };
+  });
+  const { d: DIST, opt: OPTIMAL, sum: SUM, maxD: MAX_D } = gd;
+  const optGuesses = Math.ceil(Math.log2(Math.max(2, SUM - MAX_D + 1)));
+
+  const [briefDismissed, setBriefDismissed] = useState(false);
+  const [cap, setCap] = useState(() => Math.round((MAX_D + SUM) / 2));
+  const [timeLeft, setTimeLeft] = useState(TIMER_TOTAL);
+  const [attempts, setAttempts] = useState(0);
+  const [phase, setPhase] = useState("brief"); // starts in brief
+  const [guesses, setGuesses] = useState<{ cap: number; ok: boolean }[]>([]);
+  const [msg, setMsg] = useState<{ type: "stable" | "blackout"; main: string; sub: string; suggest?: number } | null>(null);
+
+  const actionsRef = useRef<{
+    deploy: (asgn: number[], feasible: boolean, overAt: number, done: () => void) => void;
+    stable: (asgn: number[]) => void;
+    blackout: () => void;
+    win: (asgn: number[]) => void;
+    reset: () => void;
+  } | null>(null);
+  const effectTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const effectIntervals = useRef<ReturnType<typeof setInterval>[]>([]);
+
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+
+  // ------ Three.js setup ------
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!canvasRef.current || !containerRef.current) return;
     let cancelled = false;
+    let animId = 0;
+    let disposeRenderer: (() => void) | null = null;
 
-    async function init() {
-      const Phaser = (await import("phaser")).default;
-      if (cancelled || !containerRef.current) return;
+    (async () => {
+      const THREE = await import("three");
+      if (cancelled) return;
 
-      const W = containerRef.current.clientWidth || 800;
-      const H = containerRef.current.clientHeight || 480;
+      const canvas = canvasRef.current!;
+      const cont = containerRef.current!;
+      const W = cont.clientWidth || 800;
+      const H = cont.clientHeight || 420;
 
-      const DISTRICTS = generateDistricts();
-      const OPTIMAL = optimalCap(DISTRICTS, K);
-      const SUM = DISTRICTS.reduce((a, b) => a + b, 0);
-      const MAX_D = Math.max(...DISTRICTS);
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
 
-      const BOX_W = Math.min(60, Math.floor((W * 0.72) / N));
-      const BOX_H = 76;
-      const dStartX = Math.floor(W / 2 - (N * BOX_W) / 2);
-      const dY = Math.floor(H * 0.28);
-      const NL_Y = dY + BOX_H + 54;
-      const CTRL_Y = H - 72;
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x030308);
+      scene.fog = new THREE.Fog(0x030308, 45, 90);
 
-      class GridZeroScene extends Phaser.Scene {
-        private capacity = Math.round((MAX_D + SUM) / 2);
-        private attempts = 0;
-        private timeLeft = TIMER_TOTAL;
-        private phase: "idle" | "deploying" | "feedback" | "win" | "over" = "idle";
-        private guesses: { cap: number; feasible: boolean }[] = [];
-        private timerEvent!: Phaser.Time.TimerEvent;
+      const camera = new THREE.PerspectiveCamera(46, W / H, 0.1, 200);
+      camera.position.set(0, 8, 22);
+      camera.lookAt(0, 2, 0);
 
-        private districtOverlays: Phaser.GameObjects.Graphics[] = [];
-        private capTxt!: Phaser.GameObjects.Text;
-        private timerTxt!: Phaser.GameObjects.Text;
-        private attemptTxt!: Phaser.GameObjects.Text;
-        private deployBtn!: Phaser.GameObjects.Text;
-        private nlGfx!: Phaser.GameObjects.Graphics;
-        private nlLabels: Phaser.GameObjects.Text[] = [];
-        private nlVisible = false;
-        private feedbackObjs: Phaser.GameObjects.GameObject[] = [];
+      // Lights
+      scene.add(new THREE.AmbientLight(0x080818, 1.4));
+      const moon = new THREE.DirectionalLight(0x1c2a40, 0.5);
+      moon.position.set(-6, 12, 8);
+      moon.castShadow = true;
+      moon.shadow.mapSize.set(1024, 1024);
+      scene.add(moon);
+      const streetGlow = new THREE.PointLight(0x0a0a2a, 0.4, 30);
+      streetGlow.position.set(0, 0.5, 3);
+      scene.add(streetGlow);
 
-        constructor() { super({ key: "GridZeroScene" }); }
+      // Ground
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 60),
+        new THREE.MeshStandardMaterial({ color: 0x060610, roughness: 1 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+      const grid = new THREE.GridHelper(100, 100, 0x0b0b1c, 0x0b0b1c);
+      grid.position.y = 0.01;
+      scene.add(grid);
 
-        create() {
-          this.cameras.main.setBackgroundColor("#06060f");
-          this.drawBg();
-          this.buildDistricts();
-          this.buildControls();
-          this.buildHeader();
-          this.nlGfx = this.add.graphics().setDepth(5).setAlpha(0);
-          this.startTimer();
-        }
+      // Buildings
+      const SPACING = 3.1;
+      const startX = -((N - 1) * SPACING) / 2;
+      const bMats: any[] = [];
+      const bLights: any[] = [];
+      const winMats: any[][] = [];
 
-        drawBg() {
-          const g = this.add.graphics().setDepth(0);
-          g.lineStyle(1, 0x0a0a1a, 1);
-          for (let x = 0; x < W; x += 36) g.lineBetween(x, 0, x, H);
-          for (let y = 0; y < H; y += 36) g.lineBetween(0, y, W, y);
-          // city silhouette hint
-          const city = this.add.graphics().setDepth(0);
-          city.fillStyle(0x080810, 1);
-          const buildings = [30, 50, 40, 65, 45, 38, 55, 48, 36, 60, 42];
-          buildings.forEach((bh, i) => {
-            city.fillRect(i * (W / buildings.length), H - bh, W / buildings.length - 4, bh);
-          });
-        }
+      for (let i = 0; i < N; i++) {
+        const demand = DIST[i];
+        const bh = 1.5 + demand * 0.25;
+        const x = startX + i * SPACING;
 
-        buildDistricts() {
-          const bp = this.add.graphics().setDepth(1);
-          bp.fillStyle(0x0b0b1e, 1);
-          bp.fillRect(dStartX - 8, dY - 28, N * BOX_W + 16, BOX_H + 44);
-          bp.lineStyle(1, 0x1e1e40, 1);
-          bp.strokeRect(dStartX - 8, dY - 28, N * BOX_W + 16, BOX_H + 44);
+        const mat = new THREE.MeshStandardMaterial({ color: 0x0c0c1e, emissive: 0x050510, roughness: 0.85 });
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(2.3, bh, 2.3), mat);
+        mesh.position.set(x, bh / 2, 0);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        bMats.push(mat);
 
-          this.add.text(W / 2, dY - 15, "CITY DISTRICTS — ASSIGN 3 TRUCKS TO CONSECUTIVE ZONES", {
-            fontFamily: "monospace", fontSize: "8px", color: "#1a1a40", letterSpacing: 1,
-          }).setOrigin(0.5).setDepth(2);
-
-          for (let i = 0; i < N; i++) {
-            const rx = dStartX + i * BOX_W;
-            const box = this.add.graphics().setDepth(2);
-            box.fillStyle(0x0d0d22, 1);
-            box.fillRect(rx, dY, BOX_W, BOX_H);
-            box.lineStyle(1, 0x1a1a40, 1);
-            box.strokeRect(rx, dY, BOX_W, BOX_H);
-
-            this.add.text(rx + BOX_W / 2, dY + BOX_H / 2 + 2, String(DISTRICTS[i]), {
-              fontFamily: "monospace", fontSize: "20px", color: "#b0b0d8", fontStyle: "bold",
-            }).setOrigin(0.5).setDepth(4);
-            this.add.text(rx + BOX_W / 2, dY + BOX_H + 12, `D${i + 1}`, {
-              fontFamily: "monospace", fontSize: "8px", color: "#22224a",
-            }).setOrigin(0.5).setDepth(3);
-
-            this.districtOverlays.push(this.add.graphics().setDepth(3));
+        // Window panes (front face)
+        const rows = Math.min(4, Math.max(1, Math.floor(bh * 0.9)));
+        const wRow: any[] = [];
+        for (let wr = 0; wr < rows; wr++) {
+          for (let wc = 0; wc < 2; wc++) {
+            const wm = new THREE.MeshBasicMaterial({ color: 0x07071a });
+            const wp = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.28), wm);
+            wp.position.set(x + (-0.34 + wc * 0.68), 0.38 + wr * 0.88, 1.16);
+            scene.add(wp);
+            wRow.push(wm);
           }
         }
+        winMats.push(wRow);
 
-        buildControls() {
-          this.add.text(W / 2, CTRL_Y - 46, "MAX LOAD PER TRUCK", {
-            fontFamily: "monospace", fontSize: "9px", color: "#1e1e44", letterSpacing: 3,
-          }).setOrigin(0.5).setDepth(8);
-
-          this.capTxt = this.add.text(W / 2, CTRL_Y - 20, `${this.capacity} MW`, {
-            fontFamily: "monospace", fontSize: "26px", color: "#c8c8f0", fontStyle: "bold",
-          }).setOrigin(0.5).setDepth(8);
-
-          const mkBtn = (x: number, lbl: string, delta: number, col: string) => {
-            const b = this.add.text(x, CTRL_Y - 20, lbl, {
-              fontFamily: "monospace", fontSize: "13px", color: col,
-              backgroundColor: "#0c0c20", padding: { x: 9, y: 6 },
-            }).setOrigin(0.5).setDepth(8).setInteractive({ cursor: "pointer" });
-            b.on("pointerdown", () => this.adjustCap(delta));
-            b.on("pointerover", () => b.setAlpha(0.7));
-            b.on("pointerout", () => b.setAlpha(1));
-            return b;
-          };
-
-          mkBtn(W / 2 - 170, "−10", -10, "#555577");
-          mkBtn(W / 2 - 118, "−1",  -1,  "#8888aa");
-          mkBtn(W / 2 + 118, "+1",   1,  "#8888aa");
-          mkBtn(W / 2 + 170, "+10", 10, "#555577");
-
-          this.deployBtn = this.add.text(W / 2, CTRL_Y + 26, "   ▶  DEPLOY   ", {
-            fontFamily: "monospace", fontSize: "14px", color: "#c8c8f0",
-            backgroundColor: "#16163a", padding: { x: 22, y: 10 },
-          }).setOrigin(0.5).setDepth(8).setInteractive({ cursor: "pointer" });
-          this.deployBtn.on("pointerover", () => this.deployBtn.setStyle({ backgroundColor: "#22224e" }));
-          this.deployBtn.on("pointerout", () => this.deployBtn.setStyle({ backgroundColor: "#16163a" }));
-          this.deployBtn.on("pointerdown", () => { if (this.phase === "idle") this.doDeploy(); });
-        }
-
-        buildHeader() {
-          const hg = this.add.graphics().setDepth(7);
-          hg.fillStyle(0x000000, 0.55);
-          hg.fillRect(0, 0, W, 34);
-
-          this.add.text(14, 17, `SEARCH SPACE  [${MAX_D} … ${SUM}]`, {
-            fontFamily: "monospace", fontSize: "9px", color: "#1e1e44",
-          }).setOrigin(0, 0.5).setDepth(8);
-
-          this.add.text(W / 2 - 88, 17, "STORM IN", {
-            fontFamily: "monospace", fontSize: "9px", color: "#3a3a5a",
-          }).setOrigin(0, 0.5).setDepth(8);
-
-          this.timerTxt = this.add.text(W / 2 + 2, 17, `${TIMER_TOTAL}s`, {
-            fontFamily: "monospace", fontSize: "16px", color: "#ef4444", fontStyle: "bold",
-          }).setOrigin(0, 0.5).setDepth(8);
-
-          this.attemptTxt = this.add.text(W - 14, 17, "0 attempts", {
-            fontFamily: "monospace", fontSize: "9px", color: "#2a2a4a",
-          }).setOrigin(1, 0.5).setDepth(8);
-        }
-
-        startTimer() {
-          this.timerEvent = this.time.addEvent({
-            delay: 1000, loop: true, callback: () => {
-              if (this.phase === "win" || this.phase === "over" || solvedRef.current) return;
-              this.timeLeft = Math.max(0, this.timeLeft - 1);
-              const col = this.timeLeft <= 20 ? "#ef4444" : this.timeLeft <= 40 ? "#f97316" : "#6b7280";
-              this.timerTxt.setText(`${this.timeLeft}s`).setStyle({ color: col, fontSize: "16px", fontStyle: "bold" });
-              if (this.timeLeft <= 10) {
-                this.cameras.main.flash(100, 80, 10, 10);
-              }
-              if (this.timeLeft === 0) this.gameOver();
-            },
-          });
-        }
-
-        adjustCap(delta: number) {
-          if (this.phase !== "idle") return;
-          this.capacity = Math.max(MAX_D, Math.min(SUM, this.capacity + delta));
-          this.capTxt.setText(`${this.capacity} MW`);
-        }
-
-        doDeploy() {
-          if (this.phase !== "idle" || solvedRef.current) return;
-          this.phase = "deploying";
-          this.attempts++;
-          onAttempt();
-          this.attemptTxt.setText(`${this.attempts} attempt${this.attempts !== 1 ? "s" : ""}`);
-
-          this.districtOverlays.forEach(o => o.clear());
-
-          const { count: trucksReq, overflowAt } = trucksNeeded(DISTRICTS, this.capacity);
-          const feasible = trucksReq <= K;
-          this.guesses.push({ cap: this.capacity, feasible });
-
-          if (this.attempts >= 3 && !this.nlVisible) {
-            this.nlVisible = true;
-            this.tweens.add({ targets: this.nlGfx, alpha: 1, duration: 700, delay: 200 });
-            this.add.text(W / 2, NL_Y + 30, "ANSWER SPACE — green = works, red = overload", {
-              fontFamily: "monospace", fontSize: "8px", color: "#1a1a40",
-            }).setOrigin(0.5).setDepth(4).setAlpha(0).setName("nl_hint");
-            const hint = this.children.getByName("nl_hint") as Phaser.GameObjects.Text;
-            if (hint) this.tweens.add({ targets: hint, alpha: 1, duration: 500, delay: 400 });
-          }
-          if (this.nlVisible) this.refreshNl();
-
-          // Animate greedy truck deployment
-          let truck = 0, cur = 0;
-          const assignments: number[] = new Array(N).fill(0);
-          let localTruck = 0, localCur = 0;
-          for (let i = 0; i < N; i++) {
-            const d = DISTRICTS[i];
-            if (localCur + d > this.capacity) { localTruck++; localCur = d; }
-            else localCur += d;
-            assignments[i] = Math.min(localTruck, K - 1);
-          }
-
-          let idx = 0;
-          const step = () => {
-            if (idx >= N) {
-              this.time.delayedCall(350, () => feasible ? this.onStable(trucksReq) : this.onBlackout(trucksReq, overflowAt));
-              return;
-            }
-            const g = this.districtOverlays[idx];
-            g.clear();
-            const overloaded = !feasible && idx >= overflowAt && overflowAt >= 0;
-            g.fillStyle(overloaded ? 0xff2222 : TRUCK_COLORS[assignments[idx]], overloaded ? 0.55 : 0.42);
-            g.fillRect(dStartX + idx * BOX_W, dY, BOX_W, BOX_H);
-            idx++;
-            this.time.delayedCall(160, step);
-          };
-          step();
-        }
-
-        onStable(trucksUsed: number) {
-          this.clearFeedback();
-          if (this.capacity === OPTIMAL) { this.onWin(); return; }
-
-          playSound("correct");
-          emitReaction("SLIDE_LEFT", `${this.capacity}MW ✓`, W / 2, dY + BOX_H / 2);
-
-          // Suggest binary search midpoint
-          const maxFail = this.guesses.filter(g => !g.feasible).reduce((m, g) => Math.max(m, g.cap), MAX_D - 1);
-          const suggest = Math.floor((maxFail + this.capacity) / 2);
-
-          const ov = this.add.graphics().setDepth(14);
-          ov.fillStyle(0x001a00, 0.82);
-          ov.fillRect(0, H * 0.58, W, H * 0.26);
-          this.feedbackObjs.push(ov);
-
-          const f = (txt: string, y: number, col: string, size: string) => {
-            const t = this.add.text(W / 2, y, txt, {
-              fontFamily: "monospace", fontSize: size, color: col,
-            }).setOrigin(0.5).setDepth(15).setAlpha(0);
-            this.feedbackObjs.push(t);
-            this.tweens.add({ targets: t, alpha: 1, duration: 300, delay: 80 });
-          };
-
-          f("GRID STABLE ✓", H * 0.65, "#22c55e", "17px");
-          f(`${this.capacity} MW works — but can you go lower?`, H * 0.73, "#475569", "11px");
-          if (suggest >= MAX_D && suggest < this.capacity - 1) {
-            f(`Try: ${suggest} MW`, H * 0.79, "#3b82f6", "11px");
-          }
-
-          this.time.delayedCall(2600, () => { this.clearFeedback(); this.phase = "idle"; });
-        }
-
-        onBlackout(trucksNeeded_: number, overflowAt: number) {
-          this.clearFeedback();
-          playSound("wrong");
-          emitReaction("DANGER", "OVERLOAD", W / 2, dY + BOX_H / 2);
-
-          // Suggest binary search midpoint
-          const minWork = this.guesses.filter(g => g.feasible).reduce((m, g) => Math.min(m, g.cap), SUM + 1);
-          const suggest = minWork <= SUM ? Math.floor((this.capacity + minWork) / 2) : Math.floor((this.capacity + SUM) / 2);
-
-          // Blackout: darken screen progressively
-          const ov = this.add.graphics().setDepth(14);
-          ov.fillStyle(0x000000, 0.88);
-          ov.fillRect(0, 0, W, H);
-          this.feedbackObjs.push(ov);
-
-          // Red emergency glow — power is out
-          const glow = this.add.graphics().setDepth(15).setAlpha(0);
-          glow.fillStyle(0xcc0000, 0.06);
-          glow.fillCircle(W * 0.15, H + 10, 240);
-          glow.fillCircle(W * 0.85, H + 10, 240);
-          this.tweens.add({ targets: glow, alpha: 1, duration: 350, delay: 200 });
-          this.feedbackObjs.push(glow);
-
-          const f = (txt: string, y: number, col: string, size: string) => {
-            const t = this.add.text(W / 2, y, txt, {
-              fontFamily: "monospace", fontSize: size, color: col,
-            }).setOrigin(0.5).setDepth(16).setAlpha(0);
-            this.feedbackObjs.push(t);
-            this.tweens.add({ targets: t, alpha: 1, duration: 350, delay: 300 });
-          };
-
-          f("⚡  GRID FAILURE", H / 2 - 44, "#dc2626", "22px");
-          f(`${this.capacity} MW — needed ${trucksNeeded_} trucks, have ${K}`, H / 2 - 12, "#7f1d1d", "11px");
-          f("Minimum capacity must be HIGHER", H / 2 + 10, "#3a3a3a", "11px");
-          if (suggest <= SUM) {
-            f(`Try: ${suggest} MW`, H / 2 + 30, "#1d4ed8", "11px");
-          }
-
-          this.time.delayedCall(2400, () => {
-            this.clearFeedback();
-            this.districtOverlays.forEach(o => o.clear());
-            this.phase = "idle";
-          });
-        }
-
-        onWin() {
-          if (solvedRef.current) return;
-          solvedRef.current = true;
-          this.phase = "win";
-          this.timerEvent.remove(false);
-          playSound("solve");
-          emitReaction("BURST", `${OPTIMAL} MW`, W / 2, dY + BOX_H / 2);
-          this.clearFeedback();
-
-          // Victory pulse on districts
-          this.cameras.main.flash(400, 0, 40, 0);
-
-          this.time.delayedCall(700, () => {
-            const ov = this.add.graphics().setDepth(20);
-            ov.fillStyle(0x000000, 0.92);
-            ov.fillRect(0, 0, W, H);
-
-            const cy = H / 2 - 90;
-            this.add.text(W / 2, cy, "MINIMUM LOAD FOUND", {
-              fontFamily: "monospace", fontSize: "18px", color: "#22c55e", fontStyle: "bold", letterSpacing: 3,
-            }).setOrigin(0.5).setDepth(21);
-            this.add.text(W / 2, cy + 34, `${OPTIMAL} MW`, {
-              fontFamily: "monospace", fontSize: "42px", color: "#fbbf24", fontStyle: "bold",
-            }).setOrigin(0.5).setDepth(21);
-            this.add.text(W / 2, cy + 76, "per truck — optimal assignment", {
-              fontFamily: "monospace", fontSize: "11px", color: "#374151",
-            }).setOrigin(0.5).setDepth(21);
-
-            const optGuesses = Math.ceil(Math.log2(Math.max(2, SUM - MAX_D + 1)));
-            const rows = [
-              ["Your attempts:", `${this.attempts}`],
-              [`Binary search limit:`, `≤${optGuesses} guesses`],
-              [`Search space:`, `[${MAX_D} … ${SUM}]`],
-              [`Time left:`, `${this.timeLeft}s`],
-            ];
-            rows.forEach(([k, v], i) => {
-              this.add.text(W / 2 - 120, cy + 98 + i * 22, k, {
-                fontFamily: "monospace", fontSize: "10px", color: "#2a2a4a",
-              }).setDepth(21);
-              this.add.text(W / 2 + 120, cy + 98 + i * 22, v, {
-                fontFamily: "monospace", fontSize: "10px", color: "#9ca3af",
-              }).setOrigin(1, 0).setDepth(21);
-            });
-
-            this.add.text(W / 2, cy + 192, `[${DISTRICTS.join(", ")}]  K=${K}`, {
-              fontFamily: "monospace", fontSize: "9px", color: "#1a1a2e",
-            }).setOrigin(0.5).setDepth(21);
-
-            const btn = this.add.text(W / 2, cy + 216, "[ DEBRIEF → ]", {
-              fontFamily: "monospace", fontSize: "13px", color: "#a855f7",
-              backgroundColor: "#0d001a", padding: { x: 18, y: 9 },
-            }).setOrigin(0.5).setDepth(22).setInteractive({ cursor: "pointer" });
-            btn.on("pointerover", () => btn.setAlpha(0.75));
-            btn.on("pointerout", () => btn.setAlpha(1));
-            btn.on("pointerdown", () => onSolve());
-          });
-        }
-
-        gameOver() {
-          if (solvedRef.current) return;
-          this.timerEvent.remove(false);
-          this.phase = "over";
-          this.clearFeedback();
-
-          const ov = this.add.graphics().setDepth(20);
-          ov.fillStyle(0x000000, 0.93);
-          ov.fillRect(0, 0, W, H);
-
-          this.add.text(W / 2, H / 2 - 44, "STORM HIT", {
-            fontFamily: "monospace", fontSize: "22px", color: "#ef4444", fontStyle: "bold",
-          }).setOrigin(0.5).setDepth(21);
-          this.add.text(W / 2, H / 2 - 14, "GRID COLLAPSED", {
-            fontFamily: "monospace", fontSize: "13px", color: "#7f1d1d",
-          }).setOrigin(0.5).setDepth(21);
-          this.add.text(W / 2, H / 2 + 12, `Optimal capacity was ${OPTIMAL} MW`, {
-            fontFamily: "monospace", fontSize: "11px", color: "#374151",
-          }).setOrigin(0.5).setDepth(21);
-          this.add.text(W / 2, H / 2 + 30, `Binary search finds it in ≤${Math.ceil(Math.log2(Math.max(2, SUM - MAX_D + 1)))} guesses`, {
-            fontFamily: "monospace", fontSize: "10px", color: "#2a2a4a",
-          }).setOrigin(0.5).setDepth(21);
-
-          const btn = this.add.text(W / 2, H / 2 + 60, "[ TRY AGAIN ]", {
-            fontFamily: "monospace", fontSize: "12px", color: "#555577",
-            backgroundColor: "#0d0d1a", padding: { x: 14, y: 8 },
-          }).setOrigin(0.5).setDepth(22).setInteractive({ cursor: "pointer" });
-          btn.on("pointerdown", () => { solvedRef.current = false; this.scene.restart(); });
-        }
-
-        refreshNl() {
-          this.nlGfx.clear();
-          this.nlLabels.forEach(t => t.destroy());
-          this.nlLabels = [];
-
-          const nlX = dStartX - 8;
-          const nlW = N * BOX_W + 16;
-          const range = SUM - MAX_D;
-          if (range <= 0) return;
-
-          const toX = (v: number) => nlX + ((v - MAX_D) / range) * nlW;
-
-          const fails = this.guesses.filter(g => !g.feasible).map(g => g.cap);
-          const works = this.guesses.filter(g => g.feasible).map(g => g.cap);
-          const maxFail = fails.length ? Math.max(...fails) : -1;
-          const minWork = works.length ? Math.min(...works) : -1;
-
-          this.nlGfx.lineStyle(2, 0x1e1e40, 1);
-          this.nlGfx.lineBetween(nlX, NL_Y, nlX + nlW, NL_Y);
-
-          if (maxFail >= MAX_D) {
-            this.nlGfx.fillStyle(0xef4444, 0.14);
-            this.nlGfx.fillRect(nlX, NL_Y - 7, Math.max(0, toX(maxFail) - nlX + 5), 14);
-          }
-          if (minWork <= SUM) {
-            this.nlGfx.fillStyle(0x22c55e, 0.14);
-            this.nlGfx.fillRect(toX(minWork) - 5, NL_Y - 7, nlX + nlW - toX(minWork) + 5, 14);
-          }
-
-          for (const g of this.guesses) {
-            this.nlGfx.fillStyle(g.feasible ? 0x22c55e : 0xef4444, 1);
-            this.nlGfx.fillCircle(toX(g.cap), NL_Y, 5);
-            const lbl = this.add.text(toX(g.cap), NL_Y - 14, String(g.cap), {
-              fontFamily: "monospace", fontSize: "8px", color: g.feasible ? "#22c55e" : "#ef4444",
-            }).setOrigin(0.5, 1).setDepth(6);
-            this.nlLabels.push(lbl);
-          }
-
-          // Bounds
-          const minLbl = this.add.text(toX(MAX_D), NL_Y + 10, String(MAX_D), {
-            fontFamily: "monospace", fontSize: "7px", color: "#2a2a4a",
-          }).setOrigin(0.5, 0).setDepth(6);
-          const maxLbl = this.add.text(toX(SUM), NL_Y + 10, String(SUM), {
-            fontFamily: "monospace", fontSize: "7px", color: "#2a2a4a",
-          }).setOrigin(0.5, 0).setDepth(6);
-          this.nlLabels.push(minLbl, maxLbl);
-        }
-
-        clearFeedback() {
-          this.feedbackObjs.forEach(o => { if (o?.active) o.destroy(); });
-          this.feedbackObjs = [];
-        }
+        const pl = new THREE.PointLight(0x000000, 0, 8);
+        pl.position.set(x, bh + 0.8, 0.5);
+        scene.add(pl);
+        bLights.push(pl);
       }
 
-      if (gameRef.current) { gameRef.current.destroy(); gameRef.current = null; }
-      const game = new Phaser.Game({
-        type: Phaser.AUTO, width: W, height: H,
-        parent: containerRef.current!, backgroundColor: "#06060f",
-        scene: GridZeroScene, render: { antialias: false },
-      });
-      gameRef.current = { destroy: () => game.destroy(true) };
-    }
+      // Storm clouds
+      const clouds: { mesh: any; speed: number }[] = [];
+      for (let c = 0; c < 8; c++) {
+        const cm = new THREE.Mesh(
+          new THREE.PlaneGeometry(18 + Math.random() * 14, 5 + Math.random() * 5),
+          new THREE.MeshBasicMaterial({ color: 0x030312, transparent: true, opacity: 0.5 + Math.random() * 0.35, side: THREE.DoubleSide })
+        );
+        cm.position.set((Math.random() - 0.5) * 55, 9 + Math.random() * 8, -14 - Math.random() * 20);
+        scene.add(cm);
+        clouds.push({ mesh: cm, speed: 0.004 + Math.random() * 0.004 });
+      }
 
-    init();
+      // Emergency lights (hidden until blackout)
+      const emergencyLights: any[] = [];
+      for (let e = 0; e < 4; e++) {
+        const el = new THREE.PointLight(0xcc0000, 0, 18);
+        el.position.set(-12 + e * 8, 0.4, 2.5);
+        scene.add(el);
+        emergencyLights.push(el);
+      }
+
+      // Lightning flash plane
+      const flashMat = new THREE.MeshBasicMaterial({ color: 0x2233bb, transparent: true, opacity: 0, side: THREE.DoubleSide });
+      const flash = new THREE.Mesh(new THREE.PlaneGeometry(120, 80), flashMat);
+      flash.position.set(0, 6, 4);
+      flash.rotation.x = -0.4;
+      scene.add(flash);
+
+      // Helpers
+      function setLit(i: number, col: number, intensity: number) {
+        const c = new THREE.Color(col);
+        bMats[i].emissive.copy(c).multiplyScalar(0.22);
+        bLights[i].color.setHex(col);
+        bLights[i].intensity = intensity;
+        winMats[i].forEach(m => m.color.copy(c).multiplyScalar(0.55));
+      }
+      function setDark(i: number) {
+        bMats[i].emissive.setHex(0x050510);
+        bLights[i].intensity = 0;
+        winMats[i].forEach(m => m.color.setHex(0x070718));
+      }
+      function setOverload(i: number) {
+        bMats[i].emissive.setHex(0x3a0000);
+        bLights[i].color.setHex(0xff2200);
+        bLights[i].intensity = 0.7;
+        winMats[i].forEach(m => m.color.setHex(0x3a0000));
+      }
+      function clearEffects() {
+        effectTimers.current.forEach(clearTimeout);
+        effectIntervals.current.forEach(clearInterval);
+        effectTimers.current = [];
+        effectIntervals.current = [];
+      }
+
+      actionsRef.current = {
+        reset: () => {
+          clearEffects();
+          for (let i = 0; i < N; i++) setDark(i);
+          emergencyLights.forEach(el => { el.intensity = 0; });
+          scene.background = new THREE.Color(0x030308);
+          scene.fog = new THREE.Fog(0x030308, 45, 90);
+          flashMat.opacity = 0;
+          streetGlow.color.setHex(0x0a0a2a);
+          streetGlow.intensity = 0.4;
+        },
+        deploy: (asgn, feasible, overAt, done) => {
+          clearEffects();
+          let i = 0;
+          function step() {
+            if (i >= N) { const t = setTimeout(done, 300); effectTimers.current.push(t); return; }
+            const over = !feasible && overAt >= 0 && i >= overAt;
+            if (over) setOverload(i);
+            else setLit(i, TEAM_HEX3[asgn[i]] ?? 0x3b82f6, 1.3);
+            i++;
+            const t = setTimeout(step, 155);
+            effectTimers.current.push(t);
+          }
+          step();
+        },
+        stable: (asgn) => {
+          clearEffects();
+          for (let i = 0; i < N; i++) setLit(i, TEAM_HEX3[asgn[i]] ?? 0x3b82f6, 1.6);
+          scene.background = new THREE.Color(0x030308);
+          if (scene.fog instanceof THREE.FogExp2) scene.fog = new THREE.Fog(0x030308, 45, 90);
+          emergencyLights.forEach(el => { el.intensity = 0; });
+          streetGlow.color.setHex(0x0a1a0a);
+        },
+        blackout: () => {
+          clearEffects();
+          for (let i = 0; i < N; i++) setDark(i);
+          let step = 0;
+          const iv = setInterval(() => {
+            step++;
+            const b = Math.max(0, 1 - step * 0.28);
+            scene.background = new THREE.Color().setRGB(0.012 * b, 0.012 * b, 0.032 * b);
+            if (step >= 4) {
+              clearInterval(iv);
+              scene.fog = new THREE.FogExp2(0x050000, 0.025);
+              emergencyLights.forEach(el => { el.intensity = 1.6; });
+              // lightning flicker
+              let lf = 0;
+              const lfIv = setInterval(() => {
+                lf++;
+                flashMat.opacity = lf % 2 === 0 ? 0.1 : 0;
+                if (lf >= 6) { clearInterval(lfIv); flashMat.opacity = 0; }
+              }, 140);
+              effectIntervals.current.push(lfIv);
+            }
+          }, 90);
+          effectIntervals.current.push(iv);
+        },
+        win: (asgn) => {
+          clearEffects();
+          for (let i = 0; i < N; i++) setLit(i, TEAM_HEX3[asgn[i]] ?? 0x3b82f6, 2.8);
+          scene.background = new THREE.Color(0x030308);
+          if (scene.fog instanceof THREE.FogExp2) scene.fog = new THREE.Fog(0x030308, 45, 90);
+          emergencyLights.forEach(el => { el.intensity = 0; });
+          streetGlow.color.setHex(0x0a200a);
+          streetGlow.intensity = 1.0;
+          // pulse
+          let pf = 0;
+          const pIv = setInterval(() => {
+            pf++;
+            bLights.forEach((l, idx) => { l.intensity = 2.2 + Math.sin(pf * 0.35 + idx * 0.6) * 0.6; });
+            if (pf > 60) clearInterval(pIv);
+          }, 55);
+          effectIntervals.current.push(pIv);
+        },
+      };
+
+      // Resize
+      const onResize = () => {
+        if (!containerRef.current) return;
+        const w = containerRef.current.clientWidth;
+        const h = containerRef.current.clientHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      };
+      window.addEventListener("resize", onResize);
+
+      // Animate
+      let frame = 0;
+      function tick() {
+        animId = requestAnimationFrame(tick);
+        frame++;
+        clouds.forEach(({ mesh, speed }) => {
+          mesh.position.z += speed;
+          if (mesh.position.z > 2) mesh.position.z = -18 - Math.random() * 14;
+        });
+        camera.position.y = 8 + Math.sin(frame * 0.005) * 0.07;
+        camera.lookAt(0, 2, 0);
+        renderer.render(scene, camera);
+      }
+      tick();
+
+      disposeRenderer = () => {
+        window.removeEventListener("resize", onResize);
+        cancelAnimationFrame(animId);
+        renderer.dispose();
+      };
+    })();
+
     return () => {
       cancelled = true;
-      gameRef.current?.destroy();
-      gameRef.current = null;
+      disposeRenderer?.();
     };
-  }, []);
+  }, [DIST]);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+  // Timer
+  useEffect(() => {
+    if (phase === "win" || phase === "over") return;
+    const id = setInterval(() => {
+      setTimeLeft(t => {
+        const next = t - 1;
+        if (next <= 0 && !solvedRef.current && phaseRef.current !== "win") {
+          setPhase("over");
+          return 0;
+        }
+        return Math.max(0, next);
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // Deploy
+  const doDeploy = useCallback(() => {
+    if (phase !== "idle" || solvedRef.current || !actionsRef.current) return;
+    setPhase("deploying");
+
+    const asgn = getAssignments(DIST, cap);
+    const trucks = trucksFor(DIST, cap);
+    const feasible = trucks <= K;
+    let overAt = -1;
+    if (!feasible) {
+      let t = 0, c = 0;
+      for (let i = 0; i < N; i++) {
+        if (c + DIST[i] > cap) { t++; c = DIST[i]; if (t > K && overAt < 0) overAt = i; }
+        else c += DIST[i];
+      }
+    }
+
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+    onAttempt();
+    const newGuesses = [...guesses, { cap, ok: feasible }];
+    setGuesses(newGuesses);
+
+    actionsRef.current.deploy(asgn, feasible, overAt, () => {
+      if (feasible) {
+        actionsRef.current!.stable(asgn);
+        if (cap === OPTIMAL) {
+          actionsRef.current!.win(asgn);
+          solvedRef.current = true;
+          setPhase("win");
+          playSound("solve");
+          emitReaction("BURST", `${OPTIMAL} MW`, 0, 0);
+        } else {
+          const maxFail = newGuesses.filter(g => !g.ok).reduce((m, g) => Math.max(m, g.cap), MAX_D - 1);
+          const sug = Math.floor((maxFail + cap) / 2);
+          setMsg({ type: "stable", main: "GRID STABLE ✓", sub: `${cap} MW works — can you go lower?`, suggest: sug >= MAX_D && sug < cap ? sug : undefined });
+          setPhase("feedback");
+          playSound("correct");
+          const t = setTimeout(() => { actionsRef.current?.reset(); setMsg(null); setPhase("idle"); }, 2800);
+          effectTimers.current.push(t);
+        }
+      } else {
+        actionsRef.current!.blackout();
+        const minWork = newGuesses.filter(g => g.ok).reduce((m, g) => Math.min(m, g.cap), SUM + 1);
+        const sug = minWork <= SUM ? Math.floor((cap + minWork) / 2) : Math.floor((cap + SUM) / 2);
+        setMsg({ type: "blackout", main: "⚡ GRID FAILURE", sub: `${cap} MW — needed ${trucks} trucks, have ${K}`, suggest: sug <= SUM ? sug : undefined });
+        setPhase("feedback");
+        playSound("wrong");
+        emitReaction("DANGER", "OVERLOAD", 0, 0);
+        const t = setTimeout(() => { actionsRef.current?.reset(); setMsg(null); setPhase("idle"); }, 2700);
+        effectTimers.current.push(t);
+      }
+    });
+  }, [phase, cap, attempts, guesses, DIST, OPTIMAL, SUM, MAX_D, onAttempt]);
+
+  const adjCap = useCallback((d: number) => {
+    if (phase !== "idle") return;
+    setCap(c => Math.max(MAX_D, Math.min(SUM, c + d)));
+  }, [phase, MAX_D, SUM]);
+
+  // Number line
+  const nlRange = SUM - MAX_D;
+  const toNlPct = (v: number) => nlRange > 0 ? `${((v - MAX_D) / nlRange) * 100}%` : "50%";
+  const showNl = attempts >= 3;
+  const nlFails = guesses.filter(g => !g.ok).map(g => g.cap);
+  const nlWorks = guesses.filter(g => g.ok).map(g => g.cap);
+  const nlMaxFail = nlFails.length ? Math.max(...nlFails) : -1;
+  const nlMinWork = nlWorks.length ? Math.min(...nlWorks) : -1;
+
+  const timerColor = timeLeft <= 20 ? "#ef4444" : timeLeft <= 40 ? "#f97316" : "#6b7280";
+  const canDeploy = phase === "idle";
+
+  return (
+    <div ref={containerRef} style={{ width: "100%", height: "100%", position: "relative", fontFamily: "var(--font-mono, monospace)", overflow: "hidden" }}>
+      {/* Three.js canvas */}
+      <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, display: "block", width: "100%", height: "100%" }} />
+
+      {/* UI overlay */}
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", pointerEvents: "none" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", padding: "7px 16px", background: "rgba(0,0,0,0.72)", borderBottom: "1px solid #080818", flexShrink: 0 }}>
+          <span style={{ fontSize: 9, color: "#141430", letterSpacing: 2 }}>RANGE [{MAX_D}…{SUM}]</span>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <span style={{ fontSize: 9, color: "#2a2a4a", marginRight: 6 }}>STORM IN</span>
+            <span style={{ fontSize: 18, fontWeight: "bold", color: timerColor }}>{timeLeft}s</span>
+          </div>
+          <span style={{ fontSize: 9, color: "#1e1e3e" }}>{attempts} attempt{attempts !== 1 ? "s" : ""}</span>
+        </div>
+
+        {/* District strip */}
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "6px 0", background: "rgba(0,0,0,0.5)", flexShrink: 0, gap: 2 }}>
+          {DIST.map((d, i) => (
+            <div key={i} style={{ width: 48, height: 44, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(6,6,18,0.7)", border: "1px solid #0c0c24" }}>
+              <span style={{ fontSize: 18, fontWeight: "bold", color: "#9090c0", lineHeight: 1 }}>{d}</span>
+              <span style={{ fontSize: 7, color: "#1a1a40" }}>D{i + 1}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Number line (appears after 3 attempts) */}
+        {showNl && (
+          <div style={{ padding: "4px 20px 2px", background: "rgba(0,0,0,0.6)", flexShrink: 0 }}>
+            <div style={{ fontSize: 7, color: "#121230", letterSpacing: 2, marginBottom: 3 }}>ANSWER SPACE</div>
+            <div style={{ position: "relative", height: 22 }}>
+              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 2, background: "#111128", transform: "translateY(-50%)" }} />
+              {nlMaxFail >= MAX_D && (
+                <div style={{ position: "absolute", top: "50%", left: 0, width: toNlPct(nlMaxFail), height: 12, background: "rgba(239,68,68,0.15)", transform: "translateY(-50%)" }} />
+              )}
+              {nlMinWork <= SUM && (
+                <div style={{ position: "absolute", top: "50%", left: toNlPct(nlMinWork), right: 0, height: 12, background: "rgba(34,197,94,0.15)", transform: "translateY(-50%)" }} />
+              )}
+              {guesses.map((g, i) => (
+                <div key={i} style={{ position: "absolute", top: "50%", left: toNlPct(g.cap), width: 8, height: 8, borderRadius: "50%", background: g.ok ? "#22c55e" : "#ef4444", transform: "translate(-50%,-50%)" }} />
+              ))}
+              <span style={{ position: "absolute", left: 0, bottom: 0, fontSize: 7, color: "#1a1a44", transform: "translateX(0)" }}>{MAX_D}</span>
+              <span style={{ position: "absolute", right: 0, bottom: 0, fontSize: 7, color: "#1a1a44" }}>{SUM}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Controls */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "8px 0 14px", background: "rgba(0,0,0,0.78)", borderTop: "1px solid #080818", flexShrink: 0, pointerEvents: "auto" }}>
+          <span style={{ fontSize: 8, color: "#12122e", letterSpacing: 3 }}>MAX LOAD PER TRUCK</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {([[-10, "−10", "#333350"], [-1, "−1", "#555575"]] as const).map(([d, l, c]) => (
+              <button key={l} onClick={() => adjCap(d)} disabled={!canDeploy} style={{ fontFamily: "inherit", fontSize: 12, color: c, background: "#0a0a1c", border: "1px solid #14142a", padding: "5px 10px", cursor: canDeploy ? "pointer" : "default", borderRadius: 3 }}>{l}</button>
+            ))}
+            <div style={{ textAlign: "center", minWidth: 96 }}>
+              <span style={{ fontSize: 28, fontWeight: "bold", color: "#a8a8cc" }}>{cap}</span>
+              <span style={{ fontSize: 11, color: "#303060" }}> MW</span>
+            </div>
+            {([[1, "+1", "#555575"], [10, "+10", "#333350"]] as const).map(([d, l, c]) => (
+              <button key={l} onClick={() => adjCap(d)} disabled={!canDeploy} style={{ fontFamily: "inherit", fontSize: 12, color: c, background: "#0a0a1c", border: "1px solid #14142a", padding: "5px 10px", cursor: canDeploy ? "pointer" : "default", borderRadius: 3 }}>{l}</button>
+            ))}
+          </div>
+          <button onClick={doDeploy} disabled={!canDeploy} style={{ fontFamily: "inherit", fontSize: 13, letterSpacing: 2, color: canDeploy ? "#b0b0d8" : "#2a2a4a", background: canDeploy ? "#12123a" : "#09091c", border: `1px solid ${canDeploy ? "#20206a" : "#0f0f28"}`, padding: "9px 40px", cursor: canDeploy ? "pointer" : "default", borderRadius: 3, transition: "all 0.15s" }}>
+            ▶  DEPLOY
+          </button>
+        </div>
+      </div>
+
+      {/* Feedback message */}
+      {msg && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 15 }}>
+          <div style={{ textAlign: "center", padding: "18px 28px", background: msg.type === "blackout" ? "rgba(4,0,0,0.88)" : "rgba(0,8,0,0.88)", border: `1px solid ${msg.type === "blackout" ? "#3a0000" : "#003a00"}`, borderRadius: 4, maxWidth: 340 }}>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: msg.type === "blackout" ? "#dc2626" : "#22c55e", marginBottom: 7 }}>{msg.main}</div>
+            <div style={{ fontSize: 11, color: "#374151" }}>{msg.sub}</div>
+            {msg.suggest !== undefined && (
+              <div style={{ fontSize: 10, color: "#3b82f6", marginTop: 6 }}>Try: {msg.suggest} MW</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Win screen */}
+      {phase === "win" && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.91)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 25, gap: 7, pointerEvents: "auto" }}>
+          <div style={{ fontSize: 10, color: "#22c55e", letterSpacing: 5, marginBottom: 4 }}>MINIMUM LOAD FOUND</div>
+          <div style={{ fontSize: 54, fontWeight: "bold", color: "#fbbf24", lineHeight: 1 }}>{OPTIMAL}</div>
+          <div style={{ fontSize: 14, color: "#2a2a5a" }}>MW per truck</div>
+          <div style={{ display: "flex", gap: 24, marginTop: 4 }}>
+            {[["Your attempts", String(attempts)], [`BS limit`, `≤${optGuesses} guesses`], ["Time left", `${timeLeft}s`]].map(([k, v]) => (
+              <div key={k} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: "#1e1e44" }}>{k}</div>
+                <div style={{ fontSize: 14, color: "#6b7280" }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 8, color: "#0e0e2e", marginTop: 4 }}>[{DIST.join(", ")}] K={K}</div>
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            <button onClick={() => onRestart()} style={{ fontFamily: "inherit", fontSize: 11, color: "#374151", background: "#0a0a1a", border: "1px solid #1a1a30", padding: "8px 20px", cursor: "pointer", borderRadius: 3 }}>↺ NEW GAME</button>
+            <button onClick={() => onSolve()} style={{ fontFamily: "inherit", fontSize: 12, color: "#a855f7", background: "#0d001a", border: "1px solid #3b0764", padding: "9px 28px", cursor: "pointer", borderRadius: 3, letterSpacing: 1 }}>DEBRIEF →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Game over screen */}
+      {phase === "over" && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.93)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 25, gap: 9, pointerEvents: "auto" }}>
+          <div style={{ fontSize: 24, fontWeight: "bold", color: "#ef4444" }}>STORM HIT</div>
+          <div style={{ fontSize: 12, color: "#7f1d1d" }}>GRID COLLAPSED</div>
+          <div style={{ fontSize: 11, color: "#374151" }}>Optimal was <span style={{ color: "#fbbf24" }}>{OPTIMAL} MW</span></div>
+          <div style={{ fontSize: 10, color: "#1e1e44" }}>Binary search: ≤{optGuesses} guesses from [{MAX_D}…{SUM}]</div>
+          <button onClick={() => onRestart()} style={{ fontFamily: "inherit", marginTop: 8, fontSize: 11, color: "#555577", background: "#0c0c1c", border: "1px solid #1a1a30", padding: "9px 24px", cursor: "pointer", borderRadius: 3 }}>↺ TRY AGAIN</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Outer component: manages restart key so new game regenerates districts
+export default function GridZero(props: GameProps) {
+  const [key, setKey] = useState(0);
+  return <GridZeroGame key={key} {...props} onRestart={() => setKey(k => k + 1)} />;
 }

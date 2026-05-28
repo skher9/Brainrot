@@ -6,15 +6,7 @@ import { BS_PROBLEMS } from "@/components/games/tier1/binary-search/problems";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { GameProps } from "@/components/games/tier1/binary-search/types";
-
-const P1 = dynamic(() => import("@/components/games/tier1/binary-search/P1_RecordStore"), { ssr: false, loading: () => <GameLoader /> });
-const P2 = dynamic(() => import("@/components/games/tier1/binary-search/P2_ConveyorFactory"), { ssr: false, loading: () => <GameLoader /> });
-const P3 = dynamic(() => import("@/components/games/tier1/binary-search/P3_NightclubQueue"), { ssr: false, loading: () => <GameLoader /> });
-const P4 = dynamic(() => import("@/components/games/tier1/binary-search/P4_DroneMission"), { ssr: false, loading: () => <GameLoader /> });
-const P5 = dynamic(() => import("@/components/games/tier1/binary-search/P5_RotatingSafe"), { ssr: false, loading: () => <GameLoader /> });
-const P6 = dynamic(() => import("@/components/games/tier1/binary-search/P6_DeliveryRace"), { ssr: false, loading: () => <GameLoader /> });
-const P7 = dynamic(() => import("@/components/games/tier1/binary-search/P7_CargoShip"), { ssr: false, loading: () => <GameLoader /> });
-const P8 = dynamic(() => import("@/components/games/tier1/binary-search/P8_DualConveyor"), { ssr: false, loading: () => <GameLoader /> });
+import { FloatingReactions } from "@/components/games/tier1/binary-search/FloatingReactions";
 
 function GameLoader() {
   return (
@@ -24,8 +16,27 @@ function GameLoader() {
   );
 }
 
+// Free tier: new cinematic games
+const VaultHeist = dynamic(() => import("@/components/games/tier1/binary-search/games/VaultHeist"), { ssr: false, loading: () => <GameLoader /> });
+const Outbreak = dynamic(() => import("@/components/games/tier1/binary-search/games/Outbreak"), { ssr: false, loading: () => <GameLoader /> });
+const Tournament = dynamic(() => import("@/components/games/tier1/binary-search/games/Tournament"), { ssr: false, loading: () => <GameLoader /> });
+const DeadSignal = dynamic(() => import("@/components/games/tier1/binary-search/games/DeadSignal"), { ssr: false, loading: () => <GameLoader /> });
+
+// Advanced tier: original games
+const P5 = dynamic(() => import("@/components/games/tier1/binary-search/P5_RotatingSafe"), { ssr: false, loading: () => <GameLoader /> });
+const P6 = dynamic(() => import("@/components/games/tier1/binary-search/P6_DeliveryRace"), { ssr: false, loading: () => <GameLoader /> });
+const P7 = dynamic(() => import("@/components/games/tier1/binary-search/P7_CargoShip"), { ssr: false, loading: () => <GameLoader /> });
+const P8 = dynamic(() => import("@/components/games/tier1/binary-search/P8_DualConveyor"), { ssr: false, loading: () => <GameLoader /> });
+
 const GAME_MAP: Record<number, React.ComponentType<GameProps>> = {
-  1: P1, 2: P2, 3: P3, 4: P4, 5: P5, 6: P6, 7: P7, 8: P8,
+  1: VaultHeist,
+  2: Outbreak,
+  3: Tournament,
+  4: DeadSignal,
+  5: P5,
+  6: P6,
+  7: P7,
+  8: P8,
 };
 
 const DIFF_COLOR: Record<string, string> = {
@@ -131,7 +142,7 @@ export default function ProblemPage({ params }: { params: Promise<{ index: strin
         </div>
       </div>
 
-      {/* Game canvas — fills remaining height */}
+      {/* Game canvas */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {GameComponent ? (
           <GameComponent onSolve={handleSolve} onAttempt={handleAttempt} />
@@ -140,6 +151,7 @@ export default function ProblemPage({ params }: { params: Promise<{ index: strin
             Game not available.
           </div>
         )}
+        <FloatingReactions />
       </div>
 
       {/* Bottom bar */}
@@ -159,26 +171,27 @@ export default function ProblemPage({ params }: { params: Promise<{ index: strin
         )}
       </div>
 
-      {/* After-solve slide-up panel */}
+      {/* After-solve insight panel */}
       {solveVisible && (
         <div
           style={{
             position: "absolute", bottom: 0, left: 0, right: 0,
-            background: "#0d0d0d",
-            border: "1px solid #1a1a1a",
+            background: "#080c10",
+            border: "1px solid #0d2040",
             borderBottom: "none",
             borderTopLeftRadius: 10, borderTopRightRadius: 10,
-            padding: "24px 28px 32px",
+            padding: "22px 24px 28px",
             zIndex: 50,
+            fontFamily: "inherit",
             animation: "slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both",
           }}
         >
           <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 600, margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 580, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontSize: 10, color: "#22c55e", letterSpacing: "0.1em", marginBottom: 4 }}>✓ SOLVED</div>
-                <div style={{ fontSize: 16, color: "#e2e8f0", fontWeight: 700 }}>{problem.insightTitle}</div>
+                <div style={{ fontSize: 9, color: "#22c55e", letterSpacing: "0.12em", marginBottom: 4 }}>✓ SOLVED</div>
+                <div style={{ fontSize: 15, color: "#e2e8f0", fontWeight: 600 }}>{problem.insightTitle}</div>
               </div>
               <button
                 onClick={() => setSolveVisible(false)}
@@ -193,10 +206,12 @@ export default function ProblemPage({ params }: { params: Promise<{ index: strin
             </div>
 
             <div style={{
-              fontSize: 13, color: "#94a3b8", lineHeight: 1.8,
-              padding: "14px 16px",
-              background: "rgba(255,255,255,0.02)", border: "1px solid #1a1a1a",
+              fontSize: 12, color: "#6b8fa0", lineHeight: 1.85,
+              padding: "12px 14px",
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid #0d1e30",
               borderRadius: 6,
+              borderLeft: "3px solid #1d4ed8",
             }}>
               {problem.insight}
             </div>
@@ -205,22 +220,22 @@ export default function ProblemPage({ params }: { params: Promise<{ index: strin
               <Link href="/learn/tier1/binary-search" style={{ textDecoration: "none" }}>
                 <button style={{
                   padding: "8px 16px",
-                  background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)",
-                  borderRadius: 4, cursor: "pointer", fontSize: 11, color: "#22c55e",
+                  background: "transparent", border: "1px solid #1a2a3a",
+                  borderRadius: 4, cursor: "pointer", fontSize: 10, color: "#374151",
                   fontFamily: "inherit", letterSpacing: "0.06em",
                 }}>
-                  ← BACK TO MODULE
+                  ← MODULE
                 </button>
               </Link>
               {idx < 8 && (
                 <Link href={`/learn/tier1/binary-search/${idx + 1}`} style={{ textDecoration: "none" }}>
                   <button style={{
                     padding: "8px 16px",
-                    background: "#111", border: "1px solid #1e1e1e",
-                    borderRadius: 4, cursor: "pointer", fontSize: 11, color: "#475569",
+                    background: "rgba(59,130,246,0.1)", border: "1px solid #1d4ed8",
+                    borderRadius: 4, cursor: "pointer", fontSize: 10, color: "#3b82f6",
                     fontFamily: "inherit", letterSpacing: "0.06em",
                   }}>
-                    NEXT PROBLEM →
+                    NEXT →
                   </button>
                 </Link>
               )}

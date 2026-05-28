@@ -284,6 +284,8 @@ export default function AuthModal({ open, mode, onClose, onSwitch, onAuth }: Aut
     const supabase = createClient();
     if (!supabase) return;
     setLoading(true);
+    // Clear any existing session first to prevent session bleeding
+    await supabase.auth.signOut();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -297,6 +299,9 @@ export default function AuthModal({ open, mode, onClose, onSwitch, onAuth }: Aut
     setLoading(true);
     const supabase = createClient();
     if (!supabase) { setError("Auth unavailable"); setLoading(false); return; }
+
+    // Clear any existing session before signing in to prevent session bleeding
+    await supabase.auth.signOut();
 
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });

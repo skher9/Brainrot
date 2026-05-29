@@ -52,6 +52,16 @@ const LIVE_MODULES: Module[] = [
     description: "Flood fill, shortest path, island count. 8 problems — Minesweeper to Tarjan bridges.",
     problems: 8,
   },
+  {
+    id: "two-pointers",
+    href: "/learn/tier1/two-pointers",
+    name: "Two Pointers",
+    tag: "TIER I · ARRAYS",
+    xp: 280,
+    accent: "#f43f5e",
+    description: "Two ends meet in the middle. 8 problems from two-sum to trapping rain water.",
+    problems: 8,
+  },
 ];
 
 /* ─── Nav ───────────────────────────────────────────────── */

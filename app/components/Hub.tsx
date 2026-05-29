@@ -92,6 +92,16 @@ const LIVE_MODULES: Module[] = [
     description: "Insert, search, traverse, validate. 8 problems — the recursive structure that powers databases.",
     problems: 8,
   },
+  {
+    id: "tries",
+    href: "/learn/tier1/tries",
+    name: "Tries",
+    tag: "TIER I · TRIES",
+    xp: 360,
+    accent: "#06b6d4",
+    description: "The prefix tree that powers autocomplete, spell-check, and IP routing. 8 problems from insert to word break.",
+    problems: 8,
+  },
 ];
 
 /* ─── Nav ───────────────────────────────────────────────── */

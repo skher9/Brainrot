@@ -2838,4 +2838,343 @@ while q:
       );
     },
   },
+
+  // ─── TRIE MECHANICS ───────────────────────────────────────────────────────
+
+  trie_insert: {
+    title: "Trie Insert — Follow Then Create",
+    pseudocode: `def insert(word):
+  node = root
+  for ch in word:
+    if ch not in node.children:
+      node.children[ch] = TrieNode()
+    node = node.children[ch]
+  node.is_end = True`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const word = "cat";
+      const [step, setStep] = useState(-1);
+      useEffect(() => { const t = setTimeout(() => setStep(s => s < word.length ? s+1 : -1), step===word.length?1400:700); return ()=>clearTimeout(t); }, [step]);
+      const nodes = ["root","c","a","t"];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:14}}>
+          <div style={{fontSize:9,color:DIM,...MONO}}>insert("{word}")</div>
+          <div style={{display:"flex",gap:0,alignItems:"center"}}>
+            {nodes.map((n,i)=>{
+              const active = step === i-1;
+              const done = step >= i;
+              return (
+                <div key={i} style={{display:"flex",alignItems:"center"}}>
+                  {i>0&&<div style={{width:24,height:2,background:done?CYAN:DIM,transition:"background 0.3s"}}/>}
+                  <div style={{width:36,height:36,borderRadius:"50%",background:active?"rgba(6,182,212,0.25)":done?"rgba(6,182,212,0.1)":"#111",border:`2px solid ${active?CYAN:done?CYAN:DIM}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:active?CYAN:done?CYAN:DIM,...MONO,transition:"all 0.3s"}}>{n}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:9,color:step===word.length?GREEN:DIM,...MONO,transition:"color 0.3s"}}>{step===word.length?"is_end = True ✓":"navigating..."}</div>
+        </div>
+      );
+    },
+  },
+
+  trie_search: {
+    title: "Trie Search — Path Must End at Word Node",
+    pseudocode: `def search(word):
+  node = root
+  for ch in word:
+    if ch not in node.children:
+      return False  # path broken
+    node = node.children[ch]
+  return node.is_end  # must be word`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const queries = [{w:"cat",found:true},{w:"ca",found:false},{w:"car",found:false}];
+      const [qi, setQi] = useState(0);
+      const [step, setStep] = useState(0);
+      const q = queries[qi];
+      const maxStep = q.w.length + 1;
+      useEffect(() => {
+        const t = setTimeout(() => {
+          if (step < maxStep) { setStep(s=>s+1); }
+          else { setTimeout(() => { setQi(i=>(i+1)%queries.length); setStep(0); }, 1000); }
+        }, step===maxStep?1200:600);
+        return ()=>clearTimeout(t);
+      }, [step, qi]);
+      const nodes = ["root",...q.w.split("")];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:14}}>
+          <div style={{fontSize:9,color:DIM,...MONO}}>search("{q.w}")</div>
+          <div style={{display:"flex",gap:0,alignItems:"center"}}>
+            {nodes.map((n,i)=>{
+              const active = step===i;
+              const done = step>i;
+              const fail = step===maxStep&&!q.found&&i===nodes.length-1;
+              return (
+                <div key={i} style={{display:"flex",alignItems:"center"}}>
+                  {i>0&&<div style={{width:20,height:2,background:done?CYAN:DIM,transition:"background 0.3s"}}/>}
+                  <div style={{width:32,height:32,borderRadius:"50%",background:fail?"rgba(239,68,68,0.15)":active?"rgba(6,182,212,0.25)":done?"rgba(6,182,212,0.1)":"#111",border:`2px solid ${fail?RED:active?CYAN:done?CYAN:DIM}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:fail?RED:active?CYAN:done?CYAN:DIM,...MONO,transition:"all 0.3s"}}>{n}</div>
+                </div>
+              );
+            })}
+          </div>
+          {step===maxStep&&<div style={{fontSize:10,fontWeight:700,...MONO,color:q.found?GREEN:RED}}>{q.found?"is_end=True → found ✓":"is_end=False → not a word ✗"}</div>}
+        </div>
+      );
+    },
+  },
+
+  trie_prefix: {
+    title: "startsWith — Prefix Exists if Path Exists",
+    pseudocode: `def startsWith(prefix):
+  node = root
+  for ch in prefix:
+    if ch not in node.children:
+      return False
+    node = node.children[ch]
+  return True  # no is_end check`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const words = ["apple","app","application"];
+      const prefix = "app";
+      const [tick, setTick] = useState(0);
+      useEffect(() => { const t = setTimeout(() => setTick(s=>(s+1)%(prefix.length+2)), 700); return ()=>clearTimeout(t); }, [tick]);
+      const nodes = ["root",...prefix.split("")];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+            {words.map(w=><div key={w} style={{fontSize:9,padding:"2px 6px",background:"rgba(6,182,212,0.08)",border:"1px solid rgba(6,182,212,0.2)",borderRadius:3,color:CYAN,...MONO}}>{w}</div>)}
+          </div>
+          <div style={{fontSize:9,color:DIM,...MONO}}>startsWith("{prefix}")</div>
+          <div style={{display:"flex",gap:0,alignItems:"center"}}>
+            {nodes.map((n,i)=>{
+              const active = tick===i;
+              const done = tick>i;
+              return (
+                <div key={i} style={{display:"flex",alignItems:"center"}}>
+                  {i>0&&<div style={{width:20,height:2,background:done?CYAN:DIM,transition:"background 0.3s"}}/>}
+                  <div style={{width:32,height:32,borderRadius:"50%",background:active?"rgba(6,182,212,0.25)":done?"rgba(6,182,212,0.1)":"#111",border:`2px solid ${active?CYAN:done?CYAN:DIM}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:active?CYAN:done?CYAN:DIM,...MONO,transition:"all 0.3s"}}>{n}</div>
+                </div>
+              );
+            })}
+          </div>
+          {tick>prefix.length&&<div style={{fontSize:10,color:GREEN,fontWeight:700,...MONO}}>path exists → True ✓</div>}
+        </div>
+      );
+    },
+  },
+
+  trie_wildcard: {
+    title: "Word Dictionary — Dot Wildcard Branching",
+    pseudocode: `def search(word):
+  def dfs(node, i):
+    if i == len(word): return node.is_end
+    ch = word[i]
+    if ch == '.':
+      return any(dfs(c, i+1)
+                 for c in node.children.values())
+    if ch not in node.children: return False
+    return dfs(node.children[ch], i+1)
+  return dfs(root, 0)`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const [step, setStep] = useState(0);
+      const branches = [
+        {label:"search('.at')",desc:"'.' → branch ALL children",branches:["bat","cat","hat"],match:"all match ✓"},
+        {label:"search('ca.')",desc:"'ca' exact → then '.' branch",branches:["cab","can","cat"],match:"cat found ✓"},
+      ];
+      const cur = branches[step%2];
+      const [tick, setTick] = useState(0);
+      useEffect(() => {
+        const t = setTimeout(() => {
+          if (tick < cur.branches.length) setTick(t=>t+1);
+          else setTimeout(()=>{setStep(s=>s+1);setTick(0);},1200);
+        }, 600);
+        return ()=>clearTimeout(t);
+      }, [tick, step]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{fontSize:9,color:DIM,...MONO}}>{cur.label}</div>
+          <div style={{fontSize:9,color:GOLD,...MONO}}>{cur.desc}</div>
+          <div style={{display:"flex",gap:8}}>
+            {cur.branches.map((b,i)=>(
+              <div key={b} style={{padding:"4px 8px",background:tick>i?"rgba(6,182,212,0.15)":"#111",border:`1px solid ${tick>i?CYAN:DIM}`,borderRadius:4,fontSize:10,color:tick>i?CYAN:DIM,...MONO,transition:"all 0.3s"}}>{b}</div>
+            ))}
+          </div>
+          {tick===cur.branches.length&&<div style={{fontSize:10,color:GREEN,fontWeight:700,...MONO}}>{cur.match}</div>}
+        </div>
+      );
+    },
+  },
+
+  trie_replace: {
+    title: "Replace Words — First Matching Prefix Wins",
+    pseudocode: `def replaceWords(roots, sentence):
+  trie = build_trie(roots)
+  result = []
+  for word in sentence.split():
+    node, replaced = trie.root, word
+    for i, ch in enumerate(word):
+      if ch not in node.children: break
+      node = node.children[ch]
+      if node.is_end:
+        replaced = word[:i+1]  # first root wins
+        break
+    result.append(replaced)
+  return ' '.join(result)`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const roots = ["cat","bat","rat"];
+      const words = [{w:"cattle",root:"cat"},{w:"battle",root:"bat"},{w:"rattle",root:"rat"}];
+      const [step, setStep] = useState(0);
+      const [tick, setTick] = useState(0);
+      const cur = words[step%words.length];
+      useEffect(() => {
+        const t = setTimeout(() => {
+          if (tick <= cur.root.length) setTick(t=>t+1);
+          else setTimeout(()=>{setStep(s=>s+1);setTick(0);},1200);
+        }, 600);
+        return ()=>clearTimeout(t);
+      }, [tick, step]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{display:"flex",gap:6}}>{roots.map(r=><div key={r} style={{fontSize:9,padding:"2px 6px",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:3,color:GOLD,...MONO}}>{r}</div>)}</div>
+          <div style={{fontSize:9,color:DIM,...MONO}}>word: "{cur.w}"</div>
+          <div style={{display:"flex",gap:1}}>
+            {cur.w.split("").map((ch,i)=>(
+              <div key={i} style={{width:22,height:24,background:i<tick?(i<cur.root.length?"rgba(6,182,212,0.2)":"rgba(55,65,81,0.3)"):"#111",border:`1px solid ${i<tick?(i<cur.root.length?CYAN:DIM):DIM}`,borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:i<tick?(i<cur.root.length?CYAN:DIM):"#374151",...MONO,transition:"all 0.3s"}}>{ch}</div>
+            ))}
+          </div>
+          {tick>cur.root.length&&<div style={{fontSize:10,color:GREEN,...MONO}}>→ "{cur.root}" ✓</div>}
+        </div>
+      );
+    },
+  },
+
+  trie_lcp: {
+    title: "Longest Common Prefix — Stop at the Fork",
+    pseudocode: `def longestCommonPrefix(strs):
+  trie = build_trie(strs)
+  node, prefix = trie.root, ""
+  while (len(node.children) == 1
+         and not node.is_end):
+    ch = next(iter(node.children))
+    prefix += ch
+    node = node.children[ch]
+  return prefix`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const words = ["flower","flow","flight"];
+      const lcp = "fl";
+      const [tick, setTick] = useState(-1);
+      useEffect(() => { const t = setTimeout(() => setTick(s => s < lcp.length+1 ? s+1 : -1), tick===lcp.length+1?1400:700); return ()=>clearTimeout(t); }, [tick]);
+      const path = ["root","f","l","→fork"];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center"}}>{words.map(w=><div key={w} style={{fontSize:9,padding:"2px 5px",background:"rgba(6,182,212,0.06)",border:"1px solid rgba(6,182,212,0.15)",borderRadius:3,color:CYAN,...MONO}}>{w}</div>)}</div>
+          <div style={{display:"flex",gap:0,alignItems:"center"}}>
+            {path.map((n,i)=>{
+              const active = tick===i;
+              const done = tick>i;
+              const isFork = i===path.length-1;
+              return (
+                <div key={i} style={{display:"flex",alignItems:"center"}}>
+                  {i>0&&<div style={{width:20,height:2,background:done&&!isFork?CYAN:DIM,transition:"background 0.3s"}}/>}
+                  <div style={{width:isFork?44:32,height:32,borderRadius:isFork?6:"50%",background:isFork&&active?"rgba(239,68,68,0.15)":active?"rgba(6,182,212,0.25)":done&&!isFork?"rgba(6,182,212,0.1)":"#111",border:`2px solid ${isFork&&active?RED:active?CYAN:done&&!isFork?CYAN:DIM}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isFork?8:10,fontWeight:700,color:isFork&&active?RED:active?CYAN:done&&!isFork?CYAN:DIM,...MONO,transition:"all 0.3s"}}>{n}</div>
+                </div>
+              );
+            })}
+          </div>
+          {tick>=lcp.length&&<div style={{fontSize:10,color:GREEN,fontWeight:700,...MONO}}>LCP = "{lcp}" ✓</div>}
+        </div>
+      );
+    },
+  },
+
+  trie_suggest: {
+    title: "Search Suggestions — DFS After Each Prefix",
+    pseudocode: `def suggestProducts(products, prefix):
+  products.sort()  # lex order
+  trie = build_trie(products)
+  result, node = [], trie.root
+  for ch in prefix:
+    if ch not in node.children: break
+    node = node.children[ch]
+    # DFS: collect up to 3 words
+    result.append(dfs_top3(node, prefix[:i+1]))
+  return result`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const suggestions: Record<string,string[]> = {
+        "m":["mobile","mouse","music"],
+        "mo":["mobile","mouse"],
+        "mob":["mobile"],
+      };
+      const [tick, setTick] = useState(0);
+      const keys = Object.keys(suggestions);
+      const cur = keys[tick%keys.length];
+      useEffect(() => { const t = setTimeout(() => setTick(s=>s+1), 1200); return ()=>clearTimeout(t); }, [tick]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{fontSize:9,color:DIM,...MONO}}>typed: "{cur}"</div>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            {suggestions[cur].map((s,i)=>(
+              <div key={s} style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:8,color:GOLD,...MONO}}>{i+1}.</span>
+                <div style={{fontSize:10,padding:"3px 8px",background:"rgba(6,182,212,0.1)",border:"1px solid rgba(6,182,212,0.2)",borderRadius:3,color:CYAN,...MONO}}>
+                  <span style={{color:GREEN}}>{cur}</span>{s.slice(cur.length)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:8,color:DIM,...MONO}}>DFS → top {suggestions[cur].length} (lex)</div>
+        </div>
+      );
+    },
+  },
+
+  trie_break: {
+    title: "Word Break — DP + Trie Lookup",
+    pseudocode: `def wordBreak(s, wordDict):
+  trie = build_trie(wordDict)
+  n = len(s)
+  dp = [False] * (n + 1)
+  dp[0] = True  # empty prefix ok
+  for i in range(n):
+    if not dp[i]: continue
+    # trie scan from i forward
+    node = trie.root
+    for j in range(i, n):
+      if s[j] not in node.children: break
+      node = node.children[s[j]]
+      if node.is_end:
+        dp[j+1] = True
+  return dp[n]`,
+    Animation: () => {
+      const CYAN = "#06b6d4";
+      const s = "leetcode";
+      const words = ["leet","code"];
+      const dpSteps = [
+        [true,false,false,false,false,false,false,false,false],
+        [true,false,false,false,true,false,false,false,false],
+        [true,false,false,false,true,false,false,false,true],
+      ];
+      const [tick, setTick] = useState(0);
+      useEffect(() => { const t = setTimeout(() => setTick(s=>(s+1)%dpSteps.length), 1100); return ()=>clearTimeout(t); }, [tick]);
+      const dp = dpSteps[tick];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",gap:6}}>{words.map(w=><div key={w} style={{fontSize:9,padding:"2px 5px",background:"rgba(6,182,212,0.08)",border:"1px solid rgba(6,182,212,0.18)",borderRadius:3,color:CYAN,...MONO}}>{w}</div>)}</div>
+          <div style={{display:"flex",gap:2}}>
+            {s.split("").map((ch,i)=>(
+              <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                <div style={{width:26,height:26,background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#9ca3af",...MONO}}>{ch}</div>
+                <div style={{width:26,height:20,background:dp[i+1]?"rgba(6,182,212,0.15)":"#111",border:`1px solid ${dp[i+1]?CYAN:DIM}`,borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:dp[i+1]?CYAN:DIM,...MONO,transition:"all 0.4s"}}>{dp[i+1]?"T":"F"}</div>
+              </div>
+            ))}
+          </div>
+          {tick===dpSteps.length-1&&<div style={{fontSize:10,color:GREEN,fontWeight:700,...MONO}}>dp[8]=True → segmentable ✓</div>}
+        </div>
+      );
+    },
+  },
 };

@@ -2595,4 +2595,247 @@ for length in range(2, n+1):
 return dp[0][n-1]`,
     Animation: MirrorGemAnimation,
   },
+
+  bst_insert: {
+    title: "BST Insert",
+    pseudocode: `def insert(node, val):
+  if not node: return TreeNode(val)
+  if val < node.val:
+    node.left = insert(node.left, val)
+  else:
+    node.right = insert(node.right, val)
+  return node`,
+    Animation: () => {
+      const [step, setStep] = useState(0);
+      const steps = [{node:8,dir:null},{node:3,dir:"L"},{node:10,dir:"R"},{node:6,dir:"L→R"},{node:null,dir:"insert"}];
+      useEffect(() => { const t = setTimeout(() => setStep(s => (s+1)%steps.length), step===steps.length-1?1400:800); return ()=>clearTimeout(t); }, [step]);
+      const cur = steps[step];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{fontSize:9,color:"#f59e0b",letterSpacing:"0.1em",...MONO}}>INSERT 6 INTO BST</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
+            {[{v:8,l:0},{v:cur.node===3?3:3,l:1,side:"L"},{v:cur.node===10?10:10,l:1,side:"R"}].map((n,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:6}}>
+                {n.side&&<span style={{fontSize:9,color:DIM}}>{n.side}</span>}
+                <div style={{width:36,height:36,borderRadius:"50%",background:step>=i?"rgba(245,158,11,0.15)":"#111",border:`2px solid ${step>=i?"#f59e0b":"#222"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:step>=i?"#f59e0b":DIM,...MONO}}>{n.v}</div>
+              </div>
+            ))}
+            {step>=3&&<div style={{width:36,height:36,borderRadius:"50%",background:"rgba(34,197,94,0.15)",border:"2px solid #22c55e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#22c55e",...MONO}}>6</div>}
+          </div>
+          <div style={{fontSize:9,color:DIM,...MONO}}>
+            {step===0?"start at root 8":step===1?"6<8 → go left":step===2?"6>3 → go right":step===3?"null slot found":"inserted!"}
+          </div>
+        </div>
+      );
+    },
+  },
+
+  bst_search: {
+    title: "BST Search",
+    pseudocode: `def search(node, target):
+  if not node: return None
+  if target == node.val: return node
+  if target < node.val:
+    return search(node.left, target)
+  return search(node.right, target)`,
+    Animation: () => {
+      const [step, setStep] = useState(0);
+      const path = [{v:15,cmp:"target 7 < 15"},{v:6,cmp:"7 > 6"},{v:9,cmp:"7 < 9"},{v:7,cmp:"found!"}];
+      useEffect(() => { const t = setTimeout(() => setStep(s => (s+1)%path.length), step===path.length-1?1400:900); return ()=>clearTimeout(t); }, [step]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:10}}>
+          <div style={{fontSize:9,color:"#3b82f6",letterSpacing:"0.1em",...MONO}}>SEARCH FOR 7</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center"}}>
+            {path.map((p,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,opacity:i<=step?1:0.2,transition:"opacity 0.3s"}}>
+                <div style={{width:34,height:34,borderRadius:"50%",background:i===step?"rgba(59,130,246,0.2)":i<step?"rgba(34,197,94,0.1)":"#111",border:`2px solid ${i===step?BLUE:i<step?GREEN:"#222"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:i===step?BLUE:i<step?GREEN:DIM,...MONO}}>{p.v}</div>
+                {i<=step&&<span style={{fontSize:9,color:i===step?BLUE:DIM,...MONO}}>{p.cmp}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    },
+  },
+
+  tree_inorder: {
+    title: "Inorder Traversal (L→Root→R)",
+    pseudocode: `def inorder(node, result):
+  if not node: return
+  inorder(node.left, result)   # go left
+  result.append(node.val)      # visit
+  inorder(node.right, result)  # go right
+# On BST: yields sorted output`,
+    Animation: () => {
+      const order = [1,3,4,6,7,8,10,13,14];
+      const [idx, setIdx] = useState(0);
+      useEffect(() => { const t = setTimeout(() => setIdx(i => i<order.length-1?i+1:0), idx===order.length-1?1400:600); return ()=>clearTimeout(t); }, [idx]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:14}}>
+          <div style={{fontSize:9,color:GOLD,letterSpacing:"0.1em",...MONO}}>INORDER → SORTED OUTPUT</div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"center"}}>
+            {order.map((v,i)=>(
+              <div key={i} style={{width:30,height:30,borderRadius:"50%",background:i<idx?"rgba(34,197,94,0.12)":i===idx?"rgba(234,179,8,0.2)":"#111",border:`2px solid ${i<idx?GREEN:i===idx?GOLD:"#222"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:i<idx?GREEN:i===idx?GOLD:DIM,transition:"all 0.3s",...MONO}}>{v}</div>
+            ))}
+          </div>
+          <div style={{fontSize:10,color:DIM,...MONO}}>visiting: {order[idx]}</div>
+        </div>
+      );
+    },
+  },
+
+  tree_levelorder: {
+    title: "Level-Order BFS",
+    pseudocode: `from collections import deque
+q = deque([root]); result = []
+while q:
+  level = []
+  for _ in range(len(q)):  # drain level
+    node = q.popleft()
+    level.append(node.val)
+    if node.left:  q.append(node.left)
+    if node.right: q.append(node.right)
+  result.append(level)`,
+    Animation: () => {
+      const levels = [[8],[3,10],[1,6,14],[4,7,13]];
+      const [lv, setLv] = useState(0);
+      useEffect(() => { const t = setTimeout(() => setLv(l => (l+1)%levels.length), lv===levels.length-1?1400:900); return ()=>clearTimeout(t); }, [lv]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:10}}>
+          <div style={{fontSize:9,color:PURPLE,letterSpacing:"0.1em",...MONO}}>LEVEL-ORDER BFS</div>
+          {levels.map((lvl,li)=>(
+            <div key={li} style={{display:"flex",gap:8,justifyContent:"center",opacity:li<=lv?1:0.2,transition:"opacity 0.4s"}}>
+              {lvl.map((v,vi)=>(
+                <div key={vi} style={{width:30,height:30,borderRadius:"50%",background:li===lv?"rgba(168,85,247,0.2)":li<lv?"rgba(34,197,94,0.1)":"#111",border:`2px solid ${li===lv?PURPLE:li<lv?GREEN:"#222"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:li===lv?PURPLE:li<lv?GREEN:DIM,...MONO}}>{v}</div>
+              ))}
+            </div>
+          ))}
+          <div style={{fontSize:9,color:DIM,...MONO}}>level {lv}: [{levels[lv].join(", ")}]</div>
+        </div>
+      );
+    },
+  },
+
+  tree_lca: {
+    title: "Lowest Common Ancestor",
+    pseudocode: `def lca(node, p, q):
+  if not node or node==p or node==q:
+    return node
+  left  = lca(node.left,  p, q)
+  right = lca(node.right, p, q)
+  if left and right:
+    return node   # split here = LCA
+  return left or right`,
+    Animation: () => {
+      const [step, setStep] = useState(0);
+      useEffect(() => { const t = setTimeout(() => setStep(s => (s+1)%4), step===3?1400:900); return ()=>clearTimeout(t); }, [step]);
+      const nodes = [{v:6,note:"p=4 in left, q=7 in right → LCA!"},{v:3,note:"p=4 in right"},{v:10,note:"q not here"},{v:4,note:"found p"}];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",gap:10,justifyContent:"center",marginBottom:4}}>
+            <div style={{padding:"2px 8px",background:"rgba(59,130,246,0.15)",border:"1px solid #3b82f6",borderRadius:4,fontSize:9,color:BLUE,...MONO}}>p=4</div>
+            <div style={{padding:"2px 8px",background:"rgba(234,179,8,0.15)",border:"1px solid #eab308",borderRadius:4,fontSize:9,color:GOLD,...MONO}}>q=7</div>
+          </div>
+          {nodes.map((n,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,opacity:i<=step?1:0.2,transition:"opacity 0.35s"}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:i===0&&step>=1?"rgba(34,197,94,0.2)":i===step?"rgba(234,179,8,0.15)":"#111",border:`2px solid ${i===0&&step>=1?GREEN:i===step?GOLD:"#222"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:i===0&&step>=1?GREEN:i===step?GOLD:DIM,...MONO}}>{n.v}</div>
+              {i<=step&&<span style={{fontSize:8,color:i===0&&step>=1?GREEN:DIM,...MONO}}>{n.note}</span>}
+            </div>
+          ))}
+        </div>
+      );
+    },
+  },
+
+  bst_validate: {
+    title: "Validate BST — Min/Max Bounds",
+    pseudocode: `def valid(node, lo=-inf, hi=inf):
+  if not node: return True
+  if node.val <= lo or node.val >= hi:
+    return False
+  return (valid(node.left,  lo, node.val) and
+          valid(node.right, node.val, hi))`,
+    Animation: () => {
+      const [step, setStep] = useState(0);
+      const checks = [{v:5,lo:"-∞",hi:"+∞",ok:true},{v:3,lo:"-∞",hi:"5",ok:true},{v:7,lo:"5",hi:"+∞",ok:true},{v:4,lo:"3",hi:"5",ok:true},{v:6,lo:"5",hi:"+∞",ok:false,note:"6>5 but parent says < 7 — wait, 6<7 ✓"}];
+      useEffect(() => { const t = setTimeout(() => setStep(s => (s+1)%checks.length), step===checks.length-1?1400:900); return ()=>clearTimeout(t); }, [step]);
+      const c = checks[step];
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{fontSize:9,color:RED,letterSpacing:"0.1em",...MONO}}>VALIDATE BST</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center"}}>
+            {checks.map((ch,i)=>(
+              <div key={i} style={{width:30,height:30,borderRadius:"50%",background:i<step?"rgba(34,197,94,0.1)":i===step?"rgba(234,179,8,0.2)":"#111",border:`2px solid ${i<step?GREEN:i===step?GOLD:"#222"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:i<step?GREEN:i===step?GOLD:DIM,transition:"all 0.3s",...MONO}}>{ch.v}</div>
+            ))}
+          </div>
+          <div style={{padding:"6px 12px",background:"rgba(255,255,255,0.02)",border:"1px solid #1e1e1e",borderRadius:4,textAlign:"center"}}>
+            <div style={{fontSize:10,color:GOLD,...MONO}}>node {c.v}: range ({c.lo}, {c.hi})</div>
+            <div style={{fontSize:9,color:c.ok?GREEN:RED,marginTop:2,...MONO}}>{c.ok?"✓ valid":"✗ invalid"}</div>
+          </div>
+        </div>
+      );
+    },
+  },
+
+  bst_delete: {
+    title: "BST Delete — Three Cases",
+    pseudocode: `def delete(node, key):
+  if key < node.val: node.left = delete(node.left, key)
+  elif key > node.val: node.right = delete(node.right, key)
+  else:  # found
+    if not node.left: return node.right   # case 1/2
+    if not node.right: return node.left   # case 2
+    succ = leftmost(node.right)  # case 3
+    node.val = succ.val
+    node.right = delete(node.right, succ.val)
+  return node`,
+    Animation: () => {
+      const [step, setStep] = useState(0);
+      const cases = ["DELETE 3 (two children)","find in-order successor","successor = 4 (leftmost in right)","replace 3 with 4","delete old 4 from right"];
+      useEffect(() => { const t = setTimeout(() => setStep(s => (s+1)%cases.length), step===cases.length-1?1400:900); return ()=>clearTimeout(t); }, [step]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:12}}>
+          <div style={{fontSize:9,color:RED,letterSpacing:"0.1em",...MONO}}>{cases[step]}</div>
+          <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+            {[{v:step<3?3:4,deleted:step>=1&&step<3},{v:1,side:"L"},{v:6,side:"R"},{v:step<3?4:null,side:"R→L"}].map((n,i)=>(
+              n.v!==null&&<div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                {n.side&&<span style={{fontSize:7,color:DIM,...MONO}}>{n.side}</span>}
+                <div style={{width:34,height:34,borderRadius:"50%",background:n.deleted?"rgba(239,68,68,0.15)":step>=3&&i===0?"rgba(34,197,94,0.15)":"rgba(245,158,11,0.1)",border:`2px solid ${n.deleted?RED:step>=3&&i===0?GREEN:"#f59e0b"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:n.deleted?RED:step>=3&&i===0?GREEN:"#f59e0b",textDecoration:n.deleted?"line-through":"none",...MONO}}>{n.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    },
+  },
+
+  tree_pathsum: {
+    title: "Path Sum — Root to Leaf",
+    pseudocode: `def hasPath(node, target):
+  if not node: return False
+  target -= node.val
+  if not node.left and not node.right:
+    return target == 0   # leaf check
+  return (hasPath(node.left,  target) or
+          hasPath(node.right, target))`,
+    Animation: () => {
+      const path = [{v:5,rem:22},{v:4,rem:17},{v:11,rem:13},{v:2,rem:2}];
+      const [step, setStep] = useState(0);
+      useEffect(() => { const t = setTimeout(() => setStep(s => (s+1)%path.length), step===path.length-1?1400:800); return ()=>clearTimeout(t); }, [step]);
+      return (
+        <div style={{...CONTAINER,flexDirection:"column",gap:10}}>
+          <div style={{fontSize:9,color:GREEN,letterSpacing:"0.1em",...MONO}}>TARGET = 22</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center"}}>
+            {path.map((p,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,opacity:i<=step?1:0.2,transition:"opacity 0.3s"}}>
+                <div style={{width:34,height:34,borderRadius:"50%",background:i===step?"rgba(34,197,94,0.2)":i<step?"rgba(34,197,94,0.1)":"#111",border:`2px solid ${i<=step?GREEN:"#222"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:GREEN,...MONO}}>{p.v}</div>
+                {i<=step&&<span style={{fontSize:9,color:DIM,...MONO}}>remaining: {p.rem} - {p.v} = {p.rem-p.v}</span>}
+              </div>
+            ))}
+            {step===path.length-1&&<div style={{fontSize:10,color:GREEN,fontWeight:700,...MONO}}>leaf! remaining=0 ✓</div>}
+          </div>
+        </div>
+      );
+    },
+  },
 };

@@ -82,6 +82,16 @@ const LIVE_MODULES: Module[] = [
     description: "Fill the table, see the dependencies. 8 problems — climbing stairs to longest palindromic subsequence.",
     problems: 8,
   },
+  {
+    id: "trees",
+    href: "/learn/tier1/trees",
+    name: "Trees & BST",
+    tag: "TIER I · TREES",
+    xp: 380,
+    accent: "#f59e0b",
+    description: "Insert, search, traverse, validate. 8 problems — the recursive structure that powers databases.",
+    problems: 8,
+  },
 ];
 
 /* ─── Nav ───────────────────────────────────────────────── */

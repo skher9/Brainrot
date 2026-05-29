@@ -1800,6 +1800,391 @@ function AllAnagramsAnimation() {
   );
 }
 
+// ─── dp_tabulation ────────────────────────────────────────────────────────
+const DP_FROG_VALS = [1, 1, 2, 3, 5, 8];
+function FrogLeapAnimation() {
+  const [step, setStep] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setStep(s => (s + 1) % DP_FROG_VALS.length),
+      step === DP_FROG_VALS.length - 1 ? 1400 : 750);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [step]);
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {DP_FROG_VALS.map((v, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: "50%",
+              background: i < step ? "rgba(34,197,94,0.12)" : i === step ? "rgba(234,179,8,0.18)" : "#111",
+              border: `2px solid ${i < step ? GREEN : i === step ? GOLD : "#222"}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, fontWeight: 700,
+              color: i < step ? GREEN : i === step ? GOLD : DIM,
+              transition: "all 0.35s",
+            }}>
+              {i <= step ? v : "?"}
+            </div>
+            <div style={{ fontSize: 9, color: DIM, ...MONO }}>dp[{i}]</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 10, color: DIM, textAlign: "center", ...MONO }}>
+        {step < 2
+          ? `dp[${step}] = ${DP_FROG_VALS[step]} (base case)`
+          : `dp[${step}] = dp[${step-1}]+dp[${step-2}] = ${DP_FROG_VALS[step-1]}+${DP_FROG_VALS[step-2]} = ${DP_FROG_VALS[step]}`}
+      </div>
+    </div>
+  );
+}
+
+// ─── dp_rob ───────────────────────────────────────────────────────────────
+const VAULT_VALS = [2, 7, 9, 3, 1];
+const VAULT_DP   = [2, 7, 11, 11, 12];
+const VAULT_ROBBED = [true, false, true, false, true];
+function VaultCrackerAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep(s => (s + 1) % VAULT_VALS.length),
+      step === VAULT_VALS.length - 1 ? 1400 : 800);
+    return () => clearTimeout(t);
+  }, [step]);
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", gap: 10 }}>
+        {VAULT_VALS.map((v, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 6,
+              background: i <= step ? (VAULT_ROBBED[i] ? "rgba(234,179,8,0.15)" : "rgba(100,116,139,0.08)") : "#111",
+              border: `2px solid ${i <= step ? (VAULT_ROBBED[i] ? GOLD : DIM) : "#222"}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 12, fontWeight: 700,
+              color: i <= step ? (VAULT_ROBBED[i] ? GOLD : DIM) : "#2a2a2a",
+              transition: "all 0.35s",
+            }}>
+              ${v}
+            </div>
+            <div style={{ fontSize: 9, color: i <= step ? GREEN : "#1a1a1a", ...MONO }}>
+              {i <= step ? VAULT_DP[i] : "·"}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 10, color: DIM, textAlign: "center", ...MONO }}>
+        {step === 0
+          ? `dp[0] = ${VAULT_VALS[0]}`
+          : `dp[${step}] = max(${VAULT_DP[step-1]}, ${step >= 2 ? VAULT_DP[step-2] : 0}+${VAULT_VALS[step]}) = ${VAULT_DP[step]}`}
+      </div>
+    </div>
+  );
+}
+
+// ─── dp_coin ──────────────────────────────────────────────────────────────
+const COINS = [1, 5, 7];
+const COIN_TARGET = 11;
+const COIN_DP = [0,1,2,3,4,1,2,1,2,3,2,3]; // min coins for amounts 0..11
+function CoinForgeAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep(s => (s + 1) % (COIN_TARGET + 1)),
+      step === COIN_TARGET ? 1400 : 650);
+    return () => clearTimeout(t);
+  }, [step]);
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span style={{ fontSize: 9, color: DIM, ...MONO }}>coins:</span>
+        {COINS.map(c => (
+          <div key={c} style={{
+            width: 26, height: 26, borderRadius: "50%",
+            background: "rgba(168,85,247,0.15)",
+            border: `1px solid ${PURPLE}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 10, fontWeight: 700, color: PURPLE,
+          }}>{c}</div>
+        ))}
+        <span style={{ fontSize: 9, color: DIM, marginLeft: 6, ...MONO }}>target: {COIN_TARGET}</span>
+      </div>
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+        {COIN_DP.map((v, i) => (
+          <div key={i} style={{
+            width: 28, height: 36, borderRadius: 4,
+            background: i <= step ? (i === step ? "rgba(234,179,8,0.15)" : "rgba(34,197,94,0.08)") : "#111",
+            border: `1px solid ${i <= step ? (i === step ? GOLD : "#374151") : "#1e1e1e"}`,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+            transition: "all 0.3s",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: i <= step ? (i === step ? GOLD : GREEN) : "#2a2a2a", ...MONO }}>
+              {i <= step ? v : "∞"}
+            </div>
+            <div style={{ fontSize: 7, color: DIM, ...MONO }}>{i}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── dp_lcs ───────────────────────────────────────────────────────────────
+const LCS_S1 = "ABCD";
+const LCS_S2 = "ACBD";
+const LCS_GRID = [[0,0,0,0,0],[0,1,1,1,1],[0,1,1,2,2],[0,1,2,2,2],[0,1,2,2,3]];
+function GeneSpliceAnimation() {
+  const [cell, setCell] = useState(0);
+  const total = 5 * 5;
+  useEffect(() => {
+    const t = setTimeout(() => setCell(c => c < total - 1 ? c + 1 : 0),
+      cell === total - 1 ? 1400 : 300);
+    return () => clearTimeout(t);
+  }, [cell]);
+  const row = Math.floor(cell / 5), col = cell % 5;
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", gap: 2 }}>
+        {["", ...LCS_S2.split("")].map((c, ci) => (
+          <div key={ci} style={{ width: 36, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: BLUE, ...MONO }}>{c}</div>
+        ))}
+      </div>
+      {LCS_GRID.map((r, ri) => (
+        <div key={ri} style={{ display: "flex", gap: 2 }}>
+          <div style={{ width: 36, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: BLUE, ...MONO }}>
+            {ri === 0 ? "" : LCS_S1[ri - 1]}
+          </div>
+          {r.map((v, ci) => {
+            const filled = ri * 5 + ci <= cell;
+            const isCurrent = ri * 5 + ci === cell;
+            const isMatch = ri > 0 && ci > 0 && LCS_S1[ri-1] === LCS_S2[ci-1];
+            return (
+              <div key={ci} style={{
+                width: 36, height: 28, borderRadius: 3,
+                background: isCurrent ? "rgba(234,179,8,0.2)" : filled ? (isMatch && ri > 0 && ci > 0 ? "rgba(34,197,94,0.1)" : "#0f0f0f") : "#070707",
+                border: `1px solid ${isCurrent ? GOLD : filled ? (isMatch && ri > 0 && ci > 0 ? "rgba(34,197,94,0.4)" : "#1e1e1e") : "#111"}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: 700,
+                color: isCurrent ? GOLD : filled ? (v > 0 ? GREEN : DIM) : "#111",
+                transition: "all 0.2s",
+              }}>
+                {filled ? v : ""}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── dp_knapsack ──────────────────────────────────────────────────────────
+const KS_ITEMS = [{w:1,v:1},{w:3,v:4},{w:4,v:5},{w:5,v:7}];
+const KS_CAP = 7;
+const KS_DP_FINAL = [0,1,1,4,5,5,6,8]; // optimal values for cap 0..7
+function LootPackAnimation() {
+  const [itemIdx, setItemIdx] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setItemIdx(i => (i + 1) % KS_ITEMS.length),
+      1000);
+    return () => clearTimeout(t);
+  }, [itemIdx]);
+  const dpRows = useMemo(() => {
+    const rows: number[][] = [[...Array(KS_CAP + 1).fill(0)]];
+    for (let i = 0; i < KS_ITEMS.length; i++) {
+      const prev = rows[i];
+      const cur = [...prev];
+      for (let w = KS_CAP; w >= KS_ITEMS[i].w; w--) {
+        cur[w] = Math.max(cur[w], prev[w - KS_ITEMS[i].w] + KS_ITEMS[i].v);
+      }
+      rows.push(cur);
+    }
+    return rows;
+  }, []);
+  const currentRow = dpRows[itemIdx + 1] ?? dpRows[dpRows.length - 1];
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {KS_ITEMS.map((item, i) => (
+          <div key={i} style={{
+            padding: "4px 8px", borderRadius: 4,
+            background: i === itemIdx ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.02)",
+            border: `1px solid ${i === itemIdx ? PURPLE : "#222"}`,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+          }}>
+            <div style={{ fontSize: 9, color: i === itemIdx ? PURPLE : DIM, ...MONO }}>w:{item.w}</div>
+            <div style={{ fontSize: 9, color: i === itemIdx ? GOLD : DIM, ...MONO }}>v:{item.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 4 }}>
+        {currentRow.map((v, i) => (
+          <div key={i} style={{
+            width: 30, height: 32, borderRadius: 3,
+            background: "rgba(34,197,94,0.08)", border: "1px solid #1e2e1e",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: GREEN, ...MONO }}>{v}</div>
+            <div style={{ fontSize: 7, color: DIM, ...MONO }}>{i}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 9, color: DIM, ...MONO }}>
+        item {itemIdx + 1}: w={KS_ITEMS[itemIdx].w} v={KS_ITEMS[itemIdx].v} → dp updates
+      </div>
+    </div>
+  );
+}
+
+// ─── dp_paths ─────────────────────────────────────────────────────────────
+const PATHS_GRID = [[1,1,1,1],[1,2,3,4],[1,3,6,10]];
+function PixelPathAnimation() {
+  const [cell, setCell] = useState(0);
+  const total = 3 * 4;
+  useEffect(() => {
+    const t = setTimeout(() => setCell(c => c < total - 1 ? c + 1 : 0),
+      cell === total - 1 ? 1400 : 450);
+    return () => clearTimeout(t);
+  }, [cell]);
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 8 }}>
+      <div style={{ fontSize: 9, color: DIM, ...MONO, marginBottom: 4 }}>paths = above + left</div>
+      {PATHS_GRID.map((row, ri) => (
+        <div key={ri} style={{ display: "flex", gap: 6 }}>
+          {row.map((v, ci) => {
+            const idx = ri * 4 + ci;
+            const filled = idx <= cell;
+            const isCurrent = idx === cell;
+            return (
+              <div key={ci} style={{
+                width: 44, height: 38, borderRadius: 5,
+                background: isCurrent ? "rgba(234,179,8,0.18)" : filled ? "rgba(59,130,246,0.1)" : "#0d0d0d",
+                border: `1px solid ${isCurrent ? GOLD : filled ? "rgba(59,130,246,0.35)" : "#1a1a1a"}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 14, fontWeight: 700,
+                color: isCurrent ? GOLD : filled ? BLUE : "#1e1e1e",
+                transition: "all 0.3s",
+              }}>
+                {filled ? v : ""}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── dp_edit ─────────────────────────────────────────────────────────────
+const EDIT_S1 = "CAT";
+const EDIT_S2 = "DOG";
+const EDIT_GRID = [[0,1,2,3],[1,1,2,3],[2,2,2,3],[3,3,3,3]];
+function WordWarpAnimation() {
+  const [cell, setCell] = useState(0);
+  const total = 4 * 4;
+  useEffect(() => {
+    const t = setTimeout(() => setCell(c => c < total - 1 ? c + 1 : 0),
+      cell === total - 1 ? 1400 : 350);
+    return () => clearTimeout(t);
+  }, [cell]);
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", gap: 2 }}>
+        {["", "", ...EDIT_S2.split("")].map((c, ci) => (
+          <div key={ci} style={{ width: 34, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: RED, ...MONO }}>{c}</div>
+        ))}
+      </div>
+      {EDIT_GRID.map((r, ri) => (
+        <div key={ri} style={{ display: "flex", gap: 2 }}>
+          <div style={{ width: 34, height: 30, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: BLUE, ...MONO }}>
+            {ri === 0 ? "" : EDIT_S1[ri - 1]}
+          </div>
+          {r.map((v, ci) => {
+            const idx = ri * 4 + ci;
+            const filled = idx <= cell;
+            const isCurrent = idx === cell;
+            const isZero = v === 0;
+            return (
+              <div key={ci} style={{
+                width: 34, height: 30, borderRadius: 3,
+                background: isCurrent ? "rgba(234,179,8,0.18)" : filled ? "#0f0f0f" : "#070707",
+                border: `1px solid ${isCurrent ? GOLD : filled ? "#1e1e1e" : "#111"}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: 700,
+                color: isCurrent ? GOLD : filled ? (v === 0 ? DIM : v <= 1 ? GREEN : v === 2 ? GOLD : RED) : "#111",
+                transition: "all 0.25s",
+              }}>
+                {filled ? v : ""}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <div style={{ fontSize: 9, color: DIM, ...MONO }}>"CAT" → "DOG" = {EDIT_GRID[3][3]} ops</div>
+    </div>
+  );
+}
+
+// ─── dp_palindrome ────────────────────────────────────────────────────────
+const LPS_STR = "BBBAB";
+const LPS_DP: number[][] = Array.from({length: 5}, () => Array(5).fill(0));
+(function buildLPS() {
+  for (let i = 0; i < 5; i++) LPS_DP[i][i] = 1;
+  for (let len = 2; len <= 5; len++) {
+    for (let i = 0; i <= 5 - len; i++) {
+      const j = i + len - 1;
+      if (LPS_STR[i] === LPS_STR[j]) LPS_DP[i][j] = LPS_DP[i+1][j-1] + 2;
+      else LPS_DP[i][j] = Math.max(LPS_DP[i+1][j], LPS_DP[i][j-1]);
+    }
+  }
+})();
+function MirrorGemAnimation() {
+  const [len, setLen] = useState(1);
+  useEffect(() => {
+    const t = setTimeout(() => setLen(l => l < 5 ? l + 1 : 1), len === 5 ? 1400 : 800);
+    return () => clearTimeout(t);
+  }, [len]);
+  return (
+    <div style={{ ...CONTAINER, flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+        {LPS_STR.split("").map((c, i) => (
+          <div key={i} style={{
+            width: 32, height: 32, borderRadius: "50%",
+            background: "rgba(168,85,247,0.12)",
+            border: `2px solid ${PURPLE}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 13, fontWeight: 700, color: PURPLE,
+          }}>{c}</div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 4 }}>
+        {Array.from({length: 5}).map((_, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {Array.from({length: 5}).map((_, j) => {
+              const valid = j >= i;
+              const inLen = valid && (j - i + 1) <= len;
+              const isCur = valid && (j - i + 1) === len;
+              return (
+                <div key={j} style={{
+                  width: 28, height: 24, borderRadius: 3,
+                  background: !valid ? "transparent" : isCur ? "rgba(234,179,8,0.18)" : inLen ? "rgba(168,85,247,0.08)" : "#090909",
+                  border: !valid ? "none" : `1px solid ${isCur ? GOLD : inLen ? "rgba(168,85,247,0.3)" : "#1a1a1a"}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700,
+                  color: !valid ? "transparent" : isCur ? GOLD : inLen ? PURPLE : "#1a1a1a",
+                }}>
+                  {valid && inLen ? LPS_DP[i][j] : ""}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 9, color: DIM, ...MONO }}>
+        LPS of "{LPS_STR}" = {LPS_DP[0][4]} · expanding len={len}
+      </div>
+    </div>
+  );
+}
+
 // ─── ALGO_CONTENT export ───────────────────────────────────────────────────
 export const ALGO_CONTENT: Partial<Record<string, AlgoContent>> = {
   pointer_trace: {
@@ -2117,5 +2502,97 @@ for i in range(1, len(s)-len(p)+1):
   if have == need: result.append(i)
 return result`,
     Animation: AllAnagramsAnimation,
+  },
+
+  dp_tabulation: {
+    title: "Bottom-Up Tabulation",
+    pseudocode: `dp[0] = 1; dp[1] = 1
+for i in range(2, n+1):
+  dp[i] = dp[i-1] + dp[i-2]
+return dp[n]`,
+    Animation: FrogLeapAnimation,
+  },
+
+  dp_rob: {
+    title: "House Robber Transition",
+    pseudocode: `dp[0] = nums[0]
+dp[1] = max(nums[0], nums[1])
+for i in range(2, n):
+  dp[i] = max(dp[i-1], dp[i-2] + nums[i])
+return dp[n-1]`,
+    Animation: VaultCrackerAnimation,
+  },
+
+  dp_coin: {
+    title: "Coin Change DP",
+    pseudocode: `dp = [inf] * (amount + 1); dp[0] = 0
+for a in range(1, amount+1):
+  for c in coins:
+    if a >= c:
+      dp[a] = min(dp[a], dp[a-c] + 1)
+return dp[amount] if dp[amount] != inf else -1`,
+    Animation: CoinForgeAnimation,
+  },
+
+  dp_lcs: {
+    title: "Longest Common Subsequence",
+    pseudocode: `dp = [[0]*(m+1) for _ in range(n+1)]
+for i in range(1, n+1):
+  for j in range(1, m+1):
+    if s1[i-1] == s2[j-1]:
+      dp[i][j] = dp[i-1][j-1] + 1
+    else:
+      dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+return dp[n][m]`,
+    Animation: GeneSpliceAnimation,
+  },
+
+  dp_knapsack: {
+    title: "0/1 Knapsack",
+    pseudocode: `dp = [0] * (W + 1)
+for weight, value in items:
+  for w in range(W, weight-1, -1):
+    dp[w] = max(dp[w], dp[w-weight] + value)
+return dp[W]`,
+    Animation: LootPackAnimation,
+  },
+
+  dp_paths: {
+    title: "Unique Paths Grid Fill",
+    pseudocode: `dp = [[1]*cols for _ in range(rows)]
+for r in range(1, rows):
+  for c in range(1, cols):
+    dp[r][c] = dp[r-1][c] + dp[r][c-1]
+return dp[rows-1][cols-1]`,
+    Animation: PixelPathAnimation,
+  },
+
+  dp_edit: {
+    title: "Edit Distance",
+    pseudocode: `dp[i][0]=i; dp[0][j]=j
+for i in range(1, n+1):
+  for j in range(1, m+1):
+    if s1[i-1]==s2[j-1]:
+      dp[i][j] = dp[i-1][j-1]
+    else:
+      dp[i][j] = 1 + min(dp[i-1][j],   # delete
+                         dp[i][j-1],   # insert
+                         dp[i-1][j-1]) # replace
+return dp[n][m]`,
+    Animation: WordWarpAnimation,
+  },
+
+  dp_palindrome: {
+    title: "Longest Palindromic Subsequence",
+    pseudocode: `for i in range(n): dp[i][i] = 1
+for length in range(2, n+1):
+  for i in range(n-length+1):
+    j = i + length - 1
+    if s[i] == s[j]:
+      dp[i][j] = dp[i+1][j-1] + 2
+    else:
+      dp[i][j] = max(dp[i+1][j], dp[i][j-1])
+return dp[0][n-1]`,
+    Animation: MirrorGemAnimation,
   },
 };

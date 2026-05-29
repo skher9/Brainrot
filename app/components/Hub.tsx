@@ -72,6 +72,16 @@ const LIVE_MODULES: Module[] = [
     description: "A frame that slides, expands, and contracts. 8 problems — max average to minimum window substring.",
     problems: 8,
   },
+  {
+    id: "dynamic-programming",
+    href: "/learn/tier1/dynamic-programming",
+    name: "Dynamic Programming",
+    tag: "TIER I · OPTIMIZATION",
+    xp: 420,
+    accent: "#818cf8",
+    description: "Fill the table, see the dependencies. 8 problems — climbing stairs to longest palindromic subsequence.",
+    problems: 8,
+  },
 ];
 
 /* ─── Nav ───────────────────────────────────────────────── */

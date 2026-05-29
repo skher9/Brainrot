@@ -2,115 +2,268 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
 
-const N = 6;
-const CELL = 58;
+// ── Constants ────────────────────────────────────────────────────────────────
 
-// Returns set of attacked cell keys for a queen at (r, c) — excludes own cell
-function getAttacked(row: number, col: number): Set<string> {
-  const attacked = new Set<string>();
-  for (let i = 0; i < N; i++) {
-    attacked.add(`${row},${i}`); // row
-    attacked.add(`${i},${col}`); // col
-  }
-  for (let d = -(N - 1); d < N; d++) {
-    const r1 = row + d, c1 = col + d; // main diagonal
-    const r2 = row + d, c2 = col - d; // anti-diagonal
-    if (r1 >= 0 && r1 < N && c1 >= 0 && c1 < N) attacked.add(`${r1},${c1}`);
-    if (r2 >= 0 && r2 < N && c2 >= 0 && c2 < N) attacked.add(`${r2},${c2}`);
-  }
-  attacked.delete(`${row},${col}`);
-  return attacked;
+const ROWS = 7;
+const COLS = 7;
+const TOTAL = ROWS * COLS; // 49
+const CELL = 54; // px per cell
+const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type CellState = "unvisited" | "visited" | "current" | "deadend";
+
+interface Wall {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
 }
 
-function isValid(queens: [number, number][]): boolean {
-  for (let i = 0; i < queens.length; i++) {
-    for (let j = i + 1; j < queens.length; j++) {
-      const [r1, c1] = queens[i];
-      const [r2, c2] = queens[j];
-      if (r1 === r2 || c1 === c2) return false;
-      if (Math.abs(r1 - r2) === Math.abs(c1 - c2)) return false;
-    }
-  }
-  return true;
+// ── Init helpers ─────────────────────────────────────────────────────────────
+
+function initWalls(): Wall[][] {
+  return Array.from({ length: ROWS }, () =>
+    Array.from({ length: COLS }, () => ({
+      top: true,
+      right: true,
+      bottom: true,
+      left: true,
+    }))
+  );
 }
 
-// Returns set of queen keys that are in conflict
-function getConflictingQueens(queens: [number, number][]): Set<string> {
-  const conflicting = new Set<string>();
-  for (let i = 0; i < queens.length; i++) {
-    for (let j = i + 1; j < queens.length; j++) {
-      const [r1, c1] = queens[i];
-      const [r2, c2] = queens[j];
-      if (r1 === r2 || c1 === c2 || Math.abs(r1 - r2) === Math.abs(c1 - c2)) {
-        conflicting.add(`${r1},${c1}`);
-        conflicting.add(`${r2},${c2}`);
-      }
-    }
-  }
-  return conflicting;
+function initCellStates(): CellState[][] {
+  return Array.from({ length: ROWS }, (_, r) =>
+    Array.from({ length: COLS }, (_, c) =>
+      r === 0 && c === 0 ? "current" : "unvisited"
+    )
+  );
 }
 
-export default function SixQueens({ onSolve, onAttempt }: GameProps) {
-  const [queens, setQueens] = useState<[number, number][]>([]);
+// ── Sound ────────────────────────────────────────────────────────────────────
+
+function playTone(
+  freq: number,
+  type: OscillatorType = "sine",
+  dur = 0.12
+): void {
+  try {
+    const ctx = new (window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch {
+    // silently ignore audio errors
+  }
+}
+
+function playWin(): void {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone(freq, "sine", 0.18), i * 120);
+  });
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
+
+export default function MazeCaver({ onSolve, onAttempt }: GameProps) {
+  const [walls, setWalls] = useState<Wall[][]>(() => initWalls());
+  const [cellStates, setCellStates] = useState<CellState[][]>(() =>
+    initCellStates()
+  );
+  const [current, setCurrent] = useState<[number, number]>([0, 0]);
+  const [stack, setStack] = useState<[number, number][]>([[0, 0]]);
   const [backtracks, setBacktracks] = useState(0);
   const [solved, setSolved] = useState(false);
-  const [shakingCell, setShakingCell] = useState<string | null>(null);
+  const [visitedCount, setVisitedCount] = useState(1);
+  const [deadEnd, setDeadEnd] = useState(false);
+  const [flashCell, setFlashCell] = useState<string | null>(null);
+  const [attemptFired, setAttemptFired] = useState(false);
   const solvedCalledRef = useRef(false);
 
-  // All attacked cells (union across all placed queens)
-  const allAttacked = useCallback((): Set<string> => {
-    const result = new Set<string>();
-    for (const [r, c] of queens) {
-      for (const k of getAttacked(r, c)) result.add(k);
-    }
-    return result;
-  }, [queens]);
+  // Derive which cells are valid move targets from current
+  const getValidMoves = useCallback(
+    (r: number, c: number, states: CellState[][]): [number, number][] => {
+      const dirs: [number, number, keyof Wall, keyof Wall][] = [
+        [-1, 0, "top", "bottom"],
+        [1, 0, "bottom", "top"],
+        [0, 1, "right", "left"],
+        [0, -1, "left", "right"],
+      ];
+      return dirs
+        .map(([dr, dc]) => [r + dr, c + dc] as [number, number])
+        .filter(
+          ([nr, nc]) =>
+            nr >= 0 &&
+            nr < ROWS &&
+            nc >= 0 &&
+            nc < COLS &&
+            states[nr][nc] === "unvisited"
+        );
+    },
+    []
+  );
 
-  const attackedCells = allAttacked();
-  const conflictingQueens = getConflictingQueens(queens);
-  const queenCells = new Set(queens.map(([r, c]) => `${r},${c}`));
+  // Recompute dead-end whenever current or cellStates changes
+  useEffect(() => {
+    if (solved) return;
+    const moves = getValidMoves(current[0], current[1], cellStates);
+    setDeadEnd(moves.length === 0 && stack.length > 1);
+  }, [current, cellStates, stack, solved, getValidMoves]);
 
   const handleCellClick = useCallback(
     (row: number, col: number) => {
       if (solved) return;
-      const key = `${row},${col}`;
 
-      // Click on existing queen — remove it (backtrack)
-      if (queenCells.has(key)) {
-        setQueens((prev) => prev.filter(([r, c]) => !(r === row && c === col)));
-        setBacktracks((b) => b + 1);
-        return;
+      const [cr, cc] = current;
+
+      // ── Backtrack: player clicks the cell directly below top of stack ──
+      // On dead end, allow clicking the previous cell (stack[-2]) to backtrack
+      if (deadEnd) {
+        if (stack.length < 2) return;
+        const [pr, pc] = stack[stack.length - 2];
+        if (row === pr && col === pc) {
+          // Backtrack
+          playTone(300, "triangle", 0.1);
+          setBacktracks((b) => b + 1);
+          const newStack = stack.slice(0, -1);
+          setStack(newStack);
+          setCurrent([pr, pc]);
+          setCellStates((prev) => {
+            const next = prev.map((row_) => [...row_]) as CellState[][];
+            next[cr][cc] = "visited"; // demote dead-end cell to visited
+            next[pr][pc] = "current";
+            return next;
+          });
+          setDeadEnd(false);
+          // Flash the backtracked-to cell
+          setFlashCell(`${pr},${pc}`);
+          setTimeout(() => setFlashCell(null), 400);
+        }
+        return; // on dead end, only the backtrack click is accepted
       }
 
-      // Click on attacked cell — shake and reject
-      if (attackedCells.has(key)) {
-        setShakingCell(key);
-        setTimeout(() => setShakingCell(null), 400);
-        return;
+      // ── Move: must be adjacent unvisited cell ──
+      const dr = row - cr;
+      const dc = col - cc;
+      const isAdjacent =
+        (Math.abs(dr) === 1 && dc === 0) || (dr === 0 && Math.abs(dc) === 1);
+      if (!isAdjacent) return;
+      if (cellStates[row][col] !== "unvisited") return;
+
+      // Fire onAttempt on first move
+      if (!attemptFired) {
+        onAttempt();
+        setAttemptFired(true);
       }
 
-      // Place queen
-      onAttempt();
-      const next: [number, number][] = [...queens, [row, col]];
-      setQueens(next);
+      // Determine wall direction
+      type WallKey = keyof Wall;
+      let fromWall: WallKey = "top";
+      let toWall: WallKey = "bottom";
+      if (dr === -1) {
+        fromWall = "top";
+        toWall = "bottom";
+      } else if (dr === 1) {
+        fromWall = "bottom";
+        toWall = "top";
+      } else if (dc === 1) {
+        fromWall = "right";
+        toWall = "left";
+      } else {
+        fromWall = "left";
+        toWall = "right";
+      }
 
-      if (next.length === N && isValid(next)) {
+      // Carve walls
+      setWalls((prev) => {
+        const next = prev.map((row_) => row_.map((w) => ({ ...w })));
+        next[cr][cc][fromWall] = false;
+        next[row][col][toWall] = false;
+        return next;
+      });
+
+      const newVisitedCount = visitedCount + 1;
+      setVisitedCount(newVisitedCount);
+
+      // Update cell states
+      setCellStates((prev) => {
+        const next = prev.map((row_) => [...row_]) as CellState[][];
+        next[cr][cc] = "visited";
+        next[row][col] = "current";
+        return next;
+      });
+
+      const newStack: [number, number][] = [...stack, [row, col]];
+      setStack(newStack);
+      setCurrent([row, col]);
+
+      // Rising pitch as maze fills
+      playTone(400 + newVisitedCount * 8);
+
+      // Check win
+      if (newVisitedCount === TOTAL) {
         setSolved(true);
+        playWin();
       }
     },
-    [queens, attackedCells, queenCells, solved, onAttempt]
+    [
+      current,
+      cellStates,
+      stack,
+      visitedCount,
+      solved,
+      deadEnd,
+      attemptFired,
+      onAttempt,
+    ]
   );
 
-  // Fire onSolve after a brief pulse delay
+  // Dead-end sound
+  useEffect(() => {
+    if (deadEnd && !solved) {
+      playTone(200, "sawtooth", 0.15);
+    }
+  }, [deadEnd, solved]);
+
+  // Fire onSolve after delay
   useEffect(() => {
     if (solved && !solvedCalledRef.current) {
       solvedCalledRef.current = true;
-      const t = setTimeout(() => onSolve(), 1400);
+      const t = setTimeout(() => onSolve(), 1000);
       return () => clearTimeout(t);
     }
   }, [solved, onSolve]);
 
-  const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
+  // Compute valid moves for highlighting
+  const validMoves = solved
+    ? new Set<string>()
+    : new Set(
+        deadEnd
+          ? [] // on dead end, highlight only the backtrack target
+          : getValidMoves(current[0], current[1], cellStates).map(
+              ([r, c]) => `${r},${c}`
+            )
+      );
+
+  // On dead end, mark the previous cell as the backtrack target
+  const backtrackTarget =
+    deadEnd && stack.length >= 2
+      ? `${stack[stack.length - 2][0]},${stack[stack.length - 2][1]}`
+      : null;
+
+  const mazeWidth = COLS * CELL;
 
   return (
     <div
@@ -123,7 +276,7 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
         fontFamily: MONO,
         userSelect: "none",
         overflowY: "auto",
-        padding: "24px 16px 32px",
+        padding: "20px 16px 32px",
         boxSizing: "border-box",
       }}
     >
@@ -131,8 +284,8 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
       <div
         style={{
           width: "100%",
-          maxWidth: N * CELL + 8,
-          marginBottom: 18,
+          maxWidth: mazeWidth + 8,
+          marginBottom: 14,
         }}
       >
         <div
@@ -140,13 +293,13 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
-            marginBottom: 6,
+            marginBottom: 5,
           }}
         >
           <span
             style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}
           >
-            SIX QUEENS
+            MAZE CAVER
           </span>
           <span
             style={{
@@ -174,90 +327,350 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
             lineHeight: 1.7,
           }}
         >
-          PLACE 6 QUEENS — NO TWO CAN SHARE A ROW, COLUMN, OR DIAGONAL
+          CARVE PASSAGES DEPTH-FIRST — VISIT ALL 49 CELLS
           <br />
-          CLICK CELL TO PLACE · CLICK QUEEN TO REMOVE (BACKTRACK) · RED = UNDER
-          ATTACK
-        </div>
-        <div
-          style={{
-            marginTop: 6,
-            fontSize: 9,
-            color: "#4b5563",
-            letterSpacing: "0.08em",
-          }}
-        >
-          4 SOLUTIONS EXIST
+          CLICK ADJACENT UNVISITED CELL TO CARVE · DEAD END = CLICK BACK TO
+          BACKTRACK
         </div>
       </div>
 
-      {/* ── Board ── */}
+      {/* ── Main area: maze + side panel ── */}
       <div
         style={{
-          position: "relative",
-          display: "grid",
-          gridTemplateColumns: `repeat(${N}, ${CELL}px)`,
-          gridTemplateRows: `repeat(${N}, ${CELL}px)`,
-          gap: 3,
-          padding: 6,
-          background: "#111",
-          border: "1px solid #1e1e1e",
-          borderRadius: 8,
+          display: "flex",
+          gap: 16,
+          alignItems: "flex-start",
         }}
       >
-        {Array.from({ length: N }, (_, row) =>
-          Array.from({ length: N }, (_, col) => {
-            const key = `${row},${col}`;
-            const hasQueen = queenCells.has(key);
-            const isAttacked = attackedCells.has(key);
-            const isConflicting = conflictingQueens.has(key);
-            const isShaking = shakingCell === key;
+        {/* ── Maze grid ── */}
+        <div
+          style={{
+            position: "relative",
+            width: mazeWidth,
+            height: ROWS * CELL,
+            background: "#0d0d0d",
+            border: "2px solid #1e1e1e",
+            borderRadius: 6,
+            flexShrink: 0,
+          }}
+        >
+          {Array.from({ length: ROWS }, (_, row) =>
+            Array.from({ length: COLS }, (_, col) => {
+              const key = `${row},${col}`;
+              const state = cellStates[row][col];
+              const w = walls[row][col];
+              const isCurrent = state === "current";
+              const isVisited = state === "visited";
+              const isUnvisited = state === "unvisited";
+              const isValid = validMoves.has(key);
+              const isBacktrackTarget = backtrackTarget === key;
+              const isFlashing = flashCell === key;
 
-            let bg = "#111";
-            let border = "1px solid #222";
-            let boxShadow = "none";
+              let bg = "#0d0d0d"; // unvisited
+              let boxShadow = "none";
 
-            if (solved && hasQueen) {
-              bg = "rgba(34,197,94,0.12)";
-              border = "1px solid rgba(34,197,94,0.5)";
-              boxShadow = "0 0 12px rgba(34,197,94,0.2)";
-            } else if (isConflicting) {
-              bg = "rgba(239,68,68,0.22)";
-              border = "1px solid rgba(239,68,68,0.6)";
-            } else if (hasQueen) {
-              bg = "rgba(251,191,36,0.08)";
-              border = "1px solid rgba(251,191,36,0.3)";
-            } else if (isAttacked) {
-              bg = "rgba(239,68,68,0.09)";
-              border = "1px solid rgba(239,68,68,0.25)";
-            }
+              if (solved) {
+                bg = "rgba(34,197,94,0.10)";
+              } else if (isCurrent && deadEnd) {
+                bg = "rgba(239,68,68,0.25)";
+                boxShadow = "inset 0 0 12px rgba(239,68,68,0.3)";
+              } else if (isCurrent) {
+                bg = "rgba(251,191,36,0.12)";
+                boxShadow = "0 0 12px rgba(251,191,36,0.6)";
+              } else if (isFlashing || isBacktrackTarget) {
+                bg = "rgba(251,191,36,0.10)";
+                boxShadow = "0 0 10px rgba(251,191,36,0.4)";
+              } else if (isVisited) {
+                bg = "rgba(251,191,36,0.05)";
+              } else if (isValid) {
+                bg = "rgba(34,197,94,0.07)";
+              }
 
-            return (
-              <Cell
-                key={key}
-                row={row}
-                col={col}
-                hasQueen={hasQueen}
-                isAttacked={isAttacked}
-                isConflicting={isConflicting}
-                isSolved={solved}
-                isShaking={isShaking}
-                bg={bg}
-                border={border}
-                boxShadow={boxShadow}
-                cellSize={CELL}
-                onClick={handleCellClick}
+              // Wall borders — wall present = thick dark border, no wall = transparent
+              const borderTop = w.top
+                ? "2px solid #2a2a2a"
+                : "2px solid transparent";
+              const borderRight = w.right
+                ? "2px solid #2a2a2a"
+                : "2px solid transparent";
+              const borderBottom = w.bottom
+                ? "2px solid #2a2a2a"
+                : "2px solid transparent";
+              const borderLeft = w.left
+                ? "2px solid #2a2a2a"
+                : "2px solid transparent";
+
+              const animName = solved
+                ? `mazeWin`
+                : isCurrent && deadEnd
+                ? "deadEndFlash"
+                : isCurrent
+                ? "currentPulse"
+                : isValid
+                ? "validPulse"
+                : isBacktrackTarget
+                ? "backtrackPulse"
+                : "none";
+
+              const animDur = solved
+                ? `${0.3 + (row * COLS + col) * 0.015}s`
+                : isCurrent && deadEnd
+                ? "0.5s"
+                : isCurrent
+                ? "1.4s"
+                : isValid
+                ? "1.2s"
+                : isBacktrackTarget
+                ? "0.6s"
+                : "0s";
+
+              return (
+                <div
+                  key={key}
+                  onClick={() => handleCellClick(row, col)}
+                  style={{
+                    position: "absolute",
+                    top: row * CELL,
+                    left: col * CELL,
+                    width: CELL,
+                    height: CELL,
+                    background: bg,
+                    borderTop,
+                    borderRight,
+                    borderBottom,
+                    borderLeft,
+                    boxSizing: "border-box",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor:
+                      isCurrent || isUnvisited ? "pointer" : "default",
+                    transition:
+                      "background 0.15s, box-shadow 0.15s, border-color 0.2s",
+                    boxShadow,
+                    animation:
+                      animName !== "none"
+                        ? `${animName} ${animDur} ease infinite`
+                        : "none",
+                  }}
+                >
+                  {/* Current position marker */}
+                  {isCurrent && !solved && (
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        background: deadEnd ? "#ef4444" : "#fbbf24",
+                        boxShadow: deadEnd
+                          ? "0 0 10px rgba(239,68,68,0.7)"
+                          : "0 0 10px rgba(251,191,36,0.7)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+
+                  {/* Visited trail dot */}
+                  {isVisited && !solved && (
+                    <div
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: "rgba(251,191,36,0.3)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+
+                  {/* Backtrack arrow */}
+                  {isBacktrackTarget && !solved && (
+                    <span
+                      style={{
+                        fontSize: 16,
+                        color: "#fbbf24",
+                        opacity: 0.85,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ↩
+                    </span>
+                  )}
+
+                  {/* Valid move pulse ring */}
+                  {isValid && !solved && (
+                    <div
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        border: "2px solid rgba(34,197,94,0.55)",
+                        flexShrink: 0,
+                        animation: "validPulse 1.2s ease infinite",
+                      }}
+                    />
+                  )}
+
+                  {/* Win fill */}
+                  {solved && (
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "rgba(34,197,94,0.45)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+
+                  {/* Start cell label */}
+                  {row === 0 && col === 0 && !isCurrent && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 3,
+                        left: 4,
+                        fontSize: 7,
+                        color: "rgba(251,191,36,0.4)",
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      S
+                    </span>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* ── Side panel ── */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            minWidth: 80,
+          }}
+        >
+          {/* Depth indicator */}
+          <div
+            style={{
+              padding: "10px 12px",
+              background: "#111",
+              border: "1px solid #1e1e1e",
+              borderRadius: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                color: "#475569",
+                letterSpacing: "0.1em",
+                marginBottom: 5,
+              }}
+            >
+              DEPTH
+            </div>
+            <div
+              style={{
+                fontSize: 22,
+                color: "#fbbf24",
+                fontWeight: 700,
+                lineHeight: 1,
+              }}
+            >
+              {stack.length - 1}
+            </div>
+          </div>
+
+          {/* Visited counter */}
+          <div
+            style={{
+              padding: "10px 12px",
+              background: "#111",
+              border: "1px solid #1e1e1e",
+              borderRadius: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                color: "#475569",
+                letterSpacing: "0.1em",
+                marginBottom: 5,
+              }}
+            >
+              VISITED
+            </div>
+            <div
+              style={{
+                fontSize: 16,
+                color: "#64748b",
+                fontWeight: 700,
+                lineHeight: 1,
+              }}
+            >
+              {visitedCount}
+              <span style={{ fontSize: 10, color: "#374151" }}>/49</span>
+            </div>
+          </div>
+
+          {/* Stack depth bar */}
+          <div
+            style={{
+              padding: "10px 12px",
+              background: "#111",
+              border: "1px solid #1e1e1e",
+              borderRadius: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                color: "#475569",
+                letterSpacing: "0.1em",
+                marginBottom: 6,
+              }}
+            >
+              STACK
+            </div>
+            <div
+              style={{
+                width: 10,
+                height: 60,
+                background: "#0d0d0d",
+                border: "1px solid #222",
+                borderRadius: 3,
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: `${Math.min(100, (stack.length / TOTAL) * 100)}%`,
+                  background: deadEnd
+                    ? "rgba(239,68,68,0.6)"
+                    : "rgba(251,191,36,0.6)",
+                  transition: "height 0.2s, background 0.2s",
+                  borderRadius: 2,
+                }}
               />
-            );
-          })
-        )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Status bar ── */}
       <div
         style={{
-          marginTop: 18,
-          width: N * CELL + 18,
+          marginTop: 12,
+          width: mazeWidth + 8 + 80 + 16,
           maxWidth: "100%",
           display: "flex",
           justifyContent: "space-between",
@@ -268,26 +681,33 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
         }}
       >
         <span>
-          QUEENS:{" "}
+          CELLS:{" "}
           <span style={{ color: "#64748b", fontWeight: 700 }}>
-            {queens.length} / {N}
+            {visitedCount} / {TOTAL}
           </span>
         </span>
-        {queens.length > 0 && !solved && conflictingQueens.size > 0 && (
-          <span style={{ color: "#ef4444" }}>CONFLICT — BACKTRACK</span>
+        {deadEnd && !solved && (
+          <span
+            style={{
+              color: "#ef4444",
+              animation: "blink 0.8s step-end infinite",
+            }}
+          >
+            DEAD END — CLICK ↩ TO BACKTRACK
+          </span>
         )}
-        {queens.length === N && !solved && conflictingQueens.size === 0 && (
-          <span style={{ color: "#22c55e" }}>CHECKING...</span>
+        {!deadEnd && !solved && visitedCount > 1 && (
+          <span style={{ color: "#4b5563" }}>DFS DEPTH: {stack.length - 1}</span>
         )}
         {solved && (
           <span style={{ color: "#22c55e", letterSpacing: "0.1em" }}>
-            SOLVED ✓
+            MAZE COMPLETE ✓
           </span>
         )}
       </div>
 
-      {/* ── Hint row ── */}
-      {backtracks === 0 && queens.length >= 2 && !solved && (
+      {/* ── Hint / message row ── */}
+      {visitedCount === 1 && !solved && (
         <div
           style={{
             marginTop: 12,
@@ -298,15 +718,35 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
             fontSize: 9,
             color: "#78716c",
             letterSpacing: "0.06em",
-            maxWidth: N * CELL + 18,
+            maxWidth: mazeWidth + 96 + 16,
             width: "100%",
           }}
         >
-          HIT A DEAD END? CLICK A ♛ TO REMOVE IT — THAT IS BACKTRACKING
+          YOU ARE THE DFS ALGORITHM — CLICK A GLOWING GREEN NEIGHBOUR TO CARVE
         </div>
       )}
 
-      {backtracks > 0 && !solved && (
+      {deadEnd && !solved && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "8px 14px",
+            background: "rgba(239,68,68,0.04)",
+            border: "1px solid rgba(239,68,68,0.15)",
+            borderRadius: 4,
+            fontSize: 9,
+            color: "#7f1d1d",
+            letterSpacing: "0.06em",
+            maxWidth: mazeWidth + 96 + 16,
+            width: "100%",
+          }}
+        >
+          DEAD END — ALL NEIGHBOURS ALREADY VISITED. CLICK ↩ TO BACKTRACK TO
+          PREVIOUS CELL.
+        </div>
+      )}
+
+      {backtracks > 0 && !deadEnd && !solved && (
         <div
           style={{
             marginTop: 12,
@@ -317,11 +757,11 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
             fontSize: 9,
             color: "#78716c",
             letterSpacing: "0.06em",
-            maxWidth: N * CELL + 18,
+            maxWidth: mazeWidth + 96 + 16,
             width: "100%",
           }}
         >
-          BACKTRACK #{backtracks} — UNDO THAT CHOICE AND TRY ANOTHER PATH
+          BACKTRACK #{backtracks} — RETURNED TO LAST FORK, TRYING ANOTHER BRANCH
         </div>
       )}
 
@@ -337,134 +777,46 @@ export default function SixQueens({ onSolve, onAttempt }: GameProps) {
             color: "#22c55e",
             letterSpacing: "0.08em",
             textAlign: "center",
-            maxWidth: N * CELL + 18,
+            maxWidth: mazeWidth + 96 + 16,
             width: "100%",
             lineHeight: 1.8,
           }}
         >
-          BOARD SOLVED IN {backtracks} BACKTRACK{backtracks !== 1 ? "S" : ""}
+          ALL 49 CELLS CARVED — {backtracks} BACKTRACK
+          {backtracks !== 1 ? "S" : ""}
           <br />
           <span style={{ fontSize: 9, color: "#4ade80", opacity: 0.7 }}>
-            YOU JUST DISCOVERED BACKTRACKING
+            YOU JUST SIMULATED RECURSIVE DFS BACKTRACKING
           </span>
         </div>
       )}
 
       <style>{`
-        @keyframes shake {
-          0%   { transform: translateX(0); }
-          20%  { transform: translateX(-5px); }
-          40%  { transform: translateX(5px); }
-          60%  { transform: translateX(-4px); }
-          80%  { transform: translateX(4px); }
-          100% { transform: translateX(0); }
+        @keyframes currentPulse {
+          0%, 100% { box-shadow: 0 0 8px rgba(251,191,36,0.5); }
+          50%       { box-shadow: 0 0 18px rgba(251,191,36,0.9); }
         }
-        @keyframes queenPulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50%       { transform: scale(1.18); opacity: 0.85; }
+        @keyframes deadEndFlash {
+          0%, 100% { background: rgba(239,68,68,0.18); }
+          50%       { background: rgba(239,68,68,0.38); }
         }
-        @keyframes solvedGlow {
-          0%, 100% { box-shadow: 0 0 8px rgba(34,197,94,0.25); }
-          50%       { box-shadow: 0 0 22px rgba(34,197,94,0.55); }
+        @keyframes validPulse {
+          0%, 100% { opacity: 0.4; transform: scale(0.85); }
+          50%       { opacity: 1;   transform: scale(1.15); }
+        }
+        @keyframes backtrackPulse {
+          0%, 100% { box-shadow: 0 0 6px rgba(251,191,36,0.3); }
+          50%       { box-shadow: 0 0 14px rgba(251,191,36,0.7); }
+        }
+        @keyframes mazeWin {
+          0%, 100% { background: rgba(34,197,94,0.07); }
+          50%       { background: rgba(34,197,94,0.18); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0; }
         }
       `}</style>
-    </div>
-  );
-}
-
-// ── Cell sub-component ──────────────────────────────────────────────────────
-
-interface CellProps {
-  row: number;
-  col: number;
-  hasQueen: boolean;
-  isAttacked: boolean;
-  isConflicting: boolean;
-  isSolved: boolean;
-  isShaking: boolean;
-  bg: string;
-  border: string;
-  boxShadow: string;
-  cellSize: number;
-  onClick: (r: number, c: number) => void;
-}
-
-function Cell({
-  row,
-  col,
-  hasQueen,
-  isAttacked,
-  isConflicting,
-  isSolved,
-  isShaking,
-  bg,
-  border,
-  boxShadow,
-  cellSize,
-  onClick,
-}: CellProps) {
-  const canPlace = !hasQueen && !isAttacked;
-
-  const animStyle: React.CSSProperties = isShaking
-    ? { animation: "shake 0.35s ease" }
-    : isSolved && hasQueen
-    ? { animation: "solvedGlow 1.1s ease infinite, queenPulse 1.1s ease infinite" }
-    : isConflicting
-    ? { animation: "shake 0.6s ease infinite" }
-    : {};
-
-  return (
-    <div
-      onClick={() => onClick(row, col)}
-      style={{
-        width: cellSize,
-        height: cellSize,
-        background: bg,
-        border,
-        borderRadius: 4,
-        boxSizing: "border-box",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: hasQueen ? "pointer" : canPlace ? "pointer" : "not-allowed",
-        transition: "background 0.12s, border-color 0.12s, box-shadow 0.12s",
-        position: "relative",
-        boxShadow,
-        ...animStyle,
-      }}
-    >
-      {hasQueen && (
-        <span
-          style={{
-            fontSize: Math.round(cellSize * 0.5),
-            lineHeight: 1,
-            color: isConflicting
-              ? "#ef4444"
-              : isSolved
-              ? "#4ade80"
-              : "#fbbf24",
-            textShadow: isConflicting
-              ? "0 0 10px rgba(239,68,68,0.5)"
-              : isSolved
-              ? "0 0 14px rgba(74,222,128,0.6)"
-              : "0 0 10px rgba(251,191,36,0.4)",
-            transition: "color 0.2s",
-          }}
-        >
-          ♛
-        </span>
-      )}
-      {!hasQueen && isAttacked && (
-        <span
-          style={{
-            fontSize: Math.round(cellSize * 0.22),
-            color: "rgba(239,68,68,0.3)",
-            lineHeight: 1,
-          }}
-        >
-          ×
-        </span>
-      )}
     </div>
   );
 }

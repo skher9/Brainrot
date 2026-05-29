@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 
 export interface AlgoContent {
   title: string;
@@ -1471,6 +1471,335 @@ function GraphAnalysisAnimation() {
   );
 }
 
+// ─── Sliding Window Animations ─────────────────────────────────────────────
+
+const SW_ARRAY = [2, 4, 1, 7, 3, 5, 8, 6];
+const SW_K = 3;
+
+function FixedWindowAnimation() {
+  const [pos, setPos] = useState(0);
+  const maxPos = SW_ARRAY.length - SW_K;
+  useEffect(() => {
+    const t = setInterval(() => setPos(p => (p >= maxPos ? 0 : p + 1)), 700);
+    return () => clearInterval(t);
+  }, []);
+  const curSum = SW_ARRAY.slice(pos, pos + SW_K).reduce((a, b) => a + b, 0);
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>FIXED WINDOW k={SW_K} — SLIDE RIGHT</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {SW_ARRAY.map((v, i) => {
+          const inWin = i >= pos && i < pos + SW_K;
+          return (
+            <motion.div key={i} animate={{ background: inWin ? "rgba(16,185,129,0.2)" : "#111", borderColor: inWin ? "#10b981" : "#333", color: inWin ? "#4ade80" : "#475569" }}
+              style={{ width: 38, height: 38, border: "1px solid #333", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, transition: "all 0.3s" }}>
+              {v}
+            </motion.div>
+          );
+        })}
+      </div>
+      <motion.div key={pos} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} style={{ fontSize: 13, color: "#10b981", fontWeight: 600 }}>
+        [{SW_ARRAY.slice(pos, pos + SW_K).join(" + ")}] = {curSum}
+      </motion.div>
+      <div style={{ fontSize: 9, color: "#374151" }}>O(n) — no nested loop</div>
+    </div>
+  );
+}
+
+const SW_STRING = ["a","b","c","a","b","c","b","b"];
+
+function VariableWindowAnimation() {
+  const frames = useMemo(() => {
+    const f: { L: number; R: number; label: string }[] = [];
+    const seen = new Set<string>();
+    let L = 0;
+    for (let R = 0; R < SW_STRING.length; R++) {
+      while (seen.has(SW_STRING[R])) { seen.delete(SW_STRING[L]); L++; }
+      seen.add(SW_STRING[R]);
+      f.push({ L, R, label: `window [${L}..${R}] len=${R - L + 1}` });
+    }
+    return f;
+  }, []);
+  const [fi, setFi] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setFi(i => (i + 1) % frames.length), 900);
+    return () => clearInterval(t);
+  }, [frames]);
+  const { L, R, label } = frames[fi];
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>VARIABLE WINDOW — EXPAND / SHRINK</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {SW_STRING.map((c, i) => {
+          const inWin = i >= L && i <= R;
+          const isL = i === L, isR = i === R;
+          return (
+            <motion.div key={i} animate={{ background: inWin ? "rgba(16,185,129,0.18)" : "#111", borderColor: isL ? "#f43f5e" : isR ? "#10b981" : inWin ? "#10b981" : "#333" }}
+              style={{ width: 34, height: 34, border: "2px solid #333", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: inWin ? "#e2e8f0" : "#374151", transition: "all 0.3s" }}>
+              {c}
+            </motion.div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 24, fontSize: 9 }}>
+        <span style={{ color: "#f43f5e" }}>L={L}</span>
+        <span style={{ color: "#10b981" }}>R={R}</span>
+      </div>
+      <div style={{ fontSize: 10, color: "#64748b" }}>{label}</div>
+    </div>
+  );
+}
+
+function FreqWindowAnimation() {
+  const s = "cbaebabc", p = "abc";
+  const pLen = p.length;
+  const [step, setStep] = useState(0);
+  const maxStep = s.length - pLen;
+  useEffect(() => {
+    const t = setInterval(() => setStep(i => (i > maxStep ? 0 : i + 1)), 800);
+    return () => clearInterval(t);
+  }, [maxStep]);
+  const win = s.slice(step, step + pLen);
+  const isMatch = [...win].sort().join("") === [...p].sort().join("");
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>FREQ MAP WINDOW — FIND ANAGRAM OF "{p}"</div>
+      <div style={{ display: "flex", gap: 5 }}>
+        {[...s].map((c, i) => {
+          const inWin = i >= step && i < step + pLen;
+          return (
+            <motion.div key={i} animate={{ background: inWin ? (isMatch ? "rgba(16,185,129,0.25)" : "rgba(251,191,36,0.15)") : "#111", borderColor: inWin ? (isMatch ? "#10b981" : "#fbbf24") : "#333" }}
+              style={{ width: 36, height: 36, border: "1px solid #333", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: inWin ? "#e2e8f0" : "#374151", transition: "all 0.3s" }}>
+              {c}
+            </motion.div>
+          );
+        })}
+      </div>
+      <motion.div key={step + "-" + isMatch} initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={{ fontSize: 13, color: isMatch ? "#4ade80" : "#fbbf24", fontWeight: 700 }}>
+        "{win}" {isMatch ? "✓ ANAGRAM" : "≠ anagram"}
+      </motion.div>
+      <div style={{ fontSize: 9, color: "#374151" }}>window [{step}..{step + pLen - 1}] · slide every step</div>
+    </div>
+  );
+}
+
+function AtMostKAnimation() {
+  const arr = ["A","B","C","B","B","C","A","A"];
+  const K_VAL = 2;
+  const frames = useMemo(() => {
+    const f: { L: number; R: number; distinct: string[] }[] = [];
+    const counts: Record<string, number> = {};
+    let L = 0;
+    for (let R = 0; R < arr.length; R++) {
+      counts[arr[R]] = (counts[arr[R]] ?? 0) + 1;
+      while (Object.keys(counts).length > K_VAL) {
+        counts[arr[L]]--;
+        if (counts[arr[L]] === 0) delete counts[arr[L]];
+        L++;
+      }
+      f.push({ L, R, distinct: Object.keys(counts) });
+    }
+    return f;
+  }, []);
+  const [fi, setFi] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setFi(i => (i + 1) % frames.length), 800);
+    return () => clearInterval(t);
+  }, [frames]);
+  const { L, R, distinct } = frames[fi];
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>AT MOST {K_VAL} DISTINCT — SHRINK WHEN NEEDED</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {arr.map((c, i) => {
+          const inWin = i >= L && i <= R;
+          const colors: Record<string, string> = { A: "#f43f5e", B: "#fbbf24", C: "#a78bfa" };
+          return (
+            <motion.div key={i} animate={{ background: inWin ? "rgba(16,185,129,0.12)" : "#111", borderColor: inWin ? (colors[c] ?? "#10b981") : "#333" }}
+              style={{ width: 36, height: 36, border: "2px solid #333", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: inWin ? (colors[c] ?? "#e2e8f0") : "#374151", transition: "all 0.3s" }}>
+              {c}
+            </motion.div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: "#64748b" }}>
+        distinct: [{distinct.join(",")}] · len={R - L + 1}
+      </div>
+    </div>
+  );
+}
+
+function MonotonicDequeAnimation() {
+  const arr = [3, 1, 3, 1, 2, 6, 4, 8, 7];
+  const WIN = 3;
+  const frames = useMemo(() => {
+    const f: { i: number; dq: number[]; maxVal: number }[] = [];
+    const dq: number[] = [];
+    for (let i = 0; i < arr.length; i++) {
+      while (dq.length && dq[0] < i - WIN + 1) dq.shift();
+      while (dq.length && arr[dq[dq.length - 1]] < arr[i]) dq.pop();
+      dq.push(i);
+      if (i >= WIN - 1) f.push({ i, dq: [...dq], maxVal: arr[dq[0]] });
+    }
+    return f;
+  }, []);
+  const [fi, setFi] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setFi(i => (i + 1) % frames.length), 900);
+    return () => clearInterval(t);
+  }, [frames]);
+  const { i: ci, dq, maxVal } = frames[fi];
+  const winStart = ci - WIN + 1;
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>MONOTONIC DEQUE · WINDOW MAX k={WIN}</div>
+      <div style={{ display: "flex", gap: 5 }}>
+        {arr.map((v, idx) => {
+          const inWin = idx >= winStart && idx <= ci;
+          const isMax = idx === dq[0];
+          return (
+            <motion.div key={idx} animate={{ background: isMax ? "rgba(251,191,36,0.2)" : inWin ? "rgba(16,185,129,0.1)" : "#111", borderColor: isMax ? "#fbbf24" : inWin ? "#10b981" : "#333" }}
+              style={{ width: 34, height: 34, border: "1px solid #333", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: isMax ? "#fbbf24" : inWin ? "#10b981" : "#374151", transition: "all 0.3s" }}>
+              {v}
+            </motion.div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: "#64748b" }}>deque: [{dq.map(i => arr[i]).join(",")}] · max={maxVal}</div>
+    </div>
+  );
+}
+
+function MinWindowAnimation() {
+  const s = "ADOBECODEBANC", t = "ABC";
+  const frames = useMemo(() => {
+    const need: Record<string, number> = {};
+    for (const c of t) need[c] = (need[c] ?? 0) + 1;
+    const f: { L: number; R: number; formed: number; valid: boolean }[] = [];
+    const have: Record<string, number> = {};
+    let L = 0, formed = 0;
+    const required = Object.keys(need).length;
+    for (let R = 0; R < s.length; R++) {
+      const c = s[R];
+      have[c] = (have[c] ?? 0) + 1;
+      if (c in need && have[c] === need[c]) formed++;
+      if (formed === required) {
+        f.push({ L, R, formed, valid: true });
+        while (formed === required) {
+          have[s[L]]--;
+          if (s[L] in need && have[s[L]] < need[s[L]]) formed--;
+          L++;
+        }
+      } else {
+        f.push({ L, R, formed, valid: false });
+      }
+    }
+    return f.filter((_, i) => i % 2 === 0);
+  }, []);
+  const [fi, setFi] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setFi(i => (i + 1) % frames.length), 700);
+    return () => clearInterval(t);
+  }, [frames]);
+  const { L, R, formed, valid } = frames[fi];
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>MIN WINDOW SUBSTRING · target="{t}"</div>
+      <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "center", maxWidth: 370 }}>
+        {[...s].map((c, i) => {
+          const inWin = i >= L && i <= R;
+          const isNeeded = t.includes(c);
+          return (
+            <motion.div key={i} animate={{ background: valid && inWin ? "rgba(16,185,129,0.2)" : inWin ? "rgba(251,191,36,0.12)" : "#111", borderColor: valid && inWin ? "#10b981" : isNeeded && inWin ? "#fbbf24" : "#333" }}
+              style={{ width: 24, height: 28, border: "1px solid #333", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: inWin ? "#e2e8f0" : "#374151", transition: "all 0.2s" }}>
+              {c}
+            </motion.div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: valid ? "#4ade80" : "#fbbf24" }}>
+        {valid ? `✓ valid window [${L}..${R}]` : `need ${Object.keys({ A: 0, B: 0, C: 0 }).length - formed} more`}
+      </div>
+    </div>
+  );
+}
+
+function KReplacementAnimation() {
+  const s = "AABABBA";
+  const K_VAL = 1;
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setStep(i => (i + 1) % s.length), 800);
+    return () => clearInterval(t);
+  }, []);
+  const count: Record<string, number> = {};
+  let L = 0, maxFreq = 0, best = 0;
+  for (let R = 0; R <= step; R++) {
+    count[s[R]] = (count[s[R]] ?? 0) + 1;
+    maxFreq = Math.max(maxFreq, count[s[R]]);
+    if ((R - L + 1) - maxFreq > K_VAL) { count[s[L]]--; L++; }
+    best = Math.max(best, R - L + 1);
+  }
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>K={K_VAL} REPLACEMENT · MAX REPEATING WINDOW</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {[...s].map((c, i) => {
+          const inWin = i >= L && i <= step;
+          const colA = c === "A";
+          return (
+            <motion.div key={i} animate={{ background: inWin ? (colA ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)") : "#111", borderColor: inWin ? (colA ? "#10b981" : "#ef4444") : "#333" }}
+              style={{ width: 38, height: 38, border: "1px solid #333", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: inWin ? "#e2e8f0" : "#374151", transition: "all 0.3s" }}>
+              {c}
+            </motion.div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: "#64748b" }}>
+        maxFreq={maxFreq} · window={step - L + 1} · best={best}
+      </div>
+      <div style={{ fontSize: 9, color: "#374151" }}>(window - maxFreq) ≤ k → valid</div>
+    </div>
+  );
+}
+
+function AllAnagramsAnimation() {
+  const s = "cbaebabc", p = "abc";
+  const k = p.length;
+  const positions: number[] = [];
+  for (let i = 0; i <= s.length - k; i++) {
+    if ([...s.slice(i, i + k)].sort().join("") === [...p].sort().join("")) positions.push(i);
+  }
+  const [step, setStep] = useState(0);
+  const maxStep = s.length - k;
+  useEffect(() => {
+    const t = setInterval(() => setStep(i => (i >= maxStep ? 0 : i + 1)), 600);
+    return () => clearInterval(t);
+  }, [maxStep]);
+  const isMatch = positions.includes(step);
+  return (
+    <div style={{ ...MONO, width: 400, height: 260, background: "#0a0a0a", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.12em" }}>ALL ANAGRAMS · s="{s}" p="{p}"</div>
+      <div style={{ display: "flex", gap: 5 }}>
+        {[...s].map((c, i) => {
+          const inWin = i >= step && i < step + k;
+          const isFound = positions.includes(step) && inWin;
+          return (
+            <motion.div key={i} animate={{ background: isFound ? "rgba(16,185,129,0.25)" : inWin ? "rgba(251,191,36,0.12)" : "#111", borderColor: isFound ? "#10b981" : inWin ? "#fbbf24" : "#333" }}
+              style={{ width: 36, height: 36, border: "1px solid #333", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: inWin ? "#e2e8f0" : "#374151", transition: "all 0.25s" }}>
+              {c}
+            </motion.div>
+          );
+        })}
+      </div>
+      <motion.div key={step} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: 12, fontWeight: 700, color: isMatch ? "#4ade80" : "#374151" }}>
+        [{step}..{step + k - 1}] = "{s.slice(step, step + k)}" {isMatch ? "✓ anagram" : ""}
+      </motion.div>
+      <div style={{ fontSize: 9, color: "#10b981" }}>found at: [{positions.join(", ")}]</div>
+    </div>
+  );
+}
+
 // ─── ALGO_CONTENT export ───────────────────────────────────────────────────
 export const ALGO_CONTENT: Partial<Record<string, AlgoContent>> = {
   pointer_trace: {
@@ -1678,5 +2007,115 @@ while queue:
     elif v != parent:
       low[u] = min(low[u], disc[v])`,
     Animation: GraphAnalysisAnimation,
+  },
+
+  fixed_window: {
+    title: "Fixed Window Sliding",
+    pseudocode: `window_sum = sum(arr[0..k-1])
+best = window_sum
+for i in range(k, n):
+  window_sum += arr[i] - arr[i-k]
+  best = max(best, window_sum)
+return best / k`,
+    Animation: FixedWindowAnimation,
+  },
+
+  variable_window: {
+    title: "Variable Window (No Repeats)",
+    pseudocode: `L = 0, seen = set(), max_len = 0
+for R in range(n):
+  while arr[R] in seen:
+    seen.remove(arr[L])
+    L++
+  seen.add(arr[R])
+  max_len = max(max_len, R - L + 1)
+return max_len`,
+    Animation: VariableWindowAnimation,
+  },
+
+  freq_window: {
+    title: "Frequency Map Window",
+    pseudocode: `need = Counter(pattern)
+have, formed = {}, 0
+L = 0, result = []
+for R in range(len(s)):
+  c = s[R]; have[c] = have.get(c,0)+1
+  if c in need and have[c]==need[c]: formed++
+  while formed == len(need):
+    result.append(L)
+    have[s[L]] -= 1
+    if s[L] in need and have[s[L]]<need[s[L]]: formed--
+    L++`,
+    Animation: FreqWindowAnimation,
+  },
+
+  at_most_k: {
+    title: "At Most K Distinct Window",
+    pseudocode: `L = 0, counts = {}, max_len = 0
+for R in range(n):
+  counts[arr[R]] = counts.get(arr[R],0)+1
+  while len(counts) > k:
+    counts[arr[L]] -= 1
+    if counts[arr[L]] == 0: del counts[arr[L]]
+    L++
+  max_len = max(max_len, R - L + 1)
+return max_len`,
+    Animation: AtMostKAnimation,
+  },
+
+  monotonic_deque: {
+    title: "Monotonic Deque Maximum",
+    pseudocode: `dq = deque()  // stores indices
+result = []
+for i in range(n):
+  while dq and dq[0] < i - k + 1: dq.popleft()
+  while dq and arr[dq[-1]] < arr[i]: dq.pop()
+  dq.append(i)
+  if i >= k-1: result.append(arr[dq[0]])
+return result`,
+    Animation: MonotonicDequeAnimation,
+  },
+
+  min_window: {
+    title: "Minimum Window Substring",
+    pseudocode: `need = Counter(t); have = {}; formed = 0
+L = 0; ans = ""
+for R in range(len(s)):
+  c = s[R]; have[c] = have.get(c,0)+1
+  if c in need and have[c]==need[c]: formed++
+  while formed==len(need):
+    if R-L+1 < len(ans) or not ans: ans = s[L:R+1]
+    have[s[L]] -= 1
+    if s[L] in need and have[s[L]]<need[s[L]]: formed--
+    L++`,
+    Animation: MinWindowAnimation,
+  },
+
+  k_replacement: {
+    title: "K Replacements Window",
+    pseudocode: `L = 0; max_freq = 0; result = 0
+count = {}
+for R in range(n):
+  count[s[R]] = count.get(s[R],0)+1
+  max_freq = max(max_freq, count[s[R]])
+  if (R - L + 1) - max_freq > k:
+    count[s[L]] -= 1
+    L++
+  result = max(result, R - L + 1)
+return result`,
+    Animation: KReplacementAnimation,
+  },
+
+  all_anagrams: {
+    title: "All Anagram Positions",
+    pseudocode: `need = Counter(p); have = Counter(s[:len(p)])
+result = [0] if have == need else []
+for i in range(1, len(s)-len(p)+1):
+  have[s[i+len(p)-1]] += 1
+  have[s[i-1]] -= 1
+  if have[s[i-1]] == 0: del have[s[i-1]]
+  if have == need: result.append(i)
+return result`,
+    Animation: AllAnagramsAnimation,
   },
 };

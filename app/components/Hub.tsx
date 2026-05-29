@@ -62,6 +62,16 @@ const LIVE_MODULES: Module[] = [
     description: "Two ends meet in the middle. 8 problems from two-sum to trapping rain water.",
     problems: 8,
   },
+  {
+    id: "sliding-window",
+    href: "/learn/tier1/sliding-window",
+    name: "Sliding Window",
+    tag: "TIER I · ARRAYS",
+    xp: 300,
+    accent: "#10b981",
+    description: "A frame that slides, expands, and contracts. 8 problems — max average to minimum window substring.",
+    problems: 8,
+  },
 ];
 
 /* ─── Nav ───────────────────────────────────────────────── */

@@ -187,7 +187,9 @@ export default function FrogLeap({ onSolve, onAttempt }: GameProps) {
                       {i}
                     </div>
                   </div>
-                  <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>dp[{i}]={DP[i]}</div>
+                  <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
+                    dp[{i}]={solved ? DP[i] : "?"}
+                  </div>
                 </div>
               );
             })}
@@ -232,19 +234,27 @@ export default function FrogLeap({ onSolve, onAttempt }: GameProps) {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 8, color: found ? "#818cf8" : "#374151", fontWeight: 700,
                   }}>{pi + 1}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    {path.map((p, i) => (
-                      <span key={i} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                        {i > 0 && <span style={{ color: "#1e1e1e", fontSize: 9 }}>→</span>}
-                        <span style={{
-                          fontSize: 11, fontWeight: 700,
-                          color: found ? PAD_COLORS[p] : "#374151",
-                        }}>{p}</span>
-                      </span>
-                    ))}
-                  </div>
+                  {found ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      {path.map((p, i) => (
+                        <span key={i} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          {i > 0 && <span style={{ color: "#2a2a2a", fontSize: 9 }}>→</span>}
+                          <span style={{ fontSize: 11, fontWeight: 700, color: PAD_COLORS[p] }}>{p}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      {Array.from({ length: path.length }).map((_, i) => (
+                        <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          {i > 0 && <span style={{ color: "#1a1a1a", fontSize: 9 }}>→</span>}
+                          <span style={{ fontSize: 10, color: "#1e1e1e", fontWeight: 700 }}>?</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ marginLeft: "auto", fontSize: 8, color: found ? "#475569" : "#1a1a1a", letterSpacing: "0.1em" }}>
-                    {found ? "✓" : "???"}
+                    {found ? "✓" : ""}
                   </div>
                 </div>
               );

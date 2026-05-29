@@ -1,0 +1,1682 @@
+"use client";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
+
+export interface AlgoContent {
+  title: string;
+  pseudocode: string;
+  Animation: React.FC;
+}
+
+// ─── Shared style constants ────────────────────────────────────────────────
+const CONTAINER: React.CSSProperties = {
+  width: 400,
+  height: 260,
+  background: "#0a0a0a",
+  position: "relative",
+  overflow: "hidden",
+  borderRadius: 8,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+const MONO: React.CSSProperties = { fontFamily: "monospace" };
+const GOLD = "#eab308";
+const GREEN = "#22c55e";
+const BLUE = "#3b82f6";
+const RED = "#ef4444";
+const PURPLE = "#a855f7";
+const DIM = "#374151";
+
+// ─── pointer_trace ─────────────────────────────────────────────────────────
+const ARR = [3, 7, 11, 15, 21, 28, 35, 42];
+const TARGET_BS = 21;
+
+const steps_bs = [
+  { lo: 0, hi: 7, mid: 3, faded: [] as number[], found: false },
+  { lo: 4, hi: 7, mid: 5, faded: [0, 1, 2, 3], found: false },
+  { lo: 4, hi: 4, mid: 4, faded: [0, 1, 2, 3, 5, 6, 7], found: false },
+  { lo: 4, hi: 4, mid: 4, faded: [0, 1, 2, 3, 5, 6, 7], found: true },
+];
+
+function PointerTraceAnimation() {
+  const [step, setStep] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const advance = () => {
+      setStep((s) => (s + 1) % steps_bs.length);
+    };
+    timerRef.current = setTimeout(advance, step === steps_bs.length - 1 ? 1200 : 900);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [step]);
+
+  const cur = steps_bs[step];
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>
+          target = {TARGET_BS}
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {ARR.map((v, i) => {
+            const isMid = i === cur.mid;
+            const isFaded = cur.faded.includes(i);
+            const isFound = cur.found && isMid;
+            let bg = DIM;
+            if (isFound) bg = GREEN;
+            else if (isMid) bg = GOLD;
+            else if (i === cur.lo || i === cur.hi) bg = BLUE;
+            return (
+              <motion.div
+                key={i}
+                animate={{
+                  opacity: isFaded ? 0.2 : 1,
+                  backgroundColor: bg,
+                  scale: isMid ? 1.15 : 1,
+                }}
+                transition={{ duration: 0.35 }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  ...MONO,
+                  fontSize: 11,
+                  color: "#fff",
+                  fontWeight: 700,
+                }}
+              >
+                {v}
+              </motion.div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 20, ...MONO, fontSize: 10, color: "#9ca3af" }}>
+          <span style={{ color: BLUE }}>lo={cur.lo}</span>
+          <span style={{ color: GOLD }}>mid={cur.mid}</span>
+          <span style={{ color: BLUE }}>hi={cur.hi}</span>
+        </div>
+        {cur.found && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{ ...MONO, fontSize: 11, color: GREEN }}
+          >
+            FOUND at index {cur.mid} ✓
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── resource_constraint ───────────────────────────────────────────────────
+const RC_STEPS = [
+  { lo: 0, hi: 9, mid: 4 },
+  { lo: 5, hi: 9, mid: 7 },
+  { lo: 5, hi: 6, mid: 5 },
+  { lo: 6, hi: 6, mid: 6 },
+];
+const FIRST_BAD = 6;
+
+function ResourceConstraintAnimation() {
+  const [step, setStep] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setStep((s) => (s + 1) % RC_STEPS.length), 900);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [step]);
+
+  const cur = RC_STEPS[step];
+  const isBad = cur.mid >= FIRST_BAD;
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>first bad version</div>
+        <div style={{ display: "flex", gap: 3 }}>
+          {Array.from({ length: 10 }, (_, i) => {
+            const bad = i >= FIRST_BAD;
+            const isMid = i === cur.mid;
+            const isLo = i === cur.lo;
+            const isHi = i === cur.hi;
+            let border = "1px solid transparent";
+            if (isLo || isHi) border = `2px solid ${BLUE}`;
+            if (isMid) border = `2px solid ${GOLD}`;
+            return (
+              <motion.div
+                key={i}
+                animate={{ backgroundColor: bad ? "#7f1d1d" : "#14532d", scale: isMid ? 1.2 : 1 }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 3,
+                  border,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  ...MONO,
+                  fontSize: 9,
+                  color: bad ? RED : GREEN,
+                }}
+              >
+                {i}
+              </motion.div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 16, ...MONO, fontSize: 10 }}>
+          <span style={{ color: BLUE }}>lo={cur.lo}</span>
+          <span style={{ color: GOLD }}>mid={cur.mid}</span>
+          <span style={{ color: BLUE }}>hi={cur.hi}</span>
+        </div>
+        <motion.div
+          key={String(isBad)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ ...MONO, fontSize: 11, color: isBad ? RED : GREEN }}
+        >
+          isBad({cur.mid}) → {isBad ? "true → hi=mid" : "false → lo=mid+1"}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── simulation_guess ──────────────────────────────────────────────────────
+const SG_STEPS = [
+  { lo: 1, hi: 100, mid: 50, can: false },
+  { lo: 1, hi: 49, mid: 25, can: true },
+  { lo: 26, hi: 49, mid: 37, can: true },
+  { lo: 38, hi: 49, mid: 43, can: false },
+  { lo: 38, hi: 42, mid: 40, can: true },
+];
+
+function SimulationGuessAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % SG_STEPS.length), 1000);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = SG_STEPS[step];
+  const pct = (v: number) => ((v - 1) / 99) * 320;
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, width: 360 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>binary search on answer space [1..100]</div>
+        <div style={{ position: "relative", width: 320, height: 24 }}>
+          {/* track */}
+          <div style={{ position: "absolute", top: 10, left: 0, right: 0, height: 4, background: DIM, borderRadius: 2 }} />
+          {/* active range */}
+          <motion.div
+            animate={{ left: pct(cur.lo), width: pct(cur.hi) - pct(cur.lo) }}
+            transition={{ duration: 0.5 }}
+            style={{ position: "absolute", top: 10, height: 4, background: BLUE, borderRadius: 2 }}
+          />
+          {/* lo */}
+          <motion.div
+            animate={{ left: pct(cur.lo) - 6 }}
+            transition={{ duration: 0.5 }}
+            style={{ position: "absolute", top: 0, width: 12, height: 12, borderRadius: "50%", background: BLUE }}
+          />
+          {/* hi */}
+          <motion.div
+            animate={{ left: pct(cur.hi) - 6 }}
+            transition={{ duration: 0.5 }}
+            style={{ position: "absolute", top: 0, width: 12, height: 12, borderRadius: "50%", background: BLUE }}
+          />
+          {/* mid */}
+          <motion.div
+            animate={{ left: pct(cur.mid) - 6 }}
+            transition={{ duration: 0.5 }}
+            style={{ position: "absolute", top: 0, width: 12, height: 12, borderRadius: "50%", background: GOLD }}
+          />
+          <motion.div
+            animate={{ left: pct(cur.lo) }}
+            transition={{ duration: 0.5 }}
+            style={{ position: "absolute", top: 14, ...MONO, fontSize: 9, color: BLUE }}
+          >
+            {cur.lo}
+          </motion.div>
+          <motion.div
+            animate={{ left: pct(cur.hi) - 10 }}
+            transition={{ duration: 0.5 }}
+            style={{ position: "absolute", top: 14, ...MONO, fontSize: 9, color: BLUE }}
+          >
+            {cur.hi}
+          </motion.div>
+          <motion.div
+            animate={{ left: pct(cur.mid) - 6 }}
+            transition={{ duration: 0.5 }}
+            style={{ position: "absolute", top: -14, ...MONO, fontSize: 9, color: GOLD }}
+          >
+            mid={cur.mid}
+          </motion.div>
+        </div>
+        <motion.div
+          key={step}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ ...MONO, fontSize: 11, color: cur.can ? GREEN : RED }}
+        >
+          canAchieve({cur.mid}) → {cur.can ? "true → hi=mid" : "false → lo=mid+1"}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── partition_game ────────────────────────────────────────────────────────
+const A_ARR = [1, 3, 8, 12];
+const B_ARR = [2, 5, 9, 14];
+const PG_STEPS = [
+  { pA: 2, valid: false, label: "maxLeftA(3) > minRightB(5)? no" },
+  { pA: 3, valid: false, label: "maxLeftA(8) > minRightB(9)? no" },
+  { pA: 4, valid: true, label: "maxLeftA(12) ≤ minRightB(14) ✓" },
+];
+
+function PartitionGameAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % PG_STEPS.length), 1200);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = PG_STEPS[step];
+
+  const renderRow = (arr: number[], pA: number, label: string) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ ...MONO, fontSize: 9, color: "#6b7280", width: 14 }}>{label}</div>
+      <div style={{ display: "flex", gap: 3 }}>
+        {arr.map((v, i) => {
+          const isLeft = i < pA;
+          return (
+            <motion.div
+              key={i}
+              animate={{ backgroundColor: isLeft ? "#1e3a5f" : "#1a1a2e" }}
+              transition={{ duration: 0.4 }}
+              style={{
+                width: 34,
+                height: 32,
+                borderRadius: 4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                ...MONO,
+                fontSize: 11,
+                color: isLeft ? BLUE : "#9ca3af",
+                border: `1px solid ${isLeft ? BLUE : DIM}`,
+              }}
+            >
+              {v}
+            </motion.div>
+          );
+        })}
+      </div>
+      <motion.div
+        animate={{ left: cur.pA * 37 - 2 }}
+        transition={{ duration: 0.4 }}
+        style={{ width: 2, height: 36, background: GOLD, borderRadius: 1 }}
+      />
+    </div>
+  );
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>median of two sorted arrays</div>
+        {renderRow(A_ARR, cur.pA, "A")}
+        {renderRow(B_ARR, 4 - cur.pA, "B")}
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ ...MONO, fontSize: 10, color: cur.valid ? GREEN : GOLD }}
+        >
+          {cur.label}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── placement (N-Queens) ──────────────────────────────────────────────────
+type NQStep = {
+  queens: [number, number][];
+  conflict?: [number, number];
+  backtrack?: boolean;
+};
+const NQ_STEPS: NQStep[] = [
+  { queens: [[0, 0]] },
+  { queens: [[0, 0], [1, 2]] },
+  { queens: [[0, 0], [1, 2], [2, 1]], conflict: [2, 1] },
+  { queens: [[0, 0], [1, 2]], backtrack: true },
+  { queens: [[0, 0], [1, 3]] },
+  { queens: [[0, 0], [1, 3], [2, 1]] },
+  { queens: [[0, 0], [1, 3], [2, 1], [3, 2]] },
+];
+
+function PlacementAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % NQ_STEPS.length), 900);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = NQ_STEPS[step];
+  const N = 4;
+  const isSolution = cur.queens.length === N && !cur.conflict;
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>4-queens backtracking</div>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${N}, 1fr)`, gap: 3 }}>
+          {Array.from({ length: N * N }, (_, idx) => {
+            const r = Math.floor(idx / N);
+            const c = idx % N;
+            const hasQueen = cur.queens.some(([qr, qc]) => qr === r && qc === c);
+            const isConflict = cur.conflict && cur.conflict[0] === r && cur.conflict[1] === c;
+            const light = (r + c) % 2 === 0;
+            let bg = light ? "#1f2937" : "#111827";
+            if (hasQueen && !isConflict) bg = isSolution ? "#14532d" : "#1e3a5f";
+            if (isConflict) bg = "#7f1d1d";
+            return (
+              <motion.div
+                key={idx}
+                animate={{ backgroundColor: bg }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 20,
+                }}
+              >
+                {hasQueen ? "♛" : ""}
+              </motion.div>
+            );
+          })}
+        </div>
+        <div style={{ ...MONO, fontSize: 10, color: cur.conflict ? RED : cur.backtrack ? GOLD : GREEN }}>
+          {cur.conflict ? "conflict → backtrack" : cur.backtrack ? "trying next col..." : isSolution ? "solution found ✓" : `placing row ${cur.queens.length}`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── path_trace (Word Search) ──────────────────────────────────────────────
+const GRID_LETTERS = [
+  ["A", "B", "C", "D"],
+  ["E", "C", "A", "T"],
+  ["I", "A", "T", "S"],
+  ["N", "G", "E", "P"],
+];
+// Spell CAT: (1,1)->(1,2)->(0,3) then backtrack and find CATS: (1,1)->(1,2)->(2,2)->(2,3)
+const PT_STEPS = [
+  { path: [[1, 1]] as [number, number][], dead: [] as [number, number][], label: "start C" },
+  { path: [[1, 1], [1, 2]] as [number, number][], dead: [] as [number, number][], label: "try A→" },
+  { path: [[1, 1], [1, 2], [0, 2]] as [number, number][], dead: [] as [number, number][], label: "try C? no" },
+  { path: [[1, 1], [1, 2]] as [number, number][], dead: [[0, 2]] as [number, number][], label: "backtrack" },
+  { path: [[1, 1], [1, 2], [2, 2]] as [number, number][], dead: [[0, 2]] as [number, number][], label: "try T→" },
+  { path: [[1, 1], [1, 2], [2, 2], [2, 3]] as [number, number][], dead: [] as [number, number][], label: "S found! CATS ✓" },
+];
+
+function PathTraceAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % PT_STEPS.length), 900);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = PT_STEPS[step];
+  const inPath = (r: number, c: number) => cur.path.some(([pr, pc]) => pr === r && pc === c);
+  const isDead = (r: number, c: number) => cur.dead.some(([dr, dc]) => dr === r && dc === c);
+  const isLast = (r: number, c: number) => {
+    const last = cur.path[cur.path.length - 1];
+    return last && last[0] === r && last[1] === c;
+  };
+  const isFound = cur.label.includes("✓");
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>word search: find "CATS"</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3 }}>
+          {GRID_LETTERS.flatMap((row, r) =>
+            row.map((letter, c) => {
+              const onPath = inPath(r, c);
+              const dead = isDead(r, c);
+              const last = isLast(r, c);
+              let bg = "#111827";
+              if (dead) bg = "#7f1d1d";
+              else if (isFound && onPath) bg = "#14532d";
+              else if (last) bg = GOLD;
+              else if (onPath) bg = "#1e3a5f";
+              return (
+                <motion.div
+                  key={`${r}-${c}`}
+                  animate={{ backgroundColor: bg }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    ...MONO,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: onPath || dead ? "#fff" : "#6b7280",
+                  }}
+                >
+                  {letter}
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+        <div style={{ ...MONO, fontSize: 11, color: cur.label.includes("backtrack") ? RED : cur.label.includes("✓") ? GREEN : GOLD }}>
+          {cur.label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── selection (Combination Sum) ──────────────────────────────────────────
+type TreeNode = { id: string; x: number; y: number; val: string; state: "normal" | "pruned" | "solution" };
+type TreeEdge = { x1: number; y1: number; x2: number; y2: number };
+
+const SEL_STEPS: Array<{ nodes: TreeNode[]; edges: TreeEdge[]; label: string }> = [
+  {
+    nodes: [{ id: "root", x: 190, y: 30, val: "7", state: "normal" }],
+    edges: [],
+    label: "target = 7",
+  },
+  {
+    nodes: [
+      { id: "root", x: 190, y: 30, val: "7", state: "normal" },
+      { id: "n2", x: 80, y: 90, val: "5 (2)", state: "normal" },
+      { id: "n3", x: 190, y: 90, val: "4 (3)", state: "normal" },
+      { id: "n5", x: 310, y: 90, val: "2 (5)", state: "normal" },
+    ],
+    edges: [
+      { x1: 190, y1: 44, x2: 80, y2: 80 },
+      { x1: 190, y1: 44, x2: 190, y2: 80 },
+      { x1: 190, y1: 44, x2: 310, y2: 80 },
+    ],
+    label: "choose 2 / 3 / 5",
+  },
+  {
+    nodes: [
+      { id: "root", x: 190, y: 30, val: "7", state: "normal" },
+      { id: "n2", x: 80, y: 90, val: "5 (2)", state: "normal" },
+      { id: "n3", x: 190, y: 90, val: "4 (3)", state: "normal" },
+      { id: "n5", x: 310, y: 90, val: "2 (5)", state: "normal" },
+      { id: "n22a", x: 30, y: 155, val: "3 (2)", state: "normal" },
+      { id: "n22b", x: 100, y: 155, val: "1 (3)", state: "normal" },
+      { id: "n22c", x: 155, y: 155, val: "9 (2)", state: "pruned" },
+    ],
+    edges: [
+      { x1: 190, y1: 44, x2: 80, y2: 80 },
+      { x1: 190, y1: 44, x2: 190, y2: 80 },
+      { x1: 190, y1: 44, x2: 310, y2: 80 },
+      { x1: 80, y1: 104, x2: 30, y2: 145 },
+      { x1: 80, y1: 104, x2: 100, y2: 145 },
+      { x1: 80, y1: 104, x2: 155, y2: 145 },
+    ],
+    label: "over target → prune",
+  },
+  {
+    nodes: [
+      { id: "root", x: 190, y: 30, val: "7", state: "normal" },
+      { id: "n2", x: 80, y: 90, val: "5 (2)", state: "normal" },
+      { id: "n3", x: 190, y: 90, val: "4 (3)", state: "normal" },
+      { id: "n5", x: 310, y: 90, val: "2 (5)", state: "normal" },
+      { id: "n22a", x: 30, y: 155, val: "3 (2)", state: "normal" },
+      { id: "n22b", x: 100, y: 155, val: "1 (3)", state: "normal" },
+      { id: "n22c", x: 155, y: 155, val: "9 (2)", state: "pruned" },
+      { id: "sol1", x: 30, y: 215, val: "[2,2,3]", state: "solution" },
+    ],
+    edges: [
+      { x1: 190, y1: 44, x2: 80, y2: 80 },
+      { x1: 190, y1: 44, x2: 190, y2: 80 },
+      { x1: 190, y1: 44, x2: 310, y2: 80 },
+      { x1: 80, y1: 104, x2: 30, y2: 145 },
+      { x1: 80, y1: 104, x2: 100, y2: 145 },
+      { x1: 80, y1: 104, x2: 155, y2: 145 },
+      { x1: 30, y1: 169, x2: 30, y2: 205 },
+    ],
+    label: "solution: [2,2,3] ✓",
+  },
+];
+
+function SelectionAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % SEL_STEPS.length), 1100);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = SEL_STEPS[step];
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ ...MONO, fontSize: 9, color: "#6b7280", position: "absolute", top: 8, left: 12 }}>
+        combination sum: target=7, nums=[2,3,5]
+      </div>
+      <svg width={400} height={260} style={{ position: "absolute", top: 0, left: 0 }}>
+        {cur.edges.map((e, i) => (
+          <motion.line
+            key={i}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
+            stroke={DIM} strokeWidth={1.5}
+          />
+        ))}
+      </svg>
+      {cur.nodes.map((n) => (
+        <motion.div
+          key={n.id}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1, backgroundColor: n.state === "pruned" ? "#7f1d1d" : n.state === "solution" ? "#14532d" : "#1e3a5f" }}
+          transition={{ duration: 0.35 }}
+          style={{
+            position: "absolute",
+            left: n.x - 24,
+            top: n.y - 12,
+            width: 48,
+            height: 24,
+            borderRadius: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            ...MONO,
+            fontSize: 9,
+            color: n.state === "pruned" ? RED : n.state === "solution" ? GREEN : "#93c5fd",
+            fontWeight: 600,
+          }}
+        >
+          {n.val}
+        </motion.div>
+      ))}
+      <div style={{ ...MONO, fontSize: 10, position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: cur.label.includes("✓") ? GREEN : cur.label.includes("prune") ? RED : GOLD }}>
+        {cur.label}
+      </div>
+    </div>
+  );
+}
+
+// ─── swap (Permutations) ───────────────────────────────────────────────────
+const SWAP_COLORS = [BLUE, GREEN, GOLD, PURPLE];
+const SWAP_STEPS = [
+  { arr: [0, 1, 2, 3], label: "[A,B,C,D]", swapping: null as null | [number, number] },
+  { arr: [0, 1, 2, 3], label: "swap(0,2)", swapping: [0, 2] as [number, number] },
+  { arr: [2, 1, 0, 3], label: "[C,B,A,D]", swapping: null },
+  { arr: [2, 1, 0, 3], label: "swap(1,3)", swapping: [1, 3] as [number, number] },
+  { arr: [2, 3, 0, 1], label: "[C,D,A,B]", swapping: null },
+  { arr: [2, 3, 0, 1], label: "backtrack →", swapping: [1, 3] as [number, number] },
+  { arr: [2, 1, 0, 3], label: "[C,B,A,D]", swapping: null },
+  { arr: [2, 1, 0, 3], label: "backtrack →", swapping: [0, 2] as [number, number] },
+  { arr: [0, 1, 2, 3], label: "[A,B,C,D]", swapping: null },
+];
+const LABELS = ["A", "B", "C", "D"];
+
+function SwapAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % SWAP_STEPS.length), 800);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = SWAP_STEPS[step];
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>permutations via swapping</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {cur.arr.map((origIdx, pos) => {
+            const isSwapping = cur.swapping && (cur.swapping[0] === pos || cur.swapping[1] === pos);
+            return (
+              <motion.div
+                key={pos}
+                animate={{
+                  scale: isSwapping ? 1.2 : 1,
+                  y: isSwapping ? -6 : 0,
+                  backgroundColor: SWAP_COLORS[origIdx],
+                }}
+                transition={{ duration: 0.35 }}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  ...MONO,
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: "#fff",
+                }}
+              >
+                {LABELS[origIdx]}
+              </motion.div>
+            );
+          })}
+        </div>
+        <motion.div
+          key={step}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ ...MONO, fontSize: 12, color: cur.label.includes("backtrack") ? RED : GOLD }}
+        >
+          {cur.label}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── grid_fill (Sudoku) ────────────────────────────────────────────────────
+type GFStep = {
+  grid: (number | null)[][];
+  active: [number, number] | null;
+  state: "placing" | "conflict" | "backtrack" | "solved";
+  label: string;
+};
+const INITIAL_GRID: (number | null)[][] = [
+  [null, 2, null, null],
+  [null, null, null, 3],
+  [3, null, null, null],
+  [null, null, 1, null],
+];
+const GF_STEPS: GFStep[] = [
+  { grid: INITIAL_GRID, active: [0, 0], state: "placing", label: "try 1 at (0,0)" },
+  { grid: [[1, 2, null, null], [null, null, null, 3], [3, null, null, null], [null, null, 1, null]], active: [0, 0], state: "placing", label: "placed 1 ✓" },
+  { grid: [[1, 2, null, null], [null, null, null, 3], [3, null, null, null], [null, null, 1, null]], active: [0, 2], state: "placing", label: "try 3 at (0,2)" },
+  { grid: [[1, 2, 3, null], [null, null, null, 3], [3, null, null, null], [null, null, 1, null]], active: [0, 2], state: "conflict", label: "conflict! col has 3" },
+  { grid: [[1, 2, null, null], [null, null, null, 3], [3, null, null, null], [null, null, 1, null]], active: [0, 2], state: "backtrack", label: "try 4 at (0,2)" },
+  { grid: [[1, 2, 4, null], [null, null, null, 3], [3, null, null, null], [null, null, 1, null]], active: [0, 2], state: "placing", label: "placed 4 ✓" },
+];
+
+function GridFillAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % GF_STEPS.length), 1000);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = GF_STEPS[step];
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>4×4 sudoku backtracking</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3 }}>
+          {cur.grid.flatMap((row, r) =>
+            row.map((val, c) => {
+              const isActive = cur.active && cur.active[0] === r && cur.active[1] === c;
+              const isConflict = isActive && cur.state === "conflict";
+              const isFixed = INITIAL_GRID[r][c] !== null;
+              let bg = "#111827";
+              if (isConflict) bg = "#7f1d1d";
+              else if (isActive && cur.state === "placing") bg = "#1e3a5f";
+              else if (isFixed) bg = "#1f2937";
+              return (
+                <motion.div
+                  key={`${r}-${c}`}
+                  animate={{ backgroundColor: bg, scale: isActive ? 1.1 : 1 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    ...MONO,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: isFixed ? "#9ca3af" : isConflict ? RED : BLUE,
+                    border: `1px solid ${isActive ? GOLD : DIM}`,
+                  }}
+                >
+                  {val ?? ""}
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+        <motion.div
+          key={step}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ ...MONO, fontSize: 11, color: cur.state === "conflict" ? RED : cur.state === "backtrack" ? GOLD : GREEN }}
+        >
+          {cur.label}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── flood_fill (BFS) ──────────────────────────────────────────────────────
+const FF_SIZE = 5;
+function cellDist(r: number, c: number, sr: number, sc: number) {
+  return Math.abs(r - sr) + Math.abs(c - sc);
+}
+
+function FloodFillAnimation() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setTick((v) => (v + 1) % 8), 500);
+    return () => clearTimeout(t);
+  }, [tick]);
+
+  const sr = 2, sc = 2;
+  const queue: string[] = [];
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>BFS flood fill from center</div>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${FF_SIZE}, 1fr)`, gap: 3 }}>
+          {Array.from({ length: FF_SIZE * FF_SIZE }, (_, idx) => {
+            const r = Math.floor(idx / FF_SIZE);
+            const c = idx % FF_SIZE;
+            const d = cellDist(r, c, sr, sc);
+            const revealed = d <= tick;
+            const active = d === tick;
+            return (
+              <motion.div
+                key={idx}
+                animate={{
+                  backgroundColor: revealed ? (active ? GOLD : "#164e63") : "#111827",
+                  scale: active ? 1.1 : 1,
+                }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  ...MONO,
+                  fontSize: 9,
+                  color: revealed ? "#fff" : DIM,
+                }}
+              >
+                {revealed ? d : ""}
+              </motion.div>
+            );
+          })}
+        </div>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>
+          queue frontier: dist = {tick}
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {Array.from({ length: FF_SIZE * FF_SIZE }, (_, idx) => {
+            const r = Math.floor(idx / FF_SIZE);
+            const c = idx % FF_SIZE;
+            const d = cellDist(r, c, sr, sc);
+            if (d !== tick) return null;
+            queue.push(`(${r},${c})`);
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{ ...MONO, fontSize: 9, color: GOLD, background: "#1c1c1c", padding: "2px 4px", borderRadius: 3 }}
+              >
+                {r},{c}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── dfs_mark ──────────────────────────────────────────────────────────────
+const DFS_GRID = [
+  [1, 1, 0, 1],
+  [1, 0, 0, 1],
+  [0, 0, 1, 0],
+  [0, 1, 1, 0],
+];
+// Island 1: (0,0),(0,1),(1,0) — Island 2: (0,3),(1,3) — Island 3: (2,2),(3,1),(3,2)
+const ISLAND_CELLS: Record<number, [number, number][]> = {
+  1: [[0, 0], [0, 1], [1, 0]],
+  2: [[0, 3], [1, 3]],
+  3: [[2, 2], [3, 1], [3, 2]],
+};
+const ISLAND_COLORS: Record<number, string> = { 1: BLUE, 2: GREEN, 3: PURPLE };
+const DFS_SEQ: Array<{ r: number; c: number; island: number }> = [
+  { r: 0, c: 0, island: 1 }, { r: 0, c: 1, island: 1 }, { r: 1, c: 0, island: 1 },
+  { r: 0, c: 3, island: 2 }, { r: 1, c: 3, island: 2 },
+  { r: 2, c: 2, island: 3 }, { r: 3, c: 1, island: 3 }, { r: 3, c: 2, island: 3 },
+];
+
+function DfsMarkAnimation() {
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (idx < DFS_SEQ.length) {
+        const cell = DFS_SEQ[idx];
+        setRevealed((prev) => new Set([...prev, `${cell.r}-${cell.c}`]));
+        setIdx((i) => i + 1);
+      } else {
+        setTimeout(() => { setRevealed(new Set()); setIdx(0); }, 1500);
+      }
+    }, idx === 0 ? 400 : 500);
+    return () => clearTimeout(t);
+  }, [idx]);
+
+  const curIsland = idx < DFS_SEQ.length ? DFS_SEQ[Math.max(0, idx - 1)].island : 0;
+  const islandCount = idx === 0 ? 0 : ISLAND_CELLS[1].every((c) => revealed.has(`${c[0]}-${c[1]}`))
+    ? (ISLAND_CELLS[2].every((c) => revealed.has(`${c[0]}-${c[1]}`)) ? (ISLAND_CELLS[3].every((c) => revealed.has(`${c[0]}-${c[1]}`)) ? 3 : 2) : 1)
+    : 0;
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ ...MONO, fontSize: 10, color: "#6b7280", marginBottom: 4 }}>island DFS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3 }}>
+            {DFS_GRID.flatMap((row, r) =>
+              row.map((cell, c) => {
+                const key = `${r}-${c}`;
+                const isRevealed = revealed.has(key);
+                let bg = cell ? "#374151" : "#0f172a";
+                let color = cell ? "#9ca3af" : "#1f2937";
+                if (isRevealed) {
+                  const islandNum = Object.entries(ISLAND_CELLS).find(([, cells]) =>
+                    cells.some(([cr, cc]) => cr === r && cc === c)
+                  );
+                  if (islandNum) { bg = ISLAND_COLORS[Number(islandNum[0])]; color = "#fff"; }
+                }
+                return (
+                  <motion.div
+                    key={key}
+                    animate={{ backgroundColor: bg }}
+                    transition={{ duration: 0.3 }}
+                    style={{ width: 40, height: 40, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", ...MONO, fontSize: 9, color }}
+                  >
+                    {cell ? "■" : "~"}
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 100 }}>
+          <div style={{ ...MONO, fontSize: 11, color: "#6b7280" }}>DFS stack:</div>
+          <AnimatePresence>
+            {DFS_SEQ.slice(Math.max(0, idx - 3), idx).reverse().map((item, i) => (
+              <motion.div
+                key={`${item.r}-${item.c}`}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1 - i * 0.3, x: 0 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  ...MONO, fontSize: 10,
+                  color: ISLAND_COLORS[item.island],
+                  background: "#1c1c1c",
+                  padding: "2px 6px",
+                  borderRadius: 3,
+                }}
+              >
+                ({item.r},{item.c})
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          <div style={{ ...MONO, fontSize: 11, color: GOLD, marginTop: 8 }}>
+            islands: {islandCount}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── path_find (BFS Shortest Path) ────────────────────────────────────────
+// 5x5 maze: 0=open, 1=wall
+const MAZE = [
+  [0, 1, 0, 0, 0],
+  [0, 1, 0, 1, 0],
+  [0, 0, 0, 1, 0],
+  [0, 1, 1, 1, 0],
+  [0, 0, 0, 0, 0],
+];
+const START_PF = [0, 0];
+const END_PF = [4, 4];
+// BFS distances from start (pre-computed)
+const PF_DIST: (number | null)[][] = [
+  [0, null, 8, 9, 10],
+  [1, null, 7, null, 9],
+  [2, 3, 6, null, 8],
+  [3, null, null, null, 7],
+  [4, 5, 6, 7, 8],
+];
+// Shortest path cells (from [0,0] to [4,4])
+const SHORTEST = [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2], [1, 2], [0, 2], [0, 3], [0, 4], [1, 4], [2, 4], [3, 4], [4, 4]];
+
+function PathFindAnimation() {
+  const [phase, setPhase] = useState<"fill" | "path" | "pause">("fill");
+  const [fillTick, setFillTick] = useState(-1);
+  useEffect(() => {
+    if (phase === "fill") {
+      if (fillTick < 10) {
+        const t = setTimeout(() => setFillTick((v) => v + 1), 300);
+        return () => clearTimeout(t);
+      } else {
+        const t = setTimeout(() => setPhase("path"), 400);
+        return () => clearTimeout(t);
+      }
+    } else if (phase === "path") {
+      const t = setTimeout(() => setPhase("pause"), 800);
+      return () => clearTimeout(t);
+    } else {
+      const t = setTimeout(() => { setPhase("fill"); setFillTick(-1); }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [phase, fillTick]);
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>BFS shortest path — 5×5 maze</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 2 }}>
+          {MAZE.flatMap((row, r) =>
+            row.map((cell, c) => {
+              const dist = PF_DIST[r][c];
+              const revealed = dist !== null && dist <= fillTick;
+              const onPath = SHORTEST.some(([pr, pc]) => pr === r && pc === c);
+              const isStart = r === START_PF[0] && c === START_PF[1];
+              const isEnd = r === END_PF[0] && c === END_PF[1];
+              let bg = "#111827";
+              if (cell === 1) bg = "#374151";
+              else if (phase === "path" && onPath) bg = GOLD;
+              else if (revealed) bg = "#0f3460";
+              let textColor = "#fff";
+              if (phase === "path" && onPath) textColor = "#000";
+              return (
+                <motion.div
+                  key={`${r}-${c}`}
+                  animate={{ backgroundColor: bg }}
+                  transition={{ duration: 0.25 }}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    ...MONO,
+                    fontSize: 10,
+                    color: textColor,
+                    fontWeight: isStart || isEnd ? 700 : 400,
+                    border: isStart ? `2px solid ${GREEN}` : isEnd ? `2px solid ${RED}` : "none",
+                  }}
+                >
+                  {cell === 1 ? "" : isStart ? "S" : isEnd ? "E" : revealed ? dist : ""}
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+        <div style={{ ...MONO, fontSize: 10, color: phase === "path" ? GOLD : "#6b7280" }}>
+          {phase === "fill" ? `filling distances... tick=${fillTick}` : phase === "path" ? "shortest path highlighted ✓" : "dist = 8 steps"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── simulation (Multi-Source BFS / Rotten Oranges) ───────────────────────
+const ORANGE_GRID: (0 | 1 | 2)[][] = [
+  [1, 1, 1, 1],
+  [1, 0, 1, 1],
+  [2, 1, 1, 2],
+  [1, 1, 1, 1],
+];
+// Pre-compute which cells rot at which minute from sources at (2,0) and (2,3)
+function rotMinute(r: number, c: number) {
+  const d1 = Math.abs(r - 2) + Math.abs(c - 0);
+  const d2 = Math.abs(r - 2) + Math.abs(c - 3);
+  if (ORANGE_GRID[r][c] === 0) return Infinity;
+  if (ORANGE_GRID[r][c] === 2) return 0;
+  return Math.min(d1, d2);
+}
+
+function SimulationAnimation() {
+  const [minute, setMinute] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setMinute((m) => (m + 1) % 6), 700);
+    return () => clearTimeout(t);
+  }, [minute]);
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>multi-source BFS — rotten oranges</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3 }}>
+          {ORANGE_GRID.flatMap((row, r) =>
+            row.map((cell, c) => {
+              if (cell === 0) return (
+                <div key={`${r}-${c}`} style={{ width: 48, height: 48, borderRadius: 4, background: "#111827" }} />
+              );
+              const rotAt = rotMinute(r, c);
+              const isRotten = rotAt <= minute;
+              const isSource = cell === 2;
+              return (
+                <motion.div
+                  key={`${r}-${c}`}
+                  animate={{
+                    backgroundColor: isSource ? "#7f1d1d" : isRotten ? "#92400e" : "#14532d",
+                    scale: rotAt === minute ? 1.15 : 1,
+                  }}
+                  transition={{ duration: 0.35 }}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 22,
+                  }}
+                >
+                  {isRotten || isSource ? "🍊" : "🟢"}
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+        <div style={{ ...MONO, fontSize: 12, color: GOLD }}>
+          minute = {minute}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── distance_fill (Gates BFS) ─────────────────────────────────────────────
+const GATES_GRID = [
+  [0, -1, Infinity, Infinity, Infinity],
+  [Infinity, Infinity, Infinity, -1, Infinity],
+  [Infinity, -1, Infinity, Infinity, Infinity],
+  [Infinity, Infinity, -1, Infinity, 0],
+  [Infinity, Infinity, Infinity, Infinity, Infinity],
+];
+function gateDist(r: number, c: number) {
+  if (GATES_GRID[r][c] === -1) return -1;
+  const gates: [number, number][] = [[0, 0], [3, 4]];
+  let min = Infinity;
+  for (const [gr, gc] of gates) {
+    const d = Math.abs(r - gr) + Math.abs(c - gc);
+    // Check no wall in path (simplified manhattan)
+    min = Math.min(min, d);
+  }
+  return min;
+}
+
+function DistanceFillAnimation() {
+  const [tick, setTick] = useState(-1);
+  useEffect(() => {
+    const t = setTimeout(() => setTick((v) => (v + 1) % 10), 500);
+    return () => clearTimeout(t);
+  }, [tick]);
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>multi-source BFS from gates</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 2 }}>
+          {GATES_GRID.flatMap((row, r) =>
+            row.map((cell, c) => {
+              const isWall = cell === -1;
+              const isGate = cell === 0;
+              const d = isWall ? -1 : gateDist(r, c);
+              const revealed = !isWall && !isGate && d <= tick;
+              const alpha = revealed ? Math.max(0.2, 1 - d * 0.15) : 0;
+              let bg = "#111827";
+              if (isWall) bg = "#374151";
+              else if (isGate) bg = GREEN;
+              else if (revealed) bg = `rgba(59, 130, 246, ${alpha})`;
+              return (
+                <motion.div
+                  key={`${r}-${c}`}
+                  animate={{ backgroundColor: bg }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    ...MONO,
+                    fontSize: 10,
+                    color: isGate ? "#000" : isWall ? "#6b7280" : "#fff",
+                    fontWeight: isGate ? 700 : 400,
+                  }}
+                >
+                  {isWall ? "■" : isGate ? "G" : revealed ? d : "∞"}
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+        <div style={{ ...MONO, fontSize: 10, color: BLUE }}>
+          BFS tick = {tick} — distances filling outward
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── dual_dfs (Pacific Atlantic) ───────────────────────────────────────────
+// 5x5 height grid
+const PA_HEIGHTS = [
+  [9, 2, 5, 3, 1],
+  [8, 7, 6, 2, 4],
+  [3, 4, 5, 6, 8],
+  [1, 2, 3, 7, 9],
+  [2, 1, 4, 8, 5],
+];
+// Pacific = can reach top or left; Atlantic = can reach bottom or right
+// Pre-computed reachability (running uphill)
+function canReach(r: number, c: number, ocean: "pacific" | "atlantic") {
+  const h = PA_HEIGHTS[r][c];
+  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+  // Simplified: pacific = r<=1 or c<=1; atlantic = r>=3 or c>=3
+  const touchesPacific = r === 0 || c === 0;
+  const touchesAtlantic = r === 4 || c === 4;
+  if (ocean === "pacific") return touchesPacific || (r <= 2 && c <= 2 && h >= 3);
+  return touchesAtlantic || (r >= 2 && c >= 2 && h >= 5);
+}
+
+const DD_PHASES = ["pacific", "atlantic", "overlap", "reset"] as const;
+
+function DualDfsAnimation() {
+  const [phaseIdx, setPhaseIdx] = useState(0);
+  useEffect(() => {
+    const durations = [1200, 1200, 1200, 600];
+    const t = setTimeout(() => setPhaseIdx((p) => (p + 1) % DD_PHASES.length), durations[phaseIdx]);
+    return () => clearTimeout(t);
+  }, [phaseIdx]);
+
+  const phase = DD_PHASES[phaseIdx];
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <div style={{ ...MONO, fontSize: 10, color: "#6b7280" }}>Pacific Atlantic — reverse DFS uphill</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 2 }}>
+          {PA_HEIGHTS.flatMap((row, r) =>
+            row.map((h, c) => {
+              const pacific = canReach(r, c, "pacific");
+              const atlantic = canReach(r, c, "atlantic");
+              const both = pacific && atlantic;
+              let bg = "#111827";
+              if (phase === "overlap" && both) bg = GOLD;
+              else if ((phase === "pacific" || phase === "overlap") && pacific && !both) bg = "#1e3a5f";
+              else if ((phase === "atlantic" || phase === "overlap") && atlantic && !both) bg = "#14532d";
+              if (phase === "overlap" && both) bg = GOLD;
+              return (
+                <motion.div
+                  key={`${r}-${c}`}
+                  animate={{ backgroundColor: bg }}
+                  transition={{ duration: 0.4 }}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    ...MONO,
+                    fontSize: 10,
+                    color: both && phase === "overlap" ? "#000" : "#9ca3af",
+                  }}
+                >
+                  {h}
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+        <motion.div
+          key={phase}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ ...MONO, fontSize: 11, color: phase === "overlap" ? GOLD : phase === "pacific" ? BLUE : GREEN }}
+        >
+          {phase === "pacific" && "Pacific DFS (blue) from top+left"}
+          {phase === "atlantic" && "Atlantic DFS (green) from bottom+right"}
+          {phase === "overlap" && "Intersection = BOTH OCEANS ✓"}
+          {phase === "reset" && "..."}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── graph_bfs (Word Ladder) ────────────────────────────────────────────────
+const WORD_LEVELS = [["COLD"], ["CORD"], ["WORD"], ["WARD"], ["WARM"]];
+const WORD_EDGES = [
+  [0, 0, 1, 0], // COLD→CORD
+  [1, 0, 2, 0], // CORD→WORD
+  [2, 0, 3, 0], // WORD→WARD
+  [3, 0, 4, 0], // WARD→WARM
+];
+
+function GraphBfsAnimation() {
+  const [visibleLevels, setVisibleLevels] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setVisibleLevels((v) => (v + 1) % (WORD_LEVELS.length + 2)), 700);
+    return () => clearTimeout(t);
+  }, [visibleLevels]);
+
+  const nodeX = 200;
+  const nodeY = (level: number) => 30 + level * 46;
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ ...MONO, fontSize: 10, color: "#6b7280", position: "absolute", top: 8, left: 12 }}>
+        word ladder: COLD → WARM (BFS levels)
+      </div>
+      <svg width={400} height={260} style={{ position: "absolute", top: 0, left: 0 }}>
+        {WORD_EDGES.map(([l1, n1, l2, n2], i) => {
+          if (l2 >= visibleLevels) return null;
+          return (
+            <motion.line
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              x1={nodeX} y1={nodeY(l1) + 14}
+              x2={nodeX} y2={nodeY(l2) - 2}
+              stroke={DIM} strokeWidth={1.5}
+            />
+          );
+        })}
+      </svg>
+      {WORD_LEVELS.map((words, level) => {
+        if (level >= visibleLevels) return null;
+        return words.map((word, wi) => {
+          const isActive = level === visibleLevels - 1;
+          const isLast = level === WORD_LEVELS.length - 1 && visibleLevels > WORD_LEVELS.length;
+          return (
+            <motion.div
+              key={`${level}-${wi}`}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1, backgroundColor: isLast ? GREEN : isActive ? GOLD : "#1e3a5f" }}
+              transition={{ duration: 0.35 }}
+              style={{
+                position: "absolute",
+                left: nodeX - 30,
+                top: nodeY(level) - 2,
+                width: 60,
+                height: 28,
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                ...MONO,
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#fff",
+              }}
+            >
+              {word}
+            </motion.div>
+          );
+        });
+      })}
+      <div style={{ ...MONO, fontSize: 10, color: "#6b7280", position: "absolute", bottom: 10, left: 12 }}>
+        steps = {Math.min(visibleLevels, WORD_LEVELS.length) - 1}
+      </div>
+      {visibleLevels > WORD_LEVELS.length && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ ...MONO, fontSize: 11, color: GREEN, position: "absolute", bottom: 10, right: 12 }}
+        >
+          found in 4 steps ✓
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ─── graph_analysis (Tarjan's Bridges) ─────────────────────────────────────
+// 6 nodes, bridge = edge 1-4
+const GA_NODES = [
+  { id: 0, x: 80, y: 60 },
+  { id: 1, x: 180, y: 60 },
+  { id: 2, x: 80, y: 150 },
+  { id: 3, x: 180, y: 150 },
+  { id: 4, x: 300, y: 60 },
+  { id: 5, x: 300, y: 150 },
+];
+const GA_EDGES = [
+  [0, 1], [0, 2], [1, 3], [2, 3], // left component (biconnected)
+  [1, 4], // BRIDGE
+  [4, 5], [4, 5], // right component
+];
+const GA_STEPS = [
+  { visited: [0], active: 0, disc: { 0: 0 }, low: { 0: 0 }, bridge: null as null | [number, number], label: "start DFS at 0" },
+  { visited: [0, 1], active: 1, disc: { 0: 0, 1: 1 }, low: { 0: 0, 1: 1 }, bridge: null, label: "visit 1, disc=1" },
+  { visited: [0, 1, 2], active: 2, disc: { 0: 0, 1: 1, 2: 2 }, low: { 0: 0, 1: 1, 2: 2 }, bridge: null, label: "visit 2, disc=2" },
+  { visited: [0, 1, 2, 3], active: 3, disc: { 0: 0, 1: 1, 2: 2, 3: 3 }, low: { 0: 0, 1: 0, 2: 0, 3: 0 }, bridge: null, label: "low propagates back" },
+  { visited: [0, 1, 2, 3, 4], active: 4, disc: { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4 }, low: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 4 }, bridge: null, label: "visit 4 via edge 1-4" },
+  { visited: [0, 1, 2, 3, 4, 5], active: 5, disc: { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 }, low: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 4, 5: 4 }, bridge: [1, 4] as [number, number], label: "low[4]=4 > disc[1]=1 → BRIDGE!" },
+];
+
+function GraphAnalysisAnimation() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setStep((s) => (s + 1) % GA_STEPS.length), 1000);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const cur = GA_STEPS[step];
+
+  return (
+    <div style={CONTAINER}>
+      <div style={{ ...MONO, fontSize: 10, color: "#6b7280", position: "absolute", top: 8, left: 12 }}>
+        Tarjan's bridge algorithm
+      </div>
+      <svg width={400} height={260} style={{ position: "absolute", top: 0, left: 0 }}>
+        {GA_EDGES.map(([a, b], i) => {
+          const na = GA_NODES[a], nb = GA_NODES[b];
+          const isBridge = cur.bridge && ((cur.bridge[0] === a && cur.bridge[1] === b) || (cur.bridge[0] === b && cur.bridge[1] === a));
+          return (
+            <motion.line
+              key={i}
+              animate={{ stroke: isBridge ? RED : DIM, strokeWidth: isBridge ? 3 : 1.5 }}
+              x1={na.x} y1={na.y} x2={nb.x} y2={nb.y}
+            />
+          );
+        })}
+      </svg>
+      {GA_NODES.map((node) => {
+        const isVisited = cur.visited.includes(node.id);
+        const isActive = cur.active === node.id;
+        const disc = (cur.disc as Record<number, number>)[node.id];
+        const low = (cur.low as Record<number, number>)[node.id];
+        return (
+          <motion.div
+            key={node.id}
+            animate={{
+              backgroundColor: isActive ? GOLD : isVisited ? BLUE : DIM,
+              scale: isActive ? 1.2 : 1,
+            }}
+            transition={{ duration: 0.35 }}
+            style={{
+              position: "absolute",
+              left: node.x - 18,
+              top: node.y - 18,
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              ...MONO,
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#fff",
+            }}
+          >
+            <span>{node.id}</span>
+            {isVisited && (
+              <span style={{ fontSize: 7, color: "#ddd", lineHeight: 1 }}>
+                {disc}/{low}
+              </span>
+            )}
+          </motion.div>
+        );
+      })}
+      <motion.div
+        key={step}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        style={{ ...MONO, fontSize: 10, position: "absolute", bottom: 10, left: 12, right: 12, color: cur.bridge ? RED : GOLD }}
+      >
+        {cur.label}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── ALGO_CONTENT export ───────────────────────────────────────────────────
+export const ALGO_CONTENT: Partial<Record<string, AlgoContent>> = {
+  pointer_trace: {
+    title: "Classic Binary Search",
+    pseudocode: `lo = 0, hi = n-1
+while lo <= hi:
+  mid = (lo + hi) / 2
+  if arr[mid] == target: return mid
+  if arr[mid] < target: lo = mid + 1
+  else: hi = mid - 1
+return -1`,
+    Animation: PointerTraceAnimation,
+  },
+
+  resource_constraint: {
+    title: "First Bad Version / Peak Element",
+    pseudocode: `lo = 0, hi = n-1
+while lo < hi:
+  mid = (lo + hi) / 2
+  if isBad(mid): hi = mid
+  else: lo = mid + 1
+return lo  // first bad version`,
+    Animation: ResourceConstraintAnimation,
+  },
+
+  simulation_guess: {
+    title: "Binary Search on Answer Space",
+    pseudocode: `lo = min_val, hi = max_val
+while lo < hi:
+  mid = (lo + hi) / 2
+  if canAchieve(mid): hi = mid
+  else: lo = mid + 1
+return lo`,
+    Animation: SimulationGuessAnimation,
+  },
+
+  partition_game: {
+    title: "Median of Two Sorted Arrays",
+    pseudocode: `pA on smaller array A, pB = half - pA
+if maxLeftA <= minRightB && maxLeftB <= minRightA:
+  median = max(maxLeftA, maxLeftB)  // odd
+else if maxLeftA > minRightB: pA--
+else: pA++`,
+    Animation: PartitionGameAnimation,
+  },
+
+  placement: {
+    title: "N-Queens Backtracking",
+    pseudocode: `place(row):
+  if row == N: found solution
+  for col in 0..N-1:
+    if not attacked(row, col):
+      place queen
+      place(row + 1)
+      remove queen  // backtrack`,
+    Animation: PlacementAnimation,
+  },
+
+  path_trace: {
+    title: "Grid Backtracking (Word Search)",
+    pseudocode: `dfs(r, c, idx):
+  if idx == len(word): return True
+  if out of bounds or visited: return False
+  if grid[r][c] != word[idx]: return False
+  mark visited
+  for each neighbor:
+    if dfs(neighbor, idx+1): return True
+  unmark visited  // backtrack
+  return False`,
+    Animation: PathTraceAnimation,
+  },
+
+  selection: {
+    title: "Combination Sum (Recursion Tree)",
+    pseudocode: `dfs(start, remaining):
+  if remaining == 0: add to results
+  if remaining < 0: return (prune)
+  for i from start to n:
+    choose nums[i]
+    dfs(i, remaining - nums[i])
+    unchoose  // backtrack`,
+    Animation: SelectionAnimation,
+  },
+
+  swap: {
+    title: "Permutations",
+    pseudocode: `permute(nums, start):
+  if start == len: add to results
+  for i from start to n-1:
+    swap(nums[start], nums[i])
+    permute(nums, start + 1)
+    swap(nums[start], nums[i])  // backtrack`,
+    Animation: SwapAnimation,
+  },
+
+  grid_fill: {
+    title: "Sudoku / Constraint Satisfaction",
+    pseudocode: `solve(board):
+  cell = find_empty()
+  if none: return True (solved)
+  for num in 1..9:
+    if valid(cell, num):
+      place num
+      if solve(board): return True
+      remove num  // backtrack
+  return False`,
+    Animation: GridFillAnimation,
+  },
+
+  flood_fill: {
+    title: "BFS Flood Fill",
+    pseudocode: `queue = [start]
+while queue:
+  cell = queue.popleft()
+  for neighbor in 4_directions:
+    if not visited and safe:
+      mark visited
+      queue.append(neighbor)`,
+    Animation: FloodFillAnimation,
+  },
+
+  dfs_mark: {
+    title: "DFS Island Marking",
+    pseudocode: `for each cell:
+  if land and not visited:
+    islands++
+    dfs(cell)  // marks entire island
+
+dfs(r, c):
+  if visited or water: return
+  mark visited
+  dfs all 4 neighbors`,
+    Animation: DfsMarkAnimation,
+  },
+
+  path_find: {
+    title: "BFS Shortest Path",
+    pseudocode: `queue = [(start, 0)]
+while queue:
+  (cell, dist) = queue.popleft()
+  for neighbor:
+    if not visited:
+      dist[neighbor] = dist + 1
+      queue.append((neighbor, dist+1))
+      if neighbor == exit: return dist+1`,
+    Animation: PathFindAnimation,
+  },
+
+  simulation: {
+    title: "Multi-Source BFS (Rotten Oranges)",
+    pseudocode: `queue = all_rotten_sources  // enqueue ALL at once
+minute = 0
+while queue:
+  process entire current level
+  spread to fresh neighbors
+  minute++`,
+    Animation: SimulationAnimation,
+  },
+
+  distance_fill: {
+    title: "Multi-Source BFS from Gates",
+    pseudocode: `queue = all gates (value 0)
+while queue:
+  (r,c) = dequeue
+  for neighbor in 4_dirs:
+    if dist[neighbor] > dist[r,c] + 1:
+      dist[neighbor] = dist[r,c] + 1
+      enqueue neighbor`,
+    Animation: DistanceFillAnimation,
+  },
+
+  dual_dfs: {
+    title: "Pacific Atlantic (Reverse Flow DFS)",
+    pseudocode: `// Run DFS UPHILL from both ocean borders
+pacific = dfs_uphill(top_row + left_col)
+atlantic = dfs_uphill(bottom_row + right_col)
+answer = pacific ∩ atlantic`,
+    Animation: DualDfsAnimation,
+  },
+
+  graph_bfs: {
+    title: "BFS on Implicit Graph (Word Ladder)",
+    pseudocode: `queue = [start_word]
+visited = {start_word}
+steps = 1
+while queue:
+  for word in current_level:
+    for each 1-letter-change:
+      if valid and not visited:
+        if == end: return steps
+        queue.append(new_word)
+  steps++`,
+    Animation: GraphBfsAnimation,
+  },
+
+  graph_analysis: {
+    title: "Tarjan's Bridges",
+    pseudocode: `dfs(u, parent):
+  disc[u] = low[u] = timer++
+  for v in adj[u]:
+    if not visited:
+      dfs(v, u)
+      low[u] = min(low[u], low[v])
+      if low[v] > disc[u]: BRIDGE(u,v)
+    elif v != parent:
+      low[u] = min(low[u], disc[v])`,
+    Animation: GraphAnalysisAnimation,
+  },
+};

@@ -6,6 +6,7 @@ import { GRAPH_PROBLEMS } from "@/components/games/tier1/graphs/problems";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { GameProps } from "@/components/games/tier1/graphs/types";
+import AlgoModal from "@/components/games/AlgoModal";
 
 function GameLoader() {
   return (
@@ -51,6 +52,8 @@ export default function GraphProblemPage({ params }: { params: Promise<{ index: 
   const supabase = createClient();
   const [dbId, setDbId] = useState<string | null>(null);
   const [solveVisible, setSolveVisible] = useState(false);
+  const [algoModalOpen, setAlgoModalOpen] = useState(false);
+  const [algoAutoClose, setAlgoAutoClose] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef<number>(Date.now());
@@ -82,6 +85,14 @@ export default function GraphProblemPage({ params }: { params: Promise<{ index: 
       setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setAlgoAutoClose(true);
+      setAlgoModalOpen(true);
+    }, 400);
+    return () => clearTimeout(t);
   }, []);
 
   const handleSolve = async () => {
@@ -118,6 +129,19 @@ export default function GraphProblemPage({ params }: { params: Promise<{ index: 
         <Link href="/learn/tier1/graphs" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 10, color: "#374151", cursor: "pointer", letterSpacing: "0.08em" }}>← GR</span>
         </Link>
+        <button
+          onClick={() => { setAlgoAutoClose(false); setAlgoModalOpen(true); }}
+          style={{
+            padding: "3px 10px",
+            background: "rgba(59,130,246,0.08)",
+            border: "1px solid rgba(59,130,246,0.25)",
+            borderRadius: 4, cursor: "pointer",
+            fontSize: 9, color: "#3b82f6",
+            fontFamily: "inherit", letterSpacing: "0.1em",
+          }}
+        >
+          LEARN ALGO
+        </button>
         <span style={{ fontSize: 10, color: "#1e1e1e" }}>/</span>
         <span style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>
           P{problem.index} — {problem.title}
@@ -163,6 +187,13 @@ export default function GraphProblemPage({ params }: { params: Promise<{ index: 
           </span>
         )}
       </div>
+
+      <AlgoModal
+        open={algoModalOpen}
+        onClose={() => { setAlgoModalOpen(false); setAlgoAutoClose(false); }}
+        mechanic={problem.mechanic}
+        autoClose={algoAutoClose}
+      />
 
       {/* After-solve insight panel */}
       {solveVisible && (

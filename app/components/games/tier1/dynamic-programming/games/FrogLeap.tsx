@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { GameProps } from "../types";
 
 function playTone(freq: number, type: OscillatorType = "sine", dur = 0.12) {
@@ -15,21 +15,30 @@ function playTone(freq: number, type: OscillatorType = "sine", dur = 0.12) {
   } catch {}
 }
 
-const PAD_COUNT = 7;
-const HOP_FREQS = [220, 262, 330, 392, 494, 587, 698];
+const MONO = "var(--font-mono,'JetBrains Mono',monospace)";
+const PAD_COUNT = 5;
+const TOTAL_WAYS = 5;
 
-function initDp(): number[] {
-  const dp = new Array(PAD_COUNT).fill(-1);
-  dp[0] = 1;
-  dp[1] = 1;
-  return dp;
-}
+// All 5 distinct paths from pad 0 to pad 4 (hop +1 or +2 only)
+const ALL_PATHS: number[][] = [
+  [0,1,2,3,4],
+  [0,1,2,4],
+  [0,1,3,4],
+  [0,2,3,4],
+  [0,2,4],
+];
+const ALL_PATH_KEYS = new Set(ALL_PATHS.map(p => p.join(",")));
+
+const DP = [1, 1, 2, 3, 5];
+
+const PAD_COLORS = ["#22c55e","#3b82f6","#a855f7","#f59e0b","#818cf8"];
 
 export default function FrogLeap({ onSolve, onAttempt }: GameProps) {
   const [frogPos, setFrogPos] = useState(0);
-  const [dp, setDp] = useState<number[]>(initDp);
-  const [visited, setVisited] = useState<Set<number>>(() => new Set([0]));
+  const [currentPath, setCurrentPath] = useState<number[]>([0]);
+  const [foundPaths, setFoundPaths] = useState<string[]>([]);
   const [justHopped, setJustHopped] = useState<number | null>(null);
+  const [flashNew, setFlashNew] = useState(false);
   const [solved, setSolved] = useState(false);
   const hasAttempted = useRef(false);
   const solvedRef = useRef(false);
@@ -47,272 +56,204 @@ export default function FrogLeap({ onSolve, onAttempt }: GameProps) {
       onAttempt();
     }
 
-    playTone(HOP_FREQS[target], "sine", 0.18);
+    playTone(200 + target * 80, "sine", 0.15);
 
-    const newDp = [...dp];
-    if (newDp[target] === -1) {
-      const prev1 = newDp[target - 1] > 0 ? newDp[target - 1] : 0;
-      const prev2 = target >= 2 && newDp[target - 2] > 0 ? newDp[target - 2] : 0;
-      newDp[target] = prev1 + prev2;
-    }
-
-    const newVisited = new Set(visited);
-    newVisited.add(target);
-
-    setDp(newDp);
-    setVisited(newVisited);
+    const newPath = [...currentPath, target];
+    setCurrentPath(newPath);
     setFrogPos(target);
     setJustHopped(target);
-    setTimeout(() => setJustHopped(null), 400);
+    setTimeout(() => setJustHopped(null), 350);
 
-    if (target === PAD_COUNT - 1 && !solvedRef.current) {
-      solvedRef.current = true;
-      setSolved(true);
-      playTone(880, "sine", 0.4);
-      setTimeout(() => playTone(1108, "sine", 0.4), 150);
-      setTimeout(() => onSolve(), 1000);
+    if (target === PAD_COUNT - 1) {
+      const key = newPath.join(",");
+      const isNew = !foundPaths.includes(key);
+
+      if (isNew && ALL_PATH_KEYS.has(key)) {
+        const next = [...foundPaths, key];
+        setFoundPaths(next);
+        setFlashNew(true);
+        setTimeout(() => setFlashNew(false), 600);
+        playTone(523, "sine", 0.12);
+        setTimeout(() => playTone(659, "sine", 0.12), 100);
+
+        if (next.length === TOTAL_WAYS && !solvedRef.current) {
+          solvedRef.current = true;
+          setSolved(true);
+          playTone(784, "sine", 0.2);
+          setTimeout(() => playTone(1047, "sine", 0.3), 200);
+          setTimeout(() => playTone(1319, "sine", 0.4), 400);
+          setTimeout(() => onSolve(), 1000);
+        }
+      } else {
+        playTone(200, "triangle", 0.1);
+      }
+
+      setTimeout(() => {
+        setFrogPos(0);
+        setCurrentPath([0]);
+      }, 500);
     }
-  }, [frogPos, dp, visited, solved, onAttempt, onSolve]);
-
-  const reset = useCallback(() => {
-    setFrogPos(0);
-    setDp(initDp());
-    setVisited(new Set([0]));
-    setJustHopped(null);
-    setSolved(false);
-    solvedRef.current = false;
-    hasAttempted.current = false;
-  }, []);
-
-  const padAngles = Array.from({ length: PAD_COUNT }, (_, i) => {
-    const t = i / (PAD_COUNT - 1);
-    return -0.25 + t * 0.5;
-  });
+  }, [frogPos, currentPath, foundPaths, solved, onAttempt, onSolve]);
 
   return (
     <>
       <style>{`
         @keyframes fl-pulse {
-          0%,100% { box-shadow: 0 0 0 0 rgba(129,140,248,0.5); transform: scale(1); }
-          50% { box-shadow: 0 0 0 8px rgba(129,140,248,0); transform: scale(1.06); }
+          0%,100% { box-shadow: 0 0 0 0 rgba(129,140,248,0.5); }
+          50% { box-shadow: 0 0 0 10px rgba(129,140,248,0); }
         }
-        @keyframes fl-pop {
-          0% { transform: scale(1); }
-          40% { transform: scale(1.22); }
-          100% { transform: scale(1); }
-        }
-        @keyframes fl-frog-bounce {
-          0%,100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
-        }
-        @keyframes fl-number-in {
-          0% { transform: scale(0) translateY(6px); opacity: 0; }
-          70% { transform: scale(1.15) translateY(-2px); opacity: 1; }
-          100% { transform: scale(1) translateY(0px); opacity: 1; }
-        }
-        @keyframes fl-win-glow {
-          0%,100% { box-shadow: 0 0 0 0 rgba(129,140,248,0.6); }
-          50% { box-shadow: 0 0 24px 8px rgba(129,140,248,0.25); }
-        }
+        @keyframes fl-pop { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)} }
+        @keyframes fl-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+        @keyframes fl-flash { 0%{opacity:1} 50%{opacity:0.4} 100%{opacity:1} }
+        @keyframes fl-win { 0%,100%{box-shadow:0 0 0 0 rgba(129,140,248,0.5)} 50%{box-shadow:0 0 20px 6px rgba(129,140,248,0.2)} }
+        @keyframes fl-path-in { 0%{transform:translateX(-8px);opacity:0} 100%{transform:translateX(0);opacity:1} }
       `}</style>
 
       <div style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        minHeight: "100%",
-        background: "#0a0a0a",
-        padding: "24px 16px 20px",
-        fontFamily: "var(--font-mono,'JetBrains Mono',monospace)",
-        color: "#e5e7eb",
-        gap: 0,
-        boxSizing: "border-box",
-        userSelect: "none",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        height: "100%", background: "#0a0a0a",
+        padding: "20px 16px 32px", boxSizing: "border-box",
+        fontFamily: MONO, userSelect: "none", overflowY: "auto",
       }}>
 
-        <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div style={{ fontSize: 10, letterSpacing: 4, color: "#6b7280", marginBottom: 4 }}>
-            FROG LEAP
+        {/* Header */}
+        <div style={{ width: "100%", maxWidth: 520, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+            <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>FROG LEAP</span>
+            <span style={{ fontSize: 9, color: "#10b981" }}>LC 70 — CLIMBING STAIRS</span>
           </div>
-          <div style={{ fontSize: 11, color: "#4b5563", letterSpacing: 1 }}>
-            CLIMB STAIRS — CLICK A LIT PAD TO HOP (+1 OR +2)
+          <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
+            CLICK A GLOWING PAD TO HOP (+1 OR +2) · FIND ALL {TOTAL_WAYS} WAYS TO REACH PAD {PAD_COUNT - 1}
           </div>
         </div>
 
+        {/* Ways counter */}
         <div style={{
-          width: "100%",
-          maxWidth: 560,
+          marginBottom: 20,
+          padding: "10px 24px",
+          background: foundPaths.length === TOTAL_WAYS ? "rgba(129,140,248,0.08)" : "rgba(255,255,255,0.02)",
+          border: `1px solid ${foundPaths.length === TOTAL_WAYS ? "rgba(129,140,248,0.4)" : "#1a1a1a"}`,
+          borderRadius: 8,
+          display: "flex", alignItems: "center", gap: 20,
+          animation: solved ? "fl-win 1.5s infinite" : flashNew ? "fl-flash 0.4s" : "none",
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: foundPaths.length === TOTAL_WAYS ? "#818cf8" : "#e2e8f0", lineHeight: 1 }}>
+              {foundPaths.length}
+            </div>
+            <div style={{ fontSize: 8, color: "#374151", letterSpacing: "0.1em" }}>FOUND</div>
+          </div>
+          <div style={{ fontSize: 18, color: "#1e1e1e" }}>/</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#374151", lineHeight: 1 }}>{TOTAL_WAYS}</div>
+            <div style={{ fontSize: 8, color: "#374151", letterSpacing: "0.1em" }}>TOTAL</div>
+          </div>
+          {solved && (
+            <div style={{ fontSize: 10, color: "#818cf8", letterSpacing: "0.1em", marginLeft: 8 }}>ALL WAYS FOUND!</div>
+          )}
+        </div>
+
+        {/* Pond + pads */}
+        <div style={{
+          width: "100%", maxWidth: 520, marginBottom: 20,
           background: "linear-gradient(180deg, #0d1a2e 0%, #060d1a 100%)",
           border: "1px solid #0f2040",
-          borderRadius: 16,
-          padding: "32px 16px 20px",
+          borderRadius: 16, padding: "28px 16px 20px",
           position: "relative",
-          minHeight: 200,
         }}>
-
-          <div style={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            gap: 8,
-            paddingBottom: 24,
-          }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 10 }}>
             {Array.from({ length: PAD_COUNT }, (_, i) => {
               const isCurrent = frogPos === i;
               const isHoppable = canHop(i);
-              const isVisited = visited.has(i);
-              const isJustHopped = justHopped === i;
-
-              const arcOffset = Math.sin((i / (PAD_COUNT - 1)) * Math.PI) * 18;
-
-              let padColor = "#1a3a1a";
-              if (isCurrent) padColor = "#2a4a2a";
-              else if (isVisited) padColor = "#1e3a1e";
-              else if (isHoppable) padColor = "#1a2060";
-
-              let borderColor = "#2a5a2a";
-              if (isCurrent) borderColor = "#4a9a4a";
-              else if (isHoppable) borderColor = "#818cf8";
-              else if (isVisited) borderColor = "#2a5a2a";
-              else borderColor = "#0f2a0f";
+              const inCurrentPath = currentPath.includes(i);
+              const arcOffset = Math.sin((i / (PAD_COUNT - 1)) * Math.PI) * 16;
+              const col = PAD_COLORS[i];
 
               return (
-                <div
-                  key={i}
-                  onClick={() => hop(i)}
-                  style={{
-                    position: "relative",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 4,
-                    marginBottom: arcOffset,
-                    cursor: isHoppable ? "pointer" : "default",
-                  }}
-                >
+                <div key={i} onClick={() => hop(i)} style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
+                  marginBottom: arcOffset, cursor: isHoppable ? "pointer" : "default",
+                }}>
                   <div style={{
-                    width: 58,
-                    height: 58,
-                    borderRadius: "50%",
-                    background: padColor,
-                    border: `2px solid ${borderColor}`,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                    animation: isCurrent
-                      ? "fl-frog-bounce 1s ease-in-out infinite"
-                      : isHoppable
-                      ? "fl-pulse 1.2s ease-in-out infinite"
-                      : isJustHopped
-                      ? "fl-pop 0.4s ease"
-                      : "none",
+                    width: 62, height: 62, borderRadius: "50%",
+                    background: isCurrent ? `${col}22` : inCurrentPath ? `${col}11` : "#111",
+                    border: `2px solid ${isCurrent ? col : isHoppable ? "#818cf8" : inCurrentPath ? `${col}66` : "#1e2e1e"}`,
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    animation: isCurrent ? "fl-bounce 1s infinite" : isHoppable ? "fl-pulse 1.2s infinite" : justHopped === i ? "fl-pop 0.35s" : "none",
                     transition: "background 0.2s, border-color 0.2s",
                   }}>
-                    {isCurrent && (
-                      <div style={{ fontSize: 22, lineHeight: 1, marginBottom: 2 }}>🐸</div>
-                    )}
-                    <div style={{
-                      fontSize: isCurrent ? 9 : 10,
-                      color: isCurrent ? "#6ee7a0" : isHoppable ? "#a5b4fc" : isVisited ? "#4ade80" : "#374151",
-                      fontWeight: 600,
-                      letterSpacing: 0.5,
-                    }}>
+                    {isCurrent && <div style={{ fontSize: 22, lineHeight: 1 }}>🐸</div>}
+                    <div style={{ fontSize: isCurrent ? 8 : 10, color: isCurrent ? col : isHoppable ? "#a5b4fc" : inCurrentPath ? `${col}aa` : "#374151", fontWeight: 700 }}>
                       {i}
                     </div>
                   </div>
+                  <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>dp[{i}]={DP[i]}</div>
+                </div>
+              );
+            })}
+          </div>
 
+          {/* Current path trail */}
+          <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, minHeight: 18 }}>
+            {currentPath.length > 1 && currentPath.map((p, idx) => (
+              <span key={idx} style={{ fontSize: 10, color: PAD_COLORS[p], fontWeight: 700 }}>
+                {idx > 0 && <span style={{ color: "#1e1e1e", margin: "0 2px" }}>→</span>}
+                {p}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Found paths list */}
+        <div style={{ width: "100%", maxWidth: 520 }}>
+          <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.1em", marginBottom: 8 }}>
+            PATHS DISCOVERED:
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {ALL_PATHS.map((path, pi) => {
+              const key = path.join(",");
+              const found = foundPaths.includes(key);
+              const isJustFound = found && foundPaths[foundPaths.length - 1] === key;
+              return (
+                <div key={pi} style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px 12px",
+                  background: found ? "rgba(129,140,248,0.06)" : "rgba(255,255,255,0.01)",
+                  border: `1px solid ${found ? "rgba(129,140,248,0.2)" : "#141414"}`,
+                  borderRadius: 5,
+                  opacity: found ? 1 : 0.3,
+                  animation: isJustFound ? "fl-path-in 0.35s ease" : "none",
+                  transition: "all 0.3s",
+                }}>
                   <div style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: isVisited
-                      ? (isCurrent ? "#a5b4fc" : "#4ade80")
-                      : isHoppable
-                      ? "#818cf8"
-                      : "#374151",
-                    minHeight: 16,
-                    animation: isJustHopped && dp[i] !== -1 ? "fl-number-in 0.35s ease" : "none",
-                  }}>
-                    {dp[i] !== -1 ? dp[i] : "?"}
+                    width: 16, height: 16, borderRadius: "50%",
+                    background: found ? "rgba(129,140,248,0.2)" : "#1a1a1a",
+                    border: `1px solid ${found ? "#818cf8" : "#222"}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 8, color: found ? "#818cf8" : "#374151", fontWeight: 700,
+                  }}>{pi + 1}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    {path.map((p, i) => (
+                      <span key={i} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        {i > 0 && <span style={{ color: "#1e1e1e", fontSize: 9 }}>→</span>}
+                        <span style={{
+                          fontSize: 11, fontWeight: 700,
+                          color: found ? PAD_COLORS[p] : "#374151",
+                        }}>{p}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ marginLeft: "auto", fontSize: 8, color: found ? "#475569" : "#1a1a1a", letterSpacing: "0.1em" }}>
+                    {found ? "✓" : "???"}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <div style={{
-            borderTop: "1px solid #0f2040",
-            paddingTop: 12,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: 9,
-            color: "#4b5563",
-            letterSpacing: 1,
-          }}>
-            <span>PAD {frogPos} → PAD 6</span>
-            <span style={{ color: dp[6] !== -1 ? "#818cf8" : "#4b5563" }}>
-              {dp[6] !== -1 ? `WAYS TO REACH PAD 6: ${dp[6]}` : "WAYS TO REACH PAD 6: ?"}
-            </span>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <div style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            justifyContent: "center",
-            maxWidth: 400,
-          }}>
-            {Array.from({ length: PAD_COUNT }, (_, i) => (
-              <div key={i} style={{
-                padding: "4px 8px",
-                background: dp[i] !== -1 ? "rgba(129,140,248,0.08)" : "transparent",
-                border: `1px solid ${dp[i] !== -1 ? "rgba(129,140,248,0.3)" : "#1e1e1e"}`,
-                borderRadius: 4,
-                fontSize: 10,
-                color: dp[i] !== -1 ? "#818cf8" : "#374151",
-                transition: "all 0.3s",
-              }}>
-                dp[{i}]={dp[i] !== -1 ? dp[i] : "?"}
-              </div>
-            ))}
-          </div>
-
-          {solved && (
-            <div style={{
-              marginTop: 8,
-              textAlign: "center",
-              animation: "fl-win-glow 1.5s ease-in-out infinite",
-            }}>
-              <div style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: "#818cf8",
-                letterSpacing: 3,
-                marginBottom: 10,
-              }}>
-                REACHED PAD 6 — {dp[6]} WAYS EXIST
-              </div>
-              <button
-                onClick={reset}
-                style={{
-                  padding: "6px 20px",
-                  background: "rgba(129,140,248,0.1)",
-                  border: "1px solid rgba(129,140,248,0.4)",
-                  borderRadius: 6,
-                  color: "#818cf8",
-                  fontSize: 10,
-                  letterSpacing: 2,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                [ RESET ]
-              </button>
+          {!solved && foundPaths.length > 0 && foundPaths.length < TOTAL_WAYS && (
+            <div style={{ marginTop: 12, fontSize: 10, color: "#475569", textAlign: "center", letterSpacing: "0.06em" }}>
+              {TOTAL_WAYS - foundPaths.length} more way{TOTAL_WAYS - foundPaths.length !== 1 ? "s" : ""} to find
             </div>
           )}
         </div>

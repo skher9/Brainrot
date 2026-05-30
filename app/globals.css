@@ -516,3 +516,11 @@ body {
   min-height: 100vh;
   z-index: 3;
 }
+
+/* ── Campaign Map ────────────────────────────────────────── */
+@keyframes dashflow { to { stroke-dashoffset: -32; } }
+@keyframes live-pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+.live-dot { animation: live-pulse 1.6s ease-in-out infinite; }
+.region-card { transition: transform 0.16s ease, filter 0.16s ease; cursor: pointer; }
+.region-card:hover { transform: translateY(-4px); filter: brightness(1.12); }
+@keyframes xp-shine { 0%{transform:translateX(-100%);} 100%{transform:translateX(280%);} }

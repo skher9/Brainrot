@@ -635,7 +635,7 @@ export default function NumberSmuggler({ levelNum, onComplete, onBack }: Props) 
         <WarehouseGrid
           range={cfg.range} lo={lo} hi={hi}
           lastGuess={history.at(-1)?.guess ?? null}
-          result={history.at(-1)?.result ?? null}
+          result={(() => { const r = history.at(-1)?.result ?? null; return r === "lie" ? null : r; })()}
           onGuess={handleGuess}
           disabled={solved || phase !== "playing"}
           fogMode={isFog}

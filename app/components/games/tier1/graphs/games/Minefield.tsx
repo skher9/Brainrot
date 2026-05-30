@@ -4,6 +4,8 @@
 // ZERO NEIGHBORS = WAVE EXPANDS  ·  RIGHT-CLICK TO FLAG  ·  CLEAR THE FIELD TO WIN
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const ROWS = 10;
 const COLS = 10;
@@ -348,42 +350,17 @@ export default function Minefield({ onSolve, onAttempt }: GameProps) {
 
   const flagCount = grid.flat().filter(c => c.flagged).length;
 
+  const mission = getMission("graphs", 1);
+  const tools = getTools("graphs");
+  const stats: ShellStat[] = [{ label: "REVEALED", value: revealedCount }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        padding: "16px 12px",
-        gap: 12,
-        overflow: "auto",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: gridWidth, flexShrink: 0 }}>
-        <div style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          marginBottom: 6,
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", letterSpacing: "0.1em" }}>
-            MINEFIELD
-          </span>
-          <span style={{ fontSize: 10, color: "#374151", letterSpacing: "0.08em" }}>
-            CELLS LEFT: {status === "idle" ? TOTAL_SAFE : cellsLeft}
-          </span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em", lineHeight: 1.8 }}>
-          CLICK TO REVEAL — SAFE CELLS AUTO-EXPAND VIA BFS FLOOD FILL
-        </div>
-        <div style={{ fontSize: 9, color: "#2a2a2a", letterSpacing: "0.05em", lineHeight: 1.5 }}>
-          ZERO NEIGHBORS = WAVE EXPANDS &nbsp;·&nbsp; RIGHT-CLICK TO FLAG &nbsp;·&nbsp; CLEAR THE FIELD TO WIN
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
       {/* Stats row */}
       <div style={{
@@ -491,5 +468,6 @@ export default function Minefield({ onSolve, onAttempt }: GameProps) {
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 function playTone(freq: number, type: OscillatorType = "sine", dur = 0.12) {
   try {
@@ -95,6 +97,10 @@ export default function FrogLeap({ onSolve, onAttempt }: GameProps) {
     }
   }, [frogPos, currentPath, foundPaths, solved, onAttempt, onSolve]);
 
+  const mission = getMission("dynamic-programming", 1);
+  const tools = getTools("dynamic-programming");
+  const stats: ShellStat[] = [{ label: "FOUND", value: foundPaths?.length ?? 0 }];
+
   return (
     <>
       <style>{`
@@ -109,23 +115,12 @@ export default function FrogLeap({ onSolve, onAttempt }: GameProps) {
         @keyframes fl-path-in { 0%{transform:translateX(-8px);opacity:0} 100%{transform:translateX(0);opacity:1} }
       `}</style>
 
-      <div style={{
-        display: "flex", flexDirection: "column", alignItems: "center",
-        height: "100%", background: "#0a0a0a",
-        padding: "20px 16px 32px", boxSizing: "border-box",
-        fontFamily: MONO, userSelect: "none", overflowY: "auto",
-      }}>
-
-        {/* Header */}
-        <div style={{ width: "100%", maxWidth: 520, marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>FROG LEAP</span>
-            <span style={{ fontSize: 9, color: "#10b981" }}>LC 70 — CLIMBING STAIRS</span>
-          </div>
-          <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
-            CLICK A GLOWING PAD TO HOP (+1 OR +2) · FIND ALL {TOTAL_WAYS} WAYS TO REACH PAD {PAD_COUNT - 1}
-          </div>
-        </div>
+      <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
         {/* Ways counter */}
         <div style={{
@@ -268,6 +263,7 @@ export default function FrogLeap({ onSolve, onAttempt }: GameProps) {
           )}
         </div>
       </div>
+    </GameShell>
     </>
   );
 }

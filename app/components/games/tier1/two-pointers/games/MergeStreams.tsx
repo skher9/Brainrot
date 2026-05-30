@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 const NUMS1 = [1, 3, 5, 7, 9];
@@ -158,24 +160,18 @@ export default function MergeStreams({ onSolve, onAttempt }: GameProps) {
     ? (cand1 <= cand2 ? "left" : "right")
     : null;
 
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      minHeight: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", padding: "24px 16px 36px", boxSizing: "border-box",
-    }}>
-      <style>{KEYFRAMES}</style>
+  const mission = getMission("two-pointers", 7);
+  const tools = getTools("two-pointers");
+  const stats: ShellStat[] = [{ label: "MERGED", value: merged.length }];
 
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>MERGE STREAMS</span>
-          <span style={{ fontSize: 9, color: "#374151" }}>LC 88 · MERGE SORTED ARRAY</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.05em", lineHeight: 1.7 }}>
-          CLICK THE SMALLER CANDIDATE CARD TO ADD IT TO THE MERGED OUTPUT
-        </div>
-      </div>
+  return (
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
+      <style>{KEYFRAMES}</style>
 
       {/* Progress */}
       <div style={{ marginBottom: 16, fontSize: 11, color: "#475569", letterSpacing: "0.08em" }}>
@@ -340,5 +336,6 @@ export default function MergeStreams({ onSolve, onAttempt }: GameProps) {
         ALWAYS PICK THE SMALLER FRONT CARD · GREEDY MERGE · WHEN ONE EXHAUSTED, APPEND REST
       </div>
     </div>
+    </GameShell>
   );
 }

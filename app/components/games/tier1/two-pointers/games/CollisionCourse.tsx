@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const ARRAY = [2, 7, 11, 15, 22, 30];
 const TARGET = 26;
@@ -242,20 +244,17 @@ export default function CollisionCourse({ onSolve, onAttempt }: GameProps) {
 
   const sum = ARRAY[left] + ARRAY[right];
 
+  const mission = getMission("two-pointers", 1);
+  const tools = getTools("two-pointers");
+  const stats: ShellStat[] = [{ label: "CHECKS", value: checks }];
+
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      minHeight: "100%",
-      background: "#0a0a0a",
-      fontFamily: MONO,
-      userSelect: "none",
-      overflowY: "auto",
-      padding: "24px 16px 36px",
-      boxSizing: "border-box",
-      position: "relative",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{KEYFRAMES}</style>
 
       {/* Particle burst */}
@@ -276,19 +275,6 @@ export default function CollisionCourse({ onSolve, onAttempt }: GameProps) {
           animation: "particleFly 0.65s ease-out forwards",
         } as React.CSSProperties} />
       ))}
-
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: 500, marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>COLLISION COURSE</span>
-          <span style={{ fontSize: 10, color: "#374151", letterSpacing: "0.06em" }}>
-            YOUR CHECKS: <span style={{ color: "#64748b", fontWeight: 700 }}>{checks}</span>
-          </span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.05em", lineHeight: 1.7 }}>
-          CLICK A GLOWING TOKEN TO JUMP THE POINTER · FIND THE PAIR THAT SUMS TO TARGET
-        </div>
-      </div>
 
       {/* Target */}
       <div style={{
@@ -478,5 +464,6 @@ export default function CollisionCourse({ onSolve, onAttempt }: GameProps) {
         SORTED → SUM TOO SMALL: ONLY LEFT++ CAN INCREASE IT · SUM TOO BIG: ONLY RIGHT-- CAN DECREASE IT
       </div>
     </div>
+    </GameShell>
   );
 }

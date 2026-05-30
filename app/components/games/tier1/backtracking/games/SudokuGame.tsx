@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const PUZZLES: number[][][] = [
   // Easy puzzle 1
@@ -219,22 +221,17 @@ export default function SudokuGame({ onSolve, onAttempt }: GameProps) {
     }
   }
 
+  const mission = getMission("backtracking", 5);
+  const tools = getTools("backtracking");
+  const stats: ShellStat[] = [{ label: "FILLED", value: `${filled}/${total}` }, { label: "CONFLICTS", value: conflictSet.size, danger: conflictSet.size > 0 }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        color: "#e2e8f0",
-        overflowY: "auto",
-        padding: "12px 8px",
-        gap: 10,
-        boxSizing: "border-box",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes pulse-green-sudoku {
           0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
@@ -244,43 +241,6 @@ export default function SudokuGame({ onSolve, onAttempt }: GameProps) {
           animation: pulse-green-sudoku 0.8s ease infinite;
         }
       `}</style>
-
-      {/* Header */}
-      <div style={{ fontSize: 11, color: "#22d3ee", fontWeight: 700, letterSpacing: "0.12em" }}>
-        SUDOKU · CONSTRAINT SATISFACTION
-      </div>
-
-      {/* Instruction */}
-      <div
-        style={{
-          background: "#111",
-          border: "1px solid #222",
-          borderRadius: 4,
-          padding: "5px 10px",
-          fontSize: 8,
-          color: "#64748b",
-          textAlign: "center",
-          letterSpacing: "0.07em",
-          maxWidth: 420,
-          boxSizing: "border-box",
-        }}
-      >
-        FILL THE GRID — EACH ROW, COLUMN &amp; 3×3 BOX MUST CONTAIN 1–9 ONCE
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: "flex", gap: 20, fontSize: 10, color: "#475569", letterSpacing: "0.06em" }}>
-        <span>
-          FILLED:{" "}
-          <span style={{ color: "#f59e0b", fontWeight: 700 }}>{filled}/{total}</span>
-        </span>
-        <span>
-          CONFLICTS:{" "}
-          <span style={{ color: conflictSet.size > 0 ? "#ef4444" : "#22c55e", fontWeight: 700 }}>
-            {conflictSet.size}
-          </span>
-        </span>
-      </div>
 
       {/* 9x9 Grid */}
       <div
@@ -480,5 +440,6 @@ export default function SudokuGame({ onSolve, onAttempt }: GameProps) {
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }

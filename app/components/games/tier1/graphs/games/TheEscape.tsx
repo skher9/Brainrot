@@ -3,6 +3,8 @@
 // NAVIGATE TO THE EXIT — CLICK ADJACENT CELLS TO MOVE · BFS GUARANTEES SHORTEST PATH
 import { useState, useCallback, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const ROWS = 10;
 const COLS = 10;
@@ -210,66 +212,17 @@ export default function TheEscape({ onSolve, onAttempt }: GameProps) {
 
   const isPerfect = escaped && steps === optimal;
 
+  const mission = getMission("graphs", 3);
+  const tools = getTools("graphs");
+  const stats: ShellStat[] = [{ label: "OPTIMAL", value: optimal }, { label: "STEPS", value: steps }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        padding: "16px 12px",
-        gap: 12,
-        overflow: "auto",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: GRID_WIDTH, flexShrink: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            marginBottom: 6,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: escaped ? (isPerfect ? "#22c55e" : "#f97316") : "#e2e8f0",
-              letterSpacing: "0.1em",
-              transition: "color 0.3s",
-            }}
-          >
-            THE ESCAPE
-          </span>
-          <span style={{ fontSize: 10, color: "#374151", letterSpacing: "0.08em" }}>
-            LC 1926
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#374151",
-            letterSpacing: "0.06em",
-            lineHeight: 1.8,
-          }}
-        >
-          NAVIGATE TO THE EXIT — CLICK ADJACENT CELLS TO MOVE
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#2a2a2a",
-            letterSpacing: "0.05em",
-            lineHeight: 1.5,
-          }}
-        >
-          BFS GUARANTEES SHORTEST PATH
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
       {/* Step counter row */}
       <div
@@ -420,5 +373,6 @@ export default function TheEscape({ onSolve, onAttempt }: GameProps) {
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }

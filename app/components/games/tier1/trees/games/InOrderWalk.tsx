@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const FONT = "var(--font-mono,'JetBrains Mono',monospace)";
 const AMBER = "#f59e0b";
@@ -122,8 +124,17 @@ export default function InOrderWalk({ onSolve, onAttempt }: GameProps) {
     return { bg: "#1a1a1a", border: "#2a2a2a", color: "#94a3b8" };
   }
 
+  const mission = getMission("trees", 3);
+  const tools = getTools("trees");
+  const stats: ShellStat[] = [{ label: "VISITED", value: visited.length }];
+
   return (
-    <div style={{ fontFamily: FONT, background: "#0a0a0a", userSelect: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "20px 0" }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes shake { 0%,100%{transform:translateX(-50%) translateY(-50%)} 25%{transform:translateX(calc(-50% - 4px)) translateY(-50%)} 75%{transform:translateX(calc(-50% + 4px)) translateY(-50%)} }
         @keyframes rise { 0%{transform:translateX(-50%) translateY(-50%)} 50%{transform:translateX(-50%) translateY(calc(-50% - 6px)) scale(1.15)} 100%{transform:translateX(-50%) translateY(-50%)} }
@@ -214,5 +225,6 @@ export default function InOrderWalk({ onSolve, onAttempt }: GameProps) {
         </div>
       )}
     </div>
+    </GameShell>
   );
 }

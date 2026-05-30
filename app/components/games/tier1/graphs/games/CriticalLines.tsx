@@ -3,6 +3,8 @@
 // IDENTIFY BRIDGE EDGES — REMOVING A BRIDGE DISCONNECTS THE NETWORK · CLICK EDGES TO MARK
 import { useState, useRef, useCallback } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 type Graph = {
   nodes: { id: number; x: number; y: number }[];
@@ -172,56 +174,17 @@ export default function CriticalLines({ onSolve, onAttempt }: GameProps) {
   const SVG_W = 720;
   const SVG_H = 400;
 
+  const mission = getMission("graphs", 8);
+  const tools = getTools("graphs");
+  const stats: ShellStat[] = [{ label: "MARKED", value: marked.size }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        padding: "16px 12px",
-        gap: 10,
-        overflow: "auto",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: SVG_W, flexShrink: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            marginBottom: 4,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: solved ? "#22c55e" : "#e2e8f0",
-              letterSpacing: "0.1em",
-              transition: "color 0.3s",
-            }}
-          >
-            CRITICAL LINES · TARJAN&apos;S BRIDGE ALGORITHM
-          </span>
-          <span style={{ fontSize: 10, color: "#374151", letterSpacing: "0.08em" }}>
-            LC 1192
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#374151",
-            letterSpacing: "0.06em",
-            lineHeight: 1.8,
-          }}
-        >
-          IDENTIFY BRIDGE EDGES — REMOVING A BRIDGE DISCONNECTS THE NETWORK · CLICK EDGES TO MARK
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
       {/* Status row */}
       <div
@@ -441,5 +404,6 @@ export default function CriticalLines({ onSolve, onAttempt }: GameProps) {
         ))}
       </div>
     </div>
+    </GameShell>
   );
 }

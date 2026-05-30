@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 const ARR = [-4, -2, -2, 0, 1, 2, 3, 5];
@@ -160,26 +162,18 @@ export default function TripleSum({ onSolve, onAttempt }: GameProps) {
     ? `${ARR[anchorIdx]} + ${ARR[L]} + ${ARR[R]} = ${sum}`
     : "";
 
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      minHeight: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", padding: "24px 16px 36px", boxSizing: "border-box",
-    }}>
-      <style>{KEYFRAMES}</style>
+  const mission = getMission("two-pointers", 5);
+  const tools = getTools("two-pointers");
+  const stats: ShellStat[] = [{ label: "L PTR", value: L }, { label: "R PTR", value: R }];
 
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>TRIPLE SUM</span>
-          <span style={{ fontSize: 9, color: "#374151" }}>LC 15 · 3SUM</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.05em", lineHeight: 1.7 }}>
-          {phase === "anchor"
-            ? "CLICK A NUMBER TO ANCHOR IT AS i"
-            : "CLICK A GLOWING TOKEN TO MOVE THE POINTER · FIND TRIPLET = 0"}
-        </div>
-      </div>
+  return (
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
+      <style>{KEYFRAMES}</style>
 
       {/* Target */}
       <div style={{
@@ -341,5 +335,6 @@ export default function TripleSum({ onSolve, onAttempt }: GameProps) {
         FIX i, TWO-POINTER L=i+1 R=END · SUM&lt;0→L↑ SUM&gt;0→R↓ · O(n²) vs O(n³) BRUTE
       </div>
     </div>
+    </GameShell>
   );
 }

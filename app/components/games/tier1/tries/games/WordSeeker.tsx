@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const FONT = "var(--font-mono,'JetBrains Mono',monospace)";
 const CYAN = "#06b6d4";
@@ -187,19 +189,22 @@ export default function WordSeeker({ onSolve, onAttempt }: GameProps) {
 
   const completedPath = new Set(round.path.slice(0, pathProgress));
 
+  const mission = getMission("tries", 3);
+  const tools = getTools("tries");
+  const stats: ShellStat[] = [{ label: "ROUND", value: roundIdx + 1 }, { label: "PROGRESS", value: pathProgress }];
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: FONT, userSelect: "none", background: "#0a0a0a", color: "#e2e8f0" }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes ws-shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-4px)} 40%,80%{transform:translateX(4px)} }
         @keyframes ws-banner { 0%{opacity:0;transform:translateY(-8px)} 20%,80%{opacity:1;transform:translateY(0)} 100%{opacity:0} }
         @keyframes ws-pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
       `}</style>
-
-      {/* Header */}
-      <div style={{ padding: "10px 16px 6px", borderBottom: "1px solid #1e1e1e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.1em" }}>WORD SEEKER · TRIE SEARCH</span>
-        <span style={{ fontSize: 10, color: CYAN, letterSpacing: "0.08em" }}>ROUND {roundIdx + 1}/3 · {round.difficulty}</span>
-      </div>
 
       {/* Search word */}
       <div style={{ padding: "8px 16px", background: "rgba(6,182,212,0.04)", borderBottom: "1px solid #1e1e1e", display: "flex", alignItems: "center", gap: 14 }}>
@@ -332,5 +337,6 @@ export default function WordSeeker({ onSolve, onAttempt }: GameProps) {
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }

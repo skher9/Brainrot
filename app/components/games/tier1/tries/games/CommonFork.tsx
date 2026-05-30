@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 function playTone(freq: number, type: OscillatorType = "sine", dur = 0.15) {
   try {
@@ -231,6 +233,10 @@ export default function CommonFork({ onSolve, onAttempt }: GameProps) {
     })
     .join("");
 
+  const mission = getMission("tries", 5);
+  const tools = getTools("tries");
+  const stats: ShellStat[] = [{ label: "ROUND", value: round + 1 }];
+
   return (
     <>
       <style>{`
@@ -252,12 +258,12 @@ export default function CommonFork({ onSolve, onAttempt }: GameProps) {
           from{opacity:0;transform:scale(0.6)} to{opacity:1;transform:scale(1)}
         }
       `}</style>
-      <div style={{
-        display: "flex", flexDirection: "column", height: "100%",
-        background: "#0a0a0f", color: "#e2e8f0", fontFamily: "monospace",
-        userSelect: "none", padding: "14px", gap: "10px", overflow: "hidden",
-        position: "relative",
-      }}>
+      <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
         {banner && (
           <div style={{
             position: "absolute", top: "50%", left: "50%",
@@ -268,14 +274,6 @@ export default function CommonFork({ onSolve, onAttempt }: GameProps) {
             whiteSpace: "nowrap",
           }}>{banner}</div>
         )}
-
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1 }}>COMMON FORK</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: DIFFICULTY_COLOR[r.difficulty], letterSpacing: 1 }}>
-            ROUND {round + 1}/3 · {r.difficulty}
-          </div>
-        </div>
 
         {/* Words being inserted */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -402,6 +400,7 @@ export default function CommonFork({ onSolve, onAttempt }: GameProps) {
           </div>
         )}
       </div>
+    </GameShell>
     </>
   );
 }

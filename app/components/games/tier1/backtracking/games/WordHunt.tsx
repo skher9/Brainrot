@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const WORDS = ["STACK", "QUEUE", "GRAPH", "ARRAY", "INDEX", "MERGE", "PIVOT", "PROBE", "SPLIT", "TRACE", "DEPTH", "LIMIT"];
 const ROWS = 6;
@@ -228,22 +230,17 @@ export default function WordHunt({ onSolve, onAttempt }: GameProps) {
   const { word, grid } = game;
   const selMap = selectionMap();
 
+  const mission = getMission("backtracking", 8);
+  const tools = getTools("backtracking");
+  const stats: ShellStat[] = [{ label: "TRACED", value: `${selected.length}/${game.word.length}` }, { label: "BACKTRACKS", value: backtracks, danger: backtracks > 3 }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        color: "#e2e8f0",
-        overflowY: "auto",
-        padding: "12px 8px",
-        gap: 12,
-        boxSizing: "border-box",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes shake {
           0%,100% { transform: translateX(0); }
@@ -262,49 +259,6 @@ export default function WordHunt({ onSolve, onAttempt }: GameProps) {
           75% { transform: translateX(3px) scale(0.97); }
         }
       `}</style>
-
-      {/* Instruction header */}
-      <div
-        style={{
-          background: "#111",
-          border: "1px solid #222",
-          borderRadius: 4,
-          padding: "6px 12px",
-          fontSize: 9,
-          color: "#64748b",
-          textAlign: "center",
-          letterSpacing: "0.08em",
-          width: "100%",
-          maxWidth: 380,
-          boxSizing: "border-box",
-        }}
-      >
-        TRACE THE WORD — CLICK CELLS IN SEQUENCE · CELLS MUST BE ADJACENT · WRONG LETTER = BACKTRACK
-      </div>
-
-      {/* Stats bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: 24,
-          fontSize: 10,
-          color: "#475569",
-          letterSpacing: "0.06em",
-        }}
-      >
-        <span>
-          BACKTRACKS:{" "}
-          <span style={{ color: backtracks > 0 ? "#ef4444" : "#22c55e", fontWeight: 700 }}>
-            {backtracks}
-          </span>
-        </span>
-        <span>
-          PROGRESS:{" "}
-          <span style={{ color: "#f59e0b", fontWeight: 700 }}>
-            {selected.length}/{word.length}
-          </span>
-        </span>
-      </div>
 
       {/* Target word boxes */}
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -483,5 +437,6 @@ export default function WordHunt({ onSolve, onAttempt }: GameProps) {
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }

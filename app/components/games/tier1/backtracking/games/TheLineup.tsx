@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const FIGHTERS = ["ALPHA", "BETA", "GAMMA", "DELTA"];
 const COLORS = ["#3b82f6", "#f97316", "#a855f7", "#22c55e"];
@@ -81,41 +83,17 @@ export default function TheLineup({ onSolve, onAttempt }: GameProps) {
 
   const pluralS = swapCount === 1 ? "" : "S";
 
+  const mission = getMission("backtracking", 6);
+  const tools = getTools("backtracking");
+  const stats: ShellStat[] = [{ label: "SWAPS", value: swapCount }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100%",
-        padding: "24px 16px",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        color: "#e2e8f0",
-        gap: 0,
-        userSelect: "none",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
-      {/* Header */}
-      <div style={{ marginBottom: 4, textAlign: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: 4, color: "#f1f5f9" }}>
-          THE LINEUP
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#64748b",
-            letterSpacing: 1,
-            marginTop: 6,
-            maxWidth: 420,
-            lineHeight: 1.5,
-          }}
-        >
-          MATCH THE TARGET ARRANGEMENT — CLICK TWO FIGHTERS TO SWAP · EACH SWAP IS ONE BRANCH OF
-          THE PERMUTATION TREE
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
       {/* Target row */}
       <div style={{ marginTop: 28, width: "100%", maxWidth: 440 }}>
@@ -237,6 +215,7 @@ export default function TheLineup({ onSolve, onAttempt }: GameProps) {
         </div>
       )}
     </div>
+    </GameShell>
   );
 }
 

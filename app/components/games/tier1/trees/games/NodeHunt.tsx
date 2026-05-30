@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const FONT = "var(--font-mono,'JetBrains Mono',monospace)";
 const AMBER = "#f59e0b";
@@ -170,8 +172,17 @@ export default function NodeHunt({ onSolve, onAttempt }: GameProps) {
     return { bg: "#1a1a1a", border: "#2a2a2a", color: "#94a3b8" };
   }
 
+  const mission = getMission("trees", 2);
+  const tools = getTools("trees");
+  const stats: ShellStat[] = [{ label: "COMPARES", value: comparisons }];
+
   return (
-    <div style={{ fontFamily: FONT, background: "#0a0a0a", userSelect: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "20px 0" }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes shake { 0%,100%{transform:translateX(-50%) translateY(-50%)} 25%{transform:translateX(calc(-50% - 4px)) translateY(-50%)} 75%{transform:translateX(calc(-50% + 4px)) translateY(-50%)} }
         @keyframes flash { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 16px 4px rgba(34,197,94,0.5)} }
@@ -263,5 +274,6 @@ export default function NodeHunt({ onSolve, onAttempt }: GameProps) {
         click the current node if it matches · click left/right child to navigate
       </div>
     </div>
+    </GameShell>
   );
 }

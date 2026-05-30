@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono,'JetBrains Mono',monospace)";
 
@@ -122,12 +124,17 @@ export default function AnagramHunt({ onSolve, onAttempt }: GameProps) {
   const tileW = 38;
   const frameLeft = framePos * (tileW + 5);
 
+  const mission = getMission("sliding-window", 3);
+  const tools = getTools("sliding-window");
+  const stats: ShellStat[] = [{ label: "STEP", value: framePos }];
+
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      height: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", overflowY: "auto", padding: "20px 16px 40px", boxSizing: "border-box",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes frameGlow {
           0%,100% { box-shadow: 0 0 0 0 rgba(234,179,8,0.4); }
@@ -146,17 +153,7 @@ export default function AnagramHunt({ onSolve, onAttempt }: GameProps) {
       `}</style>
 
       {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>ANAGRAM HUNT</span>
-          <span style={{ fontSize: 9, color: "#10b981" }}>LC 567 — PERMUTATION IN STRING</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
-          CLICK ANY TILE TO SLIDE THE FRAME THERE — FIND AN ANAGRAM OF THE PATTERN
-        </div>
-      </div>
-
-      {/* Pattern */}
+{/* Pattern */}
       <div style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontSize: 9, color: "#475569", letterSpacing: "0.1em" }}>FIND ANAGRAM OF:</span>
         <div style={{ display: "flex", gap: 4 }}>
@@ -302,5 +299,6 @@ export default function AnagramHunt({ onSolve, onAttempt }: GameProps) {
         CLICK TILE TO MOVE FRAME · GREEN BARS = MATCH · FIND POSITION WHERE FRAME IS AN ANAGRAM
       </div>
     </div>
+    </GameShell>
   );
 }

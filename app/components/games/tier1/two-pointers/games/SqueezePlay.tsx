@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 const ARR = [4, 5, 6, 7, 0, 1, 2];
@@ -160,24 +162,18 @@ export default function SqueezePlay({ onSolve, onAttempt }: GameProps) {
   const activeRange = Array.from({ length: hi - lo + 1 }, (_, k) => lo + k);
   const newMid = Math.floor((lo + hi) / 2);
 
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      minHeight: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", padding: "24px 16px 36px", boxSizing: "border-box",
-    }}>
-      <style>{KEYFRAMES}</style>
+  const mission = getMission("two-pointers", 8);
+  const tools = getTools("two-pointers");
+  const stats: ShellStat[] = [{ label: "LO PTR", value: lo }, { label: "HI PTR", value: hi }];
 
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>SQUEEZE PLAY</span>
-          <span style={{ fontSize: 9, color: "#374151" }}>LC 33 · ROTATED SORTED ARRAY</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.05em", lineHeight: 1.7 }}>
-          CLICK A CARD TO ELIMINATE ITS HALF · NARROW DOWN TO THE TARGET
-        </div>
-      </div>
+  return (
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
+      <style>{KEYFRAMES}</style>
 
       {/* Target */}
       <div style={{
@@ -347,5 +343,6 @@ export default function SqueezePlay({ onSolve, onAttempt }: GameProps) {
         ONE HALF IS ALWAYS SORTED · CHECK IF TARGET IN SORTED HALF → ELIMINATE OTHER · O(log n)
       </div>
     </div>
+    </GameShell>
   );
 }

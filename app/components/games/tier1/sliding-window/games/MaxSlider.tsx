@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono,'JetBrains Mono',monospace)";
 
@@ -112,12 +114,17 @@ export default function MaxSlider({ onSolve, onAttempt }: GameProps) {
   const windowL = Math.max(0, step - k);
   const windowR = step - 1;
 
+  const mission = getMission("sliding-window", 1);
+  const tools = getTools("sliding-window");
+  const stats: ShellStat[] = [{ label: "RESULTS", value: results.length }, { label: "STEP", value: step }];
+
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      height: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", overflowY: "auto", padding: "20px 16px 40px", boxSizing: "border-box",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes popLeft {
           0% { transform: translateX(0); opacity: 1; }
@@ -142,17 +149,7 @@ export default function MaxSlider({ onSolve, onAttempt }: GameProps) {
       `}</style>
 
       {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>MAX SLIDER</span>
-          <span style={{ fontSize: 9, color: "#10b981" }}>LC 239 — MONOTONIC DEQUE · k={k}</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
-          CLICK NEXT BAR TO ADVANCE · DEQUE KEEPS ONLY POTENTIAL MAXIMUMS
-        </div>
-      </div>
-
-      {/* Bar chart */}
+{/* Bar chart */}
       <div style={{ display: "flex", gap: 4, alignItems: "flex-end", marginBottom: 8, height: 90 }}>
         {arr.map((val, i) => {
           const h = Math.abs(val) / maxBarH * 72 + 8;
@@ -307,5 +304,6 @@ export default function MaxSlider({ onSolve, onAttempt }: GameProps) {
         DEQUE RULE: POP STALE FRONT (out of window) · POP DOMINATED BACK (new ≥ back) · PUSH NEW · FRONT = MAX
       </div>
     </div>
+    </GameShell>
   );
 }

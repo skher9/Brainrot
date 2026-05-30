@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono,'JetBrains Mono',monospace)";
 
@@ -189,12 +191,17 @@ export default function FruitBasket({ onSolve, onAttempt }: GameProps) {
   const won = phase === "won";
   const windowLen = R >= L ? R - L + 1 : 0;
 
+  const mission = getMission("sliding-window", 5);
+  const tools = getTools("sliding-window");
+  const stats: ShellStat[] = [{ label: "WINDOW LEN", value: longest }];
+
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      height: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", overflowY: "auto", padding: "20px 16px 40px", boxSizing: "border-box",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes bounce {
           0%,100% { transform: translateY(0); }
@@ -216,17 +223,7 @@ export default function FruitBasket({ onSolve, onAttempt }: GameProps) {
       `}</style>
 
       {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>FRUIT BASKET</span>
-          <span style={{ fontSize: 9, color: "#10b981" }}>LC 904 — AT MOST 2 DISTINCT</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
-          CLICK NEXT FRUIT TO PICK IT · 3RD TYPE = OVERFLOW · DROP A BASKET TO CONTINUE
-        </div>
-      </div>
-
-      {/* Longest tracker */}
+{/* Longest tracker */}
       <div style={{
         marginBottom: 14, display: "flex", gap: 20, fontSize: 10, color: "#475569", letterSpacing: "0.08em",
       }}>
@@ -364,5 +361,6 @@ export default function FruitBasket({ onSolve, onAttempt }: GameProps) {
         PICK NEXT FRUIT · 3RD DISTINCT TYPE = OVERFLOW · DROP BASKET = SHRINK LEFT UNTIL GONE
       </div>
     </div>
+    </GameShell>
   );
 }

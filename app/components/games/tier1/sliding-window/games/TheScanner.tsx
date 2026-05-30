@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 const K = 3;
@@ -170,16 +172,17 @@ export default function TheScanner({ onSolve, onAttempt }: GameProps) {
 
   const handleColor = flash === "newmax" || flash === "win" ? "#fbbf24" : "#d97706";
 
+  const mission = getMission("sliding-window", 2);
+  const tools = getTools("sliding-window");
+  const stats: ShellStat[] = [{ label: "MAX SUM", value: bestSum }];
+
   return (
-    <div
-      ref={containerRef}
-      style={{
-        display: "flex", flexDirection: "column", alignItems: "center",
-        height: "100%", background: "#0a0a0a",
-        fontFamily: MONO, userSelect: "none",
-        overflowY: "auto", padding: "20px 16px 40px", boxSizing: "border-box",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes scanner-pulse {
           0%, 100% { box-shadow: 0 0 18px rgba(251,191,36,0.4), 0 0 40px rgba(251,191,36,0.15); }
@@ -562,5 +565,6 @@ export default function TheScanner({ onSolve, onAttempt }: GameProps) {
         FIXED WINDOW: SUBTRACT LEFT ELEMENT, ADD RIGHT ELEMENT → O(n) NOT O(n·k)
       </div>
     </div>
+    </GameShell>
   );
 }

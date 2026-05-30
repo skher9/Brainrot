@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono,'JetBrains Mono',monospace)";
 
@@ -154,12 +156,17 @@ export default function KSwaps({ onSolve, onAttempt }: GameProps) {
   const bucketsUsed = Math.max(0, swapsNeeded);
   const bucketsFull = bucketsUsed > k;
 
+  const mission = getMission("sliding-window", 6);
+  const tools = getTools("sliding-window");
+  const stats: ShellStat[] = [{ label: "LONGEST", value: longest }];
+
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      height: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", overflowY: "auto", padding: "20px 16px 40px", boxSizing: "border-box",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes paintDrip {
           0% { transform: scaleY(0); opacity: 0; transform-origin: top; }
@@ -182,17 +189,7 @@ export default function KSwaps({ onSolve, onAttempt }: GameProps) {
       `}</style>
 
       {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>K SWAPS PAINT FACTORY</span>
-          <span style={{ fontSize: 9, color: "#10b981" }}>LC 424 — k={k}</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
-          EXPAND RIGHT · WINDOW VALID IF (SIZE - MAX_FREQ) ≤ k · IF INVALID: ADVANCE LEFT
-        </div>
-      </div>
-
-      {/* Stats row */}
+{/* Stats row */}
       <div style={{ display: "flex", gap: 20, marginBottom: 14, fontSize: 10, color: "#475569", letterSpacing: "0.08em" }}>
         <span>WINDOW: <strong style={{ color: "#eab308" }}>{windowSize}</strong></span>
         <span>MAX_FREQ: <strong style={{ color: "#3b82f6" }}>{maxFreq}</strong></span>
@@ -351,5 +348,6 @@ export default function KSwaps({ onSolve, onAttempt }: GameProps) {
         RULE: WINDOW VALID IF (SIZE - MAX_FREQ) ≤ k · EXPAND FREELY · INVALID = ADVANCE LEFT
       </div>
     </div>
+    </GameShell>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 function playTone(freq: number, type: OscillatorType = "sine", dur = 0.12) {
   try {
@@ -111,6 +113,10 @@ export default function CoinForge({ onSolve, onAttempt }: GameProps) {
 
   const progress = current - 1;
 
+  const mission = getMission("dynamic-programming", 3);
+  const tools = getTools("dynamic-programming");
+  const stats: ShellStat[] = [{ label: "FILLED", value: (current ?? 1) - 1 }];
+
   return (
     <>
       <style>{`
@@ -141,19 +147,12 @@ export default function CoinForge({ onSolve, onAttempt }: GameProps) {
         .cf-coin { transition: border-color 0.15s, background 0.15s, transform 0.1s; }
       `}</style>
 
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        minHeight: "100%",
-        background: "#0a0a0a",
-        padding: "24px 16px 20px",
-        fontFamily: "var(--font-mono,'JetBrains Mono',monospace)",
-        color: "#e5e7eb",
-        gap: 18,
-        boxSizing: "border-box",
-        userSelect: "none",
-      }}>
+      <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 10, letterSpacing: 4, color: "#6b7280", marginBottom: 4 }}>
@@ -395,6 +394,7 @@ export default function CoinForge({ onSolve, onAttempt }: GameProps) {
           </div>
         )}
       </div>
+    </GameShell>
     </>
   );
 }

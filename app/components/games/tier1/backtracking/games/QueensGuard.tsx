@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const N = 4;
 const CELL = 70;
@@ -112,74 +114,17 @@ export default function QueensGuard({ onSolve, onAttempt }: GameProps) {
 
   const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 
+  const mission = getMission("backtracking", 3);
+  const tools = getTools("backtracking");
+  const stats: ShellStat[] = [{ label: "PLACED", value: `${queens.length}/4` }, { label: "BACKTRACKS", value: backtracks, danger: backtracks > 3 }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: MONO,
-        userSelect: "none",
-        overflowY: "auto",
-        padding: "24px 16px 32px",
-        boxSizing: "border-box",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
-      {/* ── Header ── */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: N * CELL + 8,
-          marginBottom: 18,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            marginBottom: 6,
-          }}
-        >
-          <span
-            style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}
-          >
-            THE ROYAL GUARD
-          </span>
-          <span
-            style={{
-              fontSize: 10,
-              color: backtracks > 0 ? "#f97316" : "#374151",
-              letterSpacing: "0.08em",
-            }}
-          >
-            BACKTRACKS:{" "}
-            <span
-              style={{
-                color: backtracks > 0 ? "#f97316" : "#475569",
-                fontWeight: 700,
-              }}
-            >
-              {backtracks}
-            </span>
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#374151",
-            letterSpacing: "0.06em",
-            lineHeight: 1.7,
-          }}
-        >
-          PLACE 4 QUEENS — NO TWO CAN SHARE A ROW, COLUMN, OR DIAGONAL
-          <br />
-          CLICK CELL TO PLACE · CLICK QUEEN TO REMOVE (BACKTRACK) · RED = UNDER
-          ATTACK
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
       {/* ── Board ── */}
       <div
@@ -359,6 +304,7 @@ export default function QueensGuard({ onSolve, onAttempt }: GameProps) {
         }
       `}</style>
     </div>
+    </GameShell>
   );
 }
 

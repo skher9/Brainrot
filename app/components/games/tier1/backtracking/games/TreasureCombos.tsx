@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 function makeRound(): { pool: number[]; target: number } {
   const pool = [2, 3, 5, 7, 4, 6, 8, 9];
@@ -89,8 +91,17 @@ export default function TreasureCombos({ onSolve, onAttempt }: GameProps) {
   else if (currentSum > 0 && currentSum < target)
     statusMsg = `${target - currentSum} MORE NEEDED`;
 
+  const mission = getMission("backtracking", 7);
+  const tools = getTools("backtracking");
+  const stats: ShellStat[] = [{ label: "SUM", value: currentSum }, { label: "TARGET", value: target }, { label: "BACKTRACKS", value: backtracks, danger: backtracks > 3 }];
+
   return (
-    <>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes shake {
           0%,100% { transform: translateX(0); }
@@ -117,42 +128,6 @@ export default function TreasureCombos({ onSolve, onAttempt }: GameProps) {
           border-color: rgba(239,68,68,0.5) !important;
         }
       `}</style>
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          minHeight: "100%",
-          background: "#0a0a0a",
-          padding: "28px 20px 20px",
-          fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-          color: "#e5e7eb",
-          gap: 20,
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Header */}
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 11, letterSpacing: 4, color: "#6b7280", marginBottom: 6 }}>
-            TREASURE COMBOS
-          </div>
-          <div
-            style={{
-              fontSize: 36,
-              fontWeight: 700,
-              color: "#fbbf24",
-              letterSpacing: 2,
-              lineHeight: 1,
-            }}
-          >
-            TARGET: {target}
-          </div>
-          <div style={{ fontSize: 9, color: "#4b5563", marginTop: 8, letterSpacing: 2 }}>
-            PICK NUMBERS THAT SUM TO TARGET — REUSE ALLOWED · CLICK PLACED NUMBER TO REMOVE (BACKTRACK)
-          </div>
-        </div>
 
         {/* Pool */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
@@ -391,7 +366,7 @@ export default function TreasureCombos({ onSolve, onAttempt }: GameProps) {
             </button>
           </div>
         )}
-      </div>
-    </>
+    </div>
+    </GameShell>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const WORD_LIST_RAW = [
   "COLD","CORD","CORE","BORE","BONE","BANE","BAND","SAND","SAID","SAIL",
@@ -156,68 +158,17 @@ export default function WordLadder({ onSolve, onAttempt }: GameProps) {
     return "rgba(255,255,255,0.03)";
   };
 
+  const mission = getMission("graphs", 7);
+  const tools = getTools("graphs");
+  const stats: ShellStat[] = [{ label: "STEPS", value: path.length - 1 }, { label: "TARGET", value: puzzle.steps }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        padding: "16px 12px",
-        gap: 12,
-        overflow: "auto",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: 400, flexShrink: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            marginBottom: 6,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: solved ? "#22c55e" : "#e2e8f0",
-              letterSpacing: "0.1em",
-              transition: "color 0.3s",
-            }}
-          >
-            WORD LADDER
-          </span>
-          <span
-            style={{ fontSize: 10, color: "#374151", letterSpacing: "0.08em" }}
-          >
-            LC 127
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#374151",
-            letterSpacing: "0.06em",
-            lineHeight: 1.8,
-          }}
-        >
-          CHANGE ONE LETTER AT A TIME — EACH WORD MUST BE VALID
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#2a2a2a",
-            letterSpacing: "0.05em",
-            lineHeight: 1.5,
-          }}
-        >
-          BFS FINDS SHORTEST PATH THROUGH THE WORD GRAPH
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
       {/* Puzzle goal row */}
       <div
@@ -521,5 +472,6 @@ export default function WordLadder({ onSolve, onAttempt }: GameProps) {
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }

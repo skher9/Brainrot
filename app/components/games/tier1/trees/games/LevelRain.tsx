@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const FONT = "var(--font-mono,'JetBrains Mono',monospace)";
 const AMBER = "#f59e0b";
@@ -168,8 +170,17 @@ export default function LevelRain({ onSolve, onAttempt }: GameProps) {
 
   const queue = currentLevel.filter(v => !clickedInLevel.includes(v));
 
+  const mission = getMission("trees", 4);
+  const tools = getTools("trees");
+  const stats: ShellStat[] = [{ label: "LEVEL", value: currentLevelIdx }];
+
   return (
-    <div style={{ fontFamily: FONT, background: "#0a0a0a", userSelect: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "20px 0" }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes shake { 0%,100%{transform:translateX(-50%) translateY(-50%)} 25%{transform:translateX(calc(-50% - 4px)) translateY(-50%)} 75%{transform:translateX(calc(-50% + 4px)) translateY(-50%)} }
         @keyframes dropOff { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(20px);opacity:0} }
@@ -290,5 +301,6 @@ export default function LevelRain({ onSolve, onAttempt }: GameProps) {
         </div>
       )}
     </div>
+    </GameShell>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 function playTone(freq: number, type: OscillatorType = "sine", dur = 0.12) {
   try {
@@ -115,13 +117,17 @@ export default function PathTracer({ onSolve, onAttempt }: GameProps) {
     }
   }, [won, resetting, childKeys, runningSum, path, resetPath, onAttempt, onSolve]);
 
+  const mission = getMission("trees", 8);
+  const tools = getTools("trees");
+  const stats: ShellStat[] = [{ label: "PATH LEN", value: path.length }];
+
   return (
-    <div style={{
-      width: "100%", height: "100%", background: "#0a0a0a", display: "flex",
-      flexDirection: "column", alignItems: "center", justifyContent: "center",
-      fontFamily: "var(--font-mono,'JetBrains Mono',monospace)", userSelect: "none",
-      padding: "12px 0",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes pt-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.6)} 50%{box-shadow:0 0 0 8px rgba(245,158,11,0)} }
         @keyframes pt-child-glow { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.5)} 50%{box-shadow:0 0 0 6px rgba(34,197,94,0)} }
@@ -235,5 +241,6 @@ export default function PathTracer({ onSolve, onAttempt }: GameProps) {
         )}
       </div>
     </div>
+    </GameShell>
   );
 }

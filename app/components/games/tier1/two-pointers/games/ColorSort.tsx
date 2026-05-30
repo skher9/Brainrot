@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 const INITIAL = [2, 0, 2, 1, 1, 0, 2, 0, 1];
@@ -122,24 +124,18 @@ export default function ColorSort({ onSolve, onAttempt }: GameProps) {
 
   const isDone = mid > hi;
 
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      minHeight: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", padding: "24px 16px 36px", boxSizing: "border-box",
-    }}>
-      <style>{KEYFRAMES}</style>
+  const mission = getMission("two-pointers", 4);
+  const tools = getTools("two-pointers");
+  const stats: ShellStat[] = [{ label: "MID PTR", value: mid }];
 
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>COLOR SORT</span>
-          <span style={{ fontSize: 9, color: "#374151" }}>LC 75 · DUTCH NATIONAL FLAG</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.05em", lineHeight: 1.7 }}>
-          CLICK A ZONE BUTTON TO CLASSIFY THE GOLD BALL · 0=RED 1=WHITE 2=BLUE
-        </div>
-      </div>
+  return (
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
+      <style>{KEYFRAMES}</style>
 
       {/* Pointers legend */}
       <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
@@ -297,5 +293,6 @@ export default function ColorSort({ onSolve, onAttempt }: GameProps) {
         0→SWAP(lo,mid),lo++,mid++ · 1→mid++ · 2→SWAP(mid,hi),hi-- (mid unchanged)
       </div>
     </div>
+    </GameShell>
   );
 }

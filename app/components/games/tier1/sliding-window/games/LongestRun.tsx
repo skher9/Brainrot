@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 
@@ -226,13 +228,17 @@ export default function LongestRun({ onSolve, onAttempt }: GameProps) {
     ? "lr-border-red 0.5s ease"
     : "lr-border-pulse 2.5s ease-in-out infinite";
 
+  const mission = getMission("sliding-window", 4);
+  const tools = getTools("sliding-window");
+  const stats: ShellStat[] = [{ label: "LENGTH", value: maxLen }];
+
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      height: "100%", background: "#0a0a0a",
-      fontFamily: MONO, userSelect: "none",
-      overflowY: "auto", padding: "20px 16px 40px", boxSizing: "border-box",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes lr-gem-enter {
           0%   { transform: scale(0.7); opacity: 0.3; }
@@ -643,6 +649,7 @@ export default function LongestRun({ onSolve, onAttempt }: GameProps) {
         CLICK RIGHTMOST AVAILABLE GEM TO EXTEND · DUPLICATE? CLICK L GEM TO SHRINK · SLIDING WINDOW = O(n)
       </div>
     </div>
+    </GameShell>
   );
 }
 

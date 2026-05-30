@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const N = 8;
 const CELL = 52;
@@ -177,75 +179,26 @@ export default function EightQueens({ onSolve, onAttempt }: GameProps) {
   }, [solved, onSolve]);
 
   const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
+  const mission = getMission("backtracking", 1);
+  const tools = getTools("backtracking");
+  const stats: ShellStat[] = [
+    { label: "PLACED", value: `${queens.length}/${N}` },
+    { label: "BACKTRACKS", value: backtracks, danger: backtracks > 5 },
+  ];
 
   return (
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: MONO,
-        userSelect: "none",
-        overflowY: "auto",
-        padding: "24px 16px 32px",
-        boxSizing: "border-box",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        height: "100%", fontFamily: MONO, userSelect: "none",
+        overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box",
       }}
     >
-      {/* ── Header ── */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: N * CELL + 8,
-          marginBottom: 18,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            marginBottom: 6,
-          }}
-        >
-          <span
-            style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}
-          >
-            EIGHT QUEENS
-          </span>
-          <span
-            style={{
-              fontSize: 10,
-              color: backtracks > 0 ? "#f97316" : "#374151",
-              letterSpacing: "0.08em",
-            }}
-          >
-            BACKTRACKS:{" "}
-            <span
-              style={{
-                color: backtracks > 0 ? "#f97316" : "#475569",
-                fontWeight: 700,
-              }}
-            >
-              {backtracks}
-            </span>
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: 9,
-            color: "#374151",
-            letterSpacing: "0.06em",
-            lineHeight: 1.7,
-          }}
-        >
-          92 SOLUTIONS EXIST ON 8×8 · FIND ANY ONE
-          <br />
-          CLICK CELL TO PLACE · CLICK QUEEN TO REMOVE (BACKTRACK) · RED = UNDER
-          ATTACK
-        </div>
-      </div>
 
       {/* ── Board ── */}
       <div
@@ -479,6 +432,7 @@ export default function EightQueens({ onSolve, onAttempt }: GameProps) {
         }
       `}</style>
     </div>
+    </GameShell>
   );
 }
 

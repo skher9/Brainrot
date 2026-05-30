@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 function playTone(freq: number, type: OscillatorType = "sine", dur = 0.15) {
   try {
@@ -115,6 +117,10 @@ export default function RootCutter({ onSolve, onAttempt }: GameProps) {
     }
   }, [selectedWord, transitioning, replaced, r, round, onSolve]);
 
+  const mission = getMission("tries", 6);
+  const tools = getTools("tries");
+  const stats: ShellStat[] = [{ label: "ROUND", value: round + 1 }];
+
   return (
     <>
       <style>{`
@@ -139,12 +145,12 @@ export default function RootCutter({ onSolve, onAttempt }: GameProps) {
           50%{box-shadow:0 0 0 6px rgba(6,182,212,0)}
         }
       `}</style>
-      <div style={{
-        display: "flex", flexDirection: "column", height: "100%",
-        background: "#0a0a0f", color: "#e2e8f0", fontFamily: "monospace",
-        userSelect: "none", padding: "16px", gap: "12px", overflow: "hidden",
-        position: "relative",
-      }}>
+      <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
         {banner && (
           <div style={{
             position: "absolute", top: "50%", left: "50%",
@@ -155,17 +161,6 @@ export default function RootCutter({ onSolve, onAttempt }: GameProps) {
             animation: "rc-banner 1.2s ease forwards",
           }}>{banner}</div>
         )}
-
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1 }}>ROOT CUTTER</div>
-          <div style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: 1,
-            color: DIFFICULTY[round] === "HARD" ? "#ef4444" : DIFFICULTY[round] === "MEDIUM" ? "#eab308" : "#22c55e",
-          }}>
-            ROUND {round + 1}/3 · {DIFFICULTY[round]}
-          </div>
-        </div>
 
         {/* Note */}
         <div style={{ fontSize: 11, color: "#94a3b8", padding: "6px 10px", background: "#1e293b", borderRadius: 6 }}>
@@ -250,6 +245,7 @@ export default function RootCutter({ onSolve, onAttempt }: GameProps) {
             : "Click a word in the sentence to begin"}
         </div>
       </div>
+    </GameShell>
     </>
   );
 }

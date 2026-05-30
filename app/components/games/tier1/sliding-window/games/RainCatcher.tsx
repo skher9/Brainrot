@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono,'JetBrains Mono',monospace)";
 
@@ -163,12 +165,17 @@ export default function RainCatcher({ onSolve, onAttempt }: GameProps) {
   const windowLen = R >= L ? R - L + 1 : 0;
   const bestLen = bestL !== -1 ? bestR - bestL + 1 : Infinity;
 
+  const mission = getMission("sliding-window", 7);
+  const tools = getTools("sliding-window");
+  const stats: ShellStat[] = [{ label: "SATISFIED", value: satisfied }];
+
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      height: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", overflowY: "auto", padding: "20px 16px 40px", boxSizing: "border-box",
-    }}>
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
       <style>{`
         @keyframes allCaughtAnim {
           0%,100% { box-shadow: 0 0 0 rgba(34,197,94,0); }
@@ -188,17 +195,7 @@ export default function RainCatcher({ onSolve, onAttempt }: GameProps) {
         }
       `}</style>
 
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>RAIN CATCHER</span>
-          <span style={{ fontSize: 9, color: "#10b981" }}>LC 76 — MINIMUM WINDOW SUBSTRING</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.06em" }}>
-          EXPAND RIGHT TO CATCH ALL DROPS · SHRINK LEFT TO MINIMIZE · TRACK BEST WINDOW
-        </div>
-      </div>
-
-      {/* Target */}
+{/* Target */}
       <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontSize: 9, color: "#475569", letterSpacing: "0.1em" }}>CATCH ALL OF:</span>
         <div style={{ display: "flex", gap: 4 }}>
@@ -354,5 +351,6 @@ export default function RainCatcher({ onSolve, onAttempt }: GameProps) {
         EXPAND RIGHT → FILL BUCKETS → ALL FULL = SHRINK LEFT → COVERAGE BREAKS = EXPAND AGAIN
       </div>
     </div>
+    </GameShell>
   );
 }

@@ -3,6 +3,8 @@
 // DFS UPHILL FROM BOTH OCEANS — CELLS IN BOTH SETS DRAIN TO BOTH · REVERSE FLOW = CLEANER SOLUTION
 import { useState, useRef, useCallback } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const ROWS = 8;
 const COLS = 8;
@@ -290,59 +292,17 @@ export default function PacificAtlantic({ onSolve, onAttempt }: GameProps) {
 
   // ── render ────────────────────────────────────────────────────────────────
 
+  const mission = getMission("graphs", 6);
+  const tools = getTools("graphs");
+  const stats: ShellStat[] = [{ label: "PACIFIC", value: pacificRevealed.size }, { label: "ATLANTIC", value: atlanticRevealed.size }];
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100%",
-        background: "#0a0a0a",
-        fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
-        padding: "16px 12px",
-        gap: 10,
-        overflow: "auto",
-      }}
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
     >
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: gridWidth, flexShrink: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            marginBottom: 4,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: confirmed ? "#22c55e" : "#e2e8f0",
-              letterSpacing: "0.1em",
-              transition: "color 0.3s",
-            }}
-          >
-            PACIFIC ATLANTIC
-          </span>
-          <span style={{ fontSize: 10, color: "#374151", letterSpacing: "0.08em" }}>
-            LC 417
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: 8,
-            color: "#374151",
-            letterSpacing: "0.06em",
-            lineHeight: 1.7,
-          }}
-        >
-          DFS UPHILL FROM BOTH OCEANS — CELLS IN BOTH SETS DRAIN TO BOTH
-        </div>
-        <div style={{ fontSize: 8, color: "#2a2a2a", letterSpacing: "0.05em" }}>
-          REVERSE FLOW = CLEANER SOLUTION
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
 
       {/* Status row */}
       <div
@@ -583,5 +543,6 @@ export default function PacificAtlantic({ onSolve, onAttempt }: GameProps) {
         }
       `}</style>
     </div>
+    </GameShell>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameProps } from "../types";
+import GameShell, { type ShellStat } from "@/components/games/shared/GameShell";
+import { getMission, getTools } from "@/components/games/shared/gameMissions";
 
 const MONO = "var(--font-mono, 'JetBrains Mono', monospace)";
 const STRINGS = ["RACEACAR", "ABCBA", "ABCA", "DEIFIED", "ABECBA"];
@@ -153,24 +155,18 @@ export default function PalindromePro({ onSolve, onAttempt }: GameProps) {
 
   const centerFrac = str.length > 1 ? ((L + R) / 2) / (str.length - 1) * 100 : 50;
 
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      minHeight: "100%", background: "#0a0a0a", fontFamily: MONO,
-      userSelect: "none", padding: "24px 16px 36px", boxSizing: "border-box",
-    }}>
-      <style>{KEYFRAMES}</style>
+  const mission = getMission("two-pointers", 3);
+  const tools = getTools("two-pointers");
+  const stats: ShellStat[] = [{ label: "L PTR", value: L }, { label: "R PTR", value: R }];
 
-      {/* Header */}
-      <div style={{ width: "100%", maxWidth: 560, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em" }}>PALINDROME PRO</span>
-          <span style={{ fontSize: 9, color: "#374151" }}>LC 680 · VALID PALINDROME II</span>
-        </div>
-        <div style={{ fontSize: 9, color: "#374151", letterSpacing: "0.05em", lineHeight: 1.7 }}>
-          CLICK THE L OR R GEM TO COMPARE · MISMATCH: SKIP ONE GEM
-        </div>
-      </div>
+  return (
+    <GameShell
+      missionName={mission.missionName} zone={mission.zone}
+      situation={mission.situation} objective={mission.objective} constraint={mission.constraint}
+      tools={tools} stats={stats} sceneLabel={mission.sceneLabel}
+    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)", userSelect: "none", overflowY: "auto", padding: "48px 16px 16px", boxSizing: "border-box" }}>
+      <style>{KEYFRAMES}</style>
 
       {/* Word badge */}
       <div style={{
@@ -280,5 +276,6 @@ export default function PalindromePro({ onSolve, onAttempt }: GameProps) {
         TWO POINTERS FROM OUTSIDE IN · ONE SKIP ALLOWED · SKIP LEFT OR SKIP RIGHT ON FIRST MISMATCH
       </div>
     </div>
+    </GameShell>
   );
 }

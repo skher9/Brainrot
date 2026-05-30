@@ -2,10 +2,7 @@
 import { COMPLEXITY_COLOR, dominantComplexity } from './missionConfigs';
 import type { ToolDef } from './missionConfigs';
 
-interface ToolUsed {
-  name: string;
-  complexity: string;
-}
+interface ToolUsed { name: string; complexity: string; }
 
 interface Props {
   tools: ToolDef[];
@@ -14,92 +11,90 @@ interface Props {
   onSelectTool: (name: string) => void;
 }
 
+const CheckIco = () => (
+  <svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+    <path d="M4 12.5 9.5 18 20 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 export default function Toolbox({ tools, activeTool, usedTools, onSelectTool }: Props) {
   const dominant = dominantComplexity(usedTools.map(t => t.complexity));
   const hasUsed = usedTools.length > 0;
+  const CYAN = '#00e5ff';
 
   return (
     <div style={{
-      background: '#060606',
-      borderBottom: '1px solid #1a1a1a',
-      padding: '7px 24px',
+      background: 'rgba(6,8,20,0.7)',
+      borderBottom: '1px solid rgba(0,229,255,0.10)',
+      padding: '8px 24px',
       flexShrink: 0,
-      fontFamily: 'var(--font-mono, monospace)',
       display: 'flex',
       alignItems: 'center',
       gap: 0,
-      minHeight: 48,
+      minHeight: 52,
+      backdropFilter: 'blur(10px)',
     }}>
       {/* Tool buttons */}
-      <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
-        <span style={{ fontSize: 8, color: '#222', letterSpacing: '0.12em', marginRight: 8 }}>TOOLBOX</span>
+      <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-4)', letterSpacing: '0.16em', marginRight: 8 }}>TOOLBOX</span>
         {tools.map(t => {
           const isActive = activeTool === t.name;
           const wasUsed = usedTools.some(u => u.name === t.name);
+          const cxColor = COMPLEXITY_COLOR[t.complexity] ?? 'var(--ink-4)';
           return (
             <button
               key={t.name}
               onClick={() => onSelectTool(t.name)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: isActive ? 'rgba(168,85,247,0.1)' : '#0d0d0d',
-                border: `1px solid ${isActive ? '#a855f7' : '#222'}`,
-                borderRadius: 4,
-                padding: '4px 10px',
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: isActive ? 'rgba(0,229,255,0.10)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${isActive ? 'rgba(0,229,255,0.45)' : 'rgba(255,255,255,0.10)'}`,
+                borderRadius: 8,
+                padding: '6px 12px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                transition: 'border-color 0.1s, background 0.1s',
+                boxShadow: isActive ? `0 0 16px -4px rgba(0,229,255,0.4)` : 'none',
+                transition: 'all 0.12s',
               }}
             >
-              <span style={{ fontSize: 11, color: isActive ? '#e2e8f0' : '#555' }}>
-                {t.icon} {t.name}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 15, color: isActive ? CYAN : 'var(--ink-4)' }}>
+                {t.icon}
+              </span>
+              <span style={{ fontFamily: 'var(--font-tac)', fontSize: 12, fontWeight: 600, color: isActive ? 'var(--ink)' : 'var(--ink-3)' }}>
+                {t.name}
               </span>
               <span style={{
-                fontSize: 8, padding: '1px 5px', borderRadius: 2,
-                background: '#0a0a0a', border: `1px solid ${COMPLEXITY_COLOR[t.complexity] ?? '#333'}`,
-                color: COMPLEXITY_COLOR[t.complexity] ?? '#555',
-                letterSpacing: '0.04em',
+                fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 6px', borderRadius: 4,
+                background: 'rgba(255,255,255,0.04)', border: `1px solid ${cxColor}44`,
+                color: cxColor, letterSpacing: '0.04em', whiteSpace: 'nowrap',
               }}>
                 {t.complexity}
               </span>
               {wasUsed && (
-                <span style={{ fontSize: 9, color: '#22c55e' }}>✓</span>
+                <span style={{ color: '#34d399', display: 'flex' }}><CheckIco /></span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Complexity tracker — shows after any tool is used */}
+      {/* Complexity tracker */}
       {hasUsed && (
         <div style={{
-          borderLeft: '1px solid #1a1a1a',
-          paddingLeft: 16,
+          borderLeft: '1px solid rgba(255,255,255,0.07)',
+          paddingLeft: 18,
           display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          minWidth: 200,
+          alignItems: 'center',
+          gap: 12,
         }}>
-          {usedTools.map((t, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 9 }}>
-              <span style={{ color: '#2a4060', width: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {t.name}
-              </span>
-              <span style={{ color: COMPLEXITY_COLOR[t.complexity] ?? '#eab308' }}>{t.complexity}</span>
-            </div>
-          ))}
-          <div style={{
-            borderTop: '1px solid #1a1a1a', marginTop: 1, paddingTop: 2,
-            display: 'flex', gap: 8, alignItems: 'center', fontSize: 9,
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.12em', color: 'var(--ink-4)' }}>DOMINANT</span>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 800,
+            color: COMPLEXITY_COLOR[dominant] ?? 'var(--gold)',
+            letterSpacing: '0.02em',
           }}>
-            <span style={{ color: '#333', width: 140 }}>───── total</span>
-            <span style={{
-              color: COMPLEXITY_COLOR[dominant] ?? '#eab308',
-              fontWeight: 700,
-            }}>
-              {dominant}
-            </span>
-          </div>
+            {dominant}
+          </span>
         </div>
       )}
     </div>

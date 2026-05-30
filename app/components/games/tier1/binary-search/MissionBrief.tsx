@@ -13,81 +13,78 @@ interface Props {
 }
 
 const DIFF_COLOR: Record<string, string> = {
-  Easy: '#22c55e', Medium: '#eab308', Hard: '#ef4444',
+  Easy: '#34d399', Medium: '#ffd60a', Hard: '#ff5a7a',
 };
 
 function scoreColor(s: number) {
-  if (s >= 90) return '#22c55e';
-  if (s >= 70) return '#3b82f6';
-  if (s >= 50) return '#eab308';
-  return '#ef4444';
+  if (s >= 90) return '#34d399';
+  if (s >= 70) return 'var(--cyan)';
+  if (s >= 50) return 'var(--gold)';
+  return '#ff5a7a';
 }
 
-function Row({ label, value, vc }: { label: string; value: string; vc: string }) {
+function BriefRow({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', fontSize: 11 }}>
-      <span style={{ color: '#444', letterSpacing: '0.06em', minWidth: 80, flexShrink: 0 }}>{label}</span>
-      <span style={{ color: vc, lineHeight: 1.4 }}>{value}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em', color: 'var(--ink-4)' }}>{label}</span>
+      <span style={{ fontSize: 14, lineHeight: 1.5, color, fontFamily: 'var(--font-tac)' }}>{value}</span>
     </div>
   );
 }
 
 export default function MissionBrief({ missionName, situation, objective, constraint, tools, difficulty, lcRef, score }: Props) {
+  const diffColor = DIFF_COLOR[difficulty] ?? 'var(--ink-3)';
+
   return (
     <div style={{
-      background: '#0a0a0a',
-      borderBottom: '1px solid #2a2a2a',
+      background: 'linear-gradient(180deg, rgba(11,14,31,0.85), rgba(6,8,20,0.6))',
+      borderBottom: '1px solid rgba(0,229,255,0.12)',
       padding: '14px 24px',
       flexShrink: 0,
-      fontFamily: 'var(--font-mono, monospace)',
+      backdropFilter: 'blur(12px)',
     }}>
-      <div style={{ display: 'flex', gap: 24 }}>
-        {/* Left 60% */}
-        <div style={{ flex: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 13, color: '#eab308', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 4 }}>
-            MISSION: {missionName}
+      <div style={{ display: 'flex', gap: 28 }}>
+        {/* left: brief */}
+        <div style={{ flex: 6, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.18em', color: 'var(--gold)' }}>◇ MISSION BRIEF</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{missionName}</span>
           </div>
-          <div style={{ height: 1, background: '#1a1a1a', marginBottom: 4 }} />
-          <Row label="SITUATION" value={situation} vc="#e2e8f0" />
-          <Row label="OBJECTIVE" value={objective} vc="#22c55e" />
-          <Row label="CONSTRAINT" value={constraint} vc="#f97316" />
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ display: 'flex', gap: 20 }}>
+            <BriefRow label="SITUATION" value={situation} color="var(--ink-2)" />
+            <BriefRow label="OBJECTIVE" value={objective} color="#34d399" />
+            <BriefRow label="⚠ CONSTRAINT" value={constraint} color="var(--ink-2)" />
+          </div>
         </div>
 
-        {/* Right 40% */}
-        <div style={{ flex: 4, paddingLeft: 20, borderLeft: '1px solid #1a1a1a', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 9, color: '#444', letterSpacing: '0.12em' }}>AVAILABLE TOOLS</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+        {/* right: tools + meta */}
+        <div style={{ flex: 4, paddingLeft: 22, borderLeft: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.14em', color: 'var(--ink-4)' }}>AVAILABLE TOOLS</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {tools.map(t => (
-              <span
-                key={t}
-                style={{
-                  background: '#111', border: '1px solid #2a2a2a',
-                  color: '#a855f7', fontSize: 9, padding: '2px 8px', borderRadius: 3,
-                  letterSpacing: '0.06em',
-                }}
-              >
+              <span key={t} style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.06em',
+                padding: '3px 10px', borderRadius: 6,
+                background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)',
+                color: 'var(--cyan)',
+              }}>
                 {t}
               </span>
             ))}
           </div>
-
-          {/* Bottom strip */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <span style={{
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                color: DIFF_COLOR[difficulty] ?? '#64748b',
-              }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: diffColor }}>
                 {difficulty.toUpperCase()}
               </span>
-              <span style={{ fontSize: 9, color: '#2a3a4a' }}>LC #{lcRef}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)' }}>LC #{lcRef}</span>
             </div>
             <div style={{
-              fontSize: 10,
-              color: score === 0 ? '#222' : scoreColor(score),
-              letterSpacing: '0.06em',
+              fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700,
+              color: score === 0 ? 'var(--ink-4)' : scoreColor(score),
             }}>
-              SCORE: {score === 0 ? '--' : `${score}/100`}
+              {score === 0 ? '--' : `${score}/100`}
             </div>
           </div>
         </div>

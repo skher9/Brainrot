@@ -552,7 +552,7 @@ export default function NumberSmuggler({ levelNum, onComplete, onBack }: Props) 
               range={cfg.range}
               lo={parallelStates[i].lo} hi={parallelStates[i].hi}
               lastGuess={parallelStates[i].history.at(-1)?.guess ?? null}
-              result={parallelStates[i].history.at(-1)?.result ?? null}
+              result={(() => { const r = parallelStates[i].history.at(-1)?.result ?? null; return r === "lie" ? null : r; })()}
               onGuess={n => handleParallelGuess(i, n)}
               disabled={parallelStates[i].done}
             />

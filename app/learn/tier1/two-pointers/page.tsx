@@ -34,7 +34,31 @@ function getStatus(done: number, locked: boolean): "available" | "active" | "com
   return "available";
 }
 
-/* ── Letter-by-letter title ──────────────────────────────── */
+/* ── Split title: two halves slam in from left + right ───── */
+function SplitTitle({ left, right, delay = 0 }: { left: string; right: string; delay?: number }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 0 }}>
+      <motion.span
+        initial={{ x: "-60px", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
+        style={{ display: "inline-block" }}
+      >
+        {left}
+      </motion.span>
+      <motion.span
+        initial={{ x: "60px", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
+        style={{ display: "inline-block" }}
+      >
+        {right}
+      </motion.span>
+    </span>
+  );
+}
+
+/* ── Letter-by-letter reveal (subtitle) ─────────────────── */
 function LetterReveal({ text, startDelay = 0 }: { text: string; startDelay?: number }) {
   return (
     <span>
@@ -106,7 +130,7 @@ function EntryScreen({ onDone }: { onDone: () => void }) {
                 textShadow: `0 0 50px rgba(0,180,200,0.2)`,
                 lineHeight: 1,
               }}>
-                <LetterReveal text="POINTER DOCKS" startDelay={0.12} />
+                <SplitTitle left="POINTER" right=" DOCKS" delay={0.12} />
               </h1>
             </motion.div>
           )}
